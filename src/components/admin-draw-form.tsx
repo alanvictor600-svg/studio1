@@ -68,7 +68,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
   return (
     <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className={`text-xl text-center font-bold ${hasWinningTickets ? 'text-destructive' : 'text-primary'}`}>
+        <CardTitle className={`text-xl text-center font-bold ${hasWinningTickets ? 'text-foreground' : 'text-primary'}`}>
           {hasWinningTickets ? (
             <span className="flex items-center justify-center"><LockKeyhole className="mr-2 h-5 w-5" /> Cadastro de Sorteio Bloqueado</span>
           ) : (
@@ -85,8 +85,8 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
         {hasWinningTickets ? (
           <Alert variant="destructive" className="border-destructive/70 bg-destructive/10">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <AlertTitle className="font-semibold text-destructive">Cadastro de Sorteios Interrompido</AlertTitle>
-            <AlertDescription className="text-destructive/90">
+            <AlertTitle className="font-semibold text-foreground">Cadastro de Sorteios Interrompido</AlertTitle>
+            <AlertDescription className="text-foreground/90">
               Existem bilhetes premiados aguardando o encerramento da loteria atual.
               Para registrar novos sorteios, por favor, inicie uma nova loteria na seção 'Controles da Loteria'.
             </AlertDescription>
@@ -125,3 +125,4 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     </Card>
   );
 };
+
