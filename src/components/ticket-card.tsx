@@ -52,13 +52,31 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
 
   const statusProps = getStatusProps();
 
-  const drawnNumbersSet = useMemo(() => {
+  const drawnNumbersFrequency = useMemo(() => {
     if (!draws || draws.length === 0) {
-      return new Set<number>();
+      return {} as Record<number, number>;
     }
-    const allDrawnNumbers = draws.flatMap(d => d.numbers);
-    return new Set<number>(allDrawnNumbers);
+    const frequency: Record<number, number> = {};
+    for (const draw of draws) {
+      for (const num of draw.numbers) {
+        frequency[num] = (frequency[num] || 0) + 1;
+      }
+    }
+    return frequency;
   }, [draws]);
+
+  const processedTicketNumbers = useMemo(() => {
+    const tempDrawnFrequency = { ...drawnNumbersFrequency };
+    return ticket.numbers.map(num => {
+      let isMatchedInstance = false;
+      if (tempDrawnFrequency[num] && tempDrawnFrequency[num] > 0) {
+        isMatchedInstance = true;
+        tempDrawnFrequency[num]--;
+      }
+      return { numberValue: num, isMatched: isMatchedInstance };
+    });
+  }, [ticket.numbers, drawnNumbersFrequency]);
+
 
   return (
     <Card className={cn(
@@ -80,24 +98,21 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
         <div className="mb-4">
           <p className="text-sm font-medium mb-1 opacity-90">Números:</p>
           <div className="flex flex-wrap gap-1.5">
-            {ticket.numbers.map((num, index) => {
-              const isMatched = drawnNumbersSet.has(num);
-              return (
-                <Badge
-                  key={index}
-                  variant="default" // This variant itself means bg-primary text-primary-foreground
-                  className={cn(
-                    "text-md font-semibold px-2.5 py-1 shadow-sm",
-                    ticket.status === 'winning' 
-                      ? 'bg-primary-foreground text-primary' // Style for numbers on a winning ticket
-                      : 'bg-primary text-primary-foreground', // Default style for numbers on active/expired tickets
-                    isMatched && 'ring-2 ring-accent ring-offset-2 ring-offset-background' // Apply ring if number is matched in any draw
-                  )}
-                >
-                  {num}
-                </Badge>
-              );
-            })}
+            {processedTicketNumbers.map(({ numberValue, isMatched }, index) => (
+              <Badge
+                key={`${ticket.id}-num-${index}`} // Ensure unique key for each number instance
+                variant="default" 
+                className={cn(
+                  "text-md font-semibold px-2.5 py-1 shadow-sm",
+                  ticket.status === 'winning' 
+                    ? 'bg-primary-foreground text-primary' 
+                    : 'bg-primary text-primary-foreground', 
+                  isMatched && 'ring-2 ring-yellow-300 dark:ring-yellow-400 ring-offset-2 ring-offset-[hsl(var(--card))]' // Custom ring color for matched numbers
+                )}
+              >
+                {numberValue}
+              </Badge>
+            ))}
           </div>
         </div>
         <div className="text-xs opacity-80 flex items-center">
@@ -115,3 +130,4 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
     </Card>
   );
 };
+

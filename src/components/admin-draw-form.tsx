@@ -32,7 +32,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw }) => {
 
   const validateAndSubmit = () => {
     const parsedNumbers: number[] = [];
-    const seenNumbers = new Set<number>();
+    // const seenNumbers = new Set<number>(); // Removed for allowing duplicates
 
     for (let i = 0; i < NUM_OF_PICKS; i++) {
       const numStr = numbers[i];
@@ -45,12 +45,13 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw }) => {
         toast({ title: "Erro de Validação", description: `Número ${i + 1} inválido. Deve ser entre ${MIN_NUMBER} e ${MAX_NUMBER}.`, variant: "destructive" });
         return;
       }
-      if (seenNumbers.has(num)) {
-        toast({ title: "Erro de Validação", description: `Número ${num} repetido. Os números devem ser distintos.`, variant: "destructive" });
-        return;
-      }
+      // Removed distinct number check:
+      // if (seenNumbers.has(num)) {
+      //   toast({ title: "Erro de Validação", description: `Número ${num} repetido. Os números devem ser distintos.`, variant: "destructive" });
+      //   return;
+      // }
       parsedNumbers.push(num);
-      seenNumbers.add(num);
+      // seenNumbers.add(num); // Removed
     }
 
     if (parsedNumbers.length === NUM_OF_PICKS) {
@@ -70,7 +71,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw }) => {
       <CardHeader>
         <CardTitle className="text-xl text-center font-bold text-primary">Cadastrar Novo Sorteio</CardTitle>
         <CardDescription className="text-center text-muted-foreground">
-          Insira {NUM_OF_PICKS} números distintos entre {MIN_NUMBER} e {MAX_NUMBER}.
+          Insira {NUM_OF_PICKS} números (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -104,3 +105,4 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw }) => {
     </Card>
   );
 };
+
