@@ -104,10 +104,12 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
                 variant="default" 
                 className={cn(
                   "text-md font-semibold px-2.5 py-1 shadow-sm",
-                  ticket.status === 'winning' 
-                    ? 'bg-primary-foreground text-primary' 
-                    : 'bg-primary text-primary-foreground', 
-                  isMatched && 'ring-2 ring-yellow-300 dark:ring-yellow-400 ring-offset-2 ring-offset-[hsl(var(--card))]' // Custom ring color for matched numbers
+                  isMatched
+                    ? 'bg-accent text-accent-foreground' // Highlight for matched numbers
+                    : (ticket.status === 'winning' // Style for non-matched numbers based on ticket status
+                        ? 'bg-primary-foreground text-primary' 
+                        : 'bg-primary text-primary-foreground'),
+                  isMatched && 'ring-2 ring-yellow-300 dark:ring-yellow-400 ring-offset-2 ring-offset-[hsl(var(--card))]' // Ring for matched numbers
                 )}
               >
                 {numberValue}
