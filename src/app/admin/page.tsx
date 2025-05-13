@@ -36,18 +36,16 @@ export default function AdminPage() {
     if (storedTickets) {
       setAllTickets(JSON.parse(storedTickets));
     }
-  }, []); // Removed isClient dependency here as it's set once.
+  }, []); 
 
   // Process tickets based on draws and save updated tickets to localStorage
   useEffect(() => {
     if (isClient) {
       const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
       
-      // Only update state if there's a meaningful change to avoid infinite loops or unnecessary re-renders.
       if (JSON.stringify(processedTickets) !== JSON.stringify(allTickets)) {
          setAllTickets(processedTickets);
       }
-      // Always save the latest `processedTickets` to localStorage to ensure consistency.
       localStorage.setItem(COMPRADOR_TICKETS_STORAGE_KEY, JSON.stringify(processedTickets));
     }
   }, [allTickets, draws, isClient]);
@@ -63,7 +61,7 @@ export default function AdminPage() {
     return allTickets.filter(ticket => ticket.status === 'winning');
   }, [allTickets]);
 
-  const handleAddDraw = (newNumbers: number[]) => {
+  const handleAddDraw = (newNumbers: number[], name?: string) => {
     if (winningTickets.length > 0) {
       toast({ title: "Ação Bloqueada", description: "Não é possível cadastrar sorteios enquanto houver bilhetes premiados. Inicie uma nova loteria.", variant: "destructive" });
       return;
@@ -76,17 +74,14 @@ export default function AdminPage() {
       id: uuidv4(),
       numbers: newNumbers.sort((a, b) => a - b),
       createdAt: new Date().toISOString(),
+      name: name || undefined, // Add the name here
     };
     setDraws(prevDraws => [newDraw, ...prevDraws]);
      toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado com sucesso.", className: "bg-primary text-primary-foreground" });
   };
 
   const handleStartNewLottery = () => {
-    // 1. Clear all draws
     setDraws([]);
-
-    // 2. Update ticket statuses: active/winning -> expired
-    // This will trigger the useEffect for allTickets, which will save to COMPRADOR_TICKETS_STORAGE_KEY
     setAllTickets(prevTickets =>
       prevTickets.map(ticket => {
         if (ticket.status === 'active' || ticket.status === 'winning') {
@@ -101,7 +96,7 @@ export default function AdminPage() {
       description: "Sorteios anteriores e bilhetes ativos/premiados foram resetados/expirados.",
       className: "bg-primary text-primary-foreground",
     });
-    setIsConfirmDialogOpen(false); // Close dialog
+    setIsConfirmDialogOpen(false); 
   };
 
 

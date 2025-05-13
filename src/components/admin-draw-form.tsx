@@ -5,13 +5,14 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle } from 'lucide-react';
+import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AdminDrawFormProps {
-  onAddDraw: (numbers: number[]) => void;
+  onAddDraw: (numbers: number[], name?: string) => void;
   hasWinningTickets?: boolean;
 }
 
@@ -21,6 +22,7 @@ const MAX_NUMBER = 25;
 
 export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTickets }) => {
   const [numbers, setNumbers] = useState<string[]>(Array(NUM_OF_PICKS).fill(''));
+  const [drawName, setDrawName] = useState('');
   const { toast } = useToast();
 
   const handleInputChange = (index: number, value: string) => {
@@ -54,15 +56,17 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     }
 
     if (parsedNumbers.length === NUM_OF_PICKS) {
-      onAddDraw(parsedNumbers);
+      onAddDraw(parsedNumbers, drawName.trim() || undefined);
       setNumbers(Array(NUM_OF_PICKS).fill('')); // Clear form
+      setDrawName(''); // Clear name input
       // Toast for successful draw registration is handled in the parent page
     }
   };
 
   const handleClear = () => {
     setNumbers(Array(NUM_OF_PICKS).fill(''));
-    toast({ title: "Campos Limpos", description: "Os números foram removidos." });
+    setDrawName('');
+    toast({ title: "Campos Limpos", description: "Os números e o nome do sorteio foram removidos." });
   }
 
   return (
@@ -77,11 +81,11 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
         </CardTitle>
         {!hasWinningTickets && (
           <CardDescription className="text-center text-muted-foreground">
-            Insira {NUM_OF_PICKS} números (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}.
+            Insira {NUM_OF_PICKS} números (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}, e um nome opcional para o sorteio.
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {hasWinningTickets ? (
           <Alert variant="destructive" className="border-destructive/70 bg-destructive/10">
             <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -92,21 +96,38 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="grid grid-cols-5 gap-3">
-            {numbers.map((num, index) => (
+          <>
+            <div>
+              <Label htmlFor="drawName" className="text-muted-foreground mb-1 flex items-center">
+                <Edit3 className="mr-2 h-4 w-4" /> Nome do Sorteio (Opcional)
+              </Label>
               <Input
-                key={index}
-                type="number"
-                value={num}
-                onChange={(e) => handleInputChange(index, e.target.value)}
-                placeholder={`${index + 1}º`}
-                min={MIN_NUMBER}
-                max={MAX_NUMBER}
-                className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                aria-label={`Número ${index + 1}`}
+                id="drawName"
+                value={drawName}
+                onChange={(e) => setDrawName(e.target.value)}
+                placeholder="Ex: Sorteio Especial de Natal"
+                className="bg-background/50"
               />
-            ))}
-          </div>
+            </div>
+            <div>
+                <Label className="text-muted-foreground mb-1">Números Sorteados ({NUM_OF_PICKS}):</Label>
+                <div className="grid grid-cols-5 gap-3">
+                    {numbers.map((num, index) => (
+                    <Input
+                        key={index}
+                        type="number"
+                        value={num}
+                        onChange={(e) => handleInputChange(index, e.target.value)}
+                        placeholder={`${index + 1}º`}
+                        min={MIN_NUMBER}
+                        max={MAX_NUMBER}
+                        className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        aria-label={`Número ${index + 1}`}
+                    />
+                    ))}
+                </div>
+            </div>
+          </>
         )}
       </CardContent>
       {!hasWinningTickets && (
