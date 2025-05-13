@@ -1,18 +1,12 @@
+
 import type {Metadata} from 'next';
-import { GeistSans } from 'geist/font/sans'; // Corrected import from geist/font/sans
+import { GeistSans } from 'geist/font/sans'; // GeistSans is a named export and is the font object.
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"; // Added Toaster
+import { Toaster } from "@/components/ui/toaster";
 
-const geistSans = GeistSans({ // Corrected usage for GeistSans
-  variable: '--font-geist-sans',
-  // subsets: ['latin'], // 'subsets' is not a valid option for GeistSans from 'geist/font/sans'. GeistSans defaults to Latin.
-});
-
-// If GeistMono were to be used, it should be imported from 'geist/font/mono'
-// import { GeistMono } from 'geist/font/mono';
-// const geistMono = GeistMono({
-//   variable: '--font-geist-mono',
-// });
+// No need to call GeistSans() as it's already the configured font object.
+// The object directly provides `variable` and `className` properties.
+// The `variable` property will provide the CSS variable name, e.g., '--font-geist-sans'.
 
 export const metadata: Metadata = {
   title: 'Bolão Potiguar',
@@ -26,10 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${geistSans.variable} font-sans antialiased`}>
+      {/* Use GeistSans.variable directly to apply the CSS variable to the body */}
+      <body className={`${GeistSans.variable} font-sans antialiased`}>
         {children}
         <Toaster />
       </body>
     </html>
   );
 }
+
