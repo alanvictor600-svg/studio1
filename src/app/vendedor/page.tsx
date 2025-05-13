@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
-import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form'; // New import
+import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import type { Draw, Ticket } from '@/types';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid
+import { v4 as uuidv4 } from 'uuid';
 import { ArrowLeft, ClipboardList, Ticket as TicketIconLucide, BarChart3, PlusCircle } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
@@ -90,6 +90,7 @@ export default function VendedorPage() {
     // Toast is handled in the form component
   };
 
+  const isLotteryActive = draws.length > 0;
 
   if (!isClient) {
     return (
@@ -125,7 +126,7 @@ export default function VendedorPage() {
           <h2 id="seller-ticket-creation-heading" className="text-3xl font-bold text-primary mb-6 text-center flex items-center justify-center">
             <PlusCircle className="mr-3 h-7 w-7" /> Registrar Nova Venda de Bilhete
           </h2>
-          <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} />
+          <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} isLotteryActive={isLotteryActive} />
         </section>
 
         {/* Dashboard Summary Section */}

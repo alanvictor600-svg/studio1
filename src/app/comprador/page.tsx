@@ -70,7 +70,7 @@ export default function CompradorPage() {
     setTickets(prevTickets => [newTicket, ...prevTickets]); // Add new ticket, effect will process and save
   };
 
-  // Removed handleUpdateTicketStatus function
+  const isLotteryActive = draws.length > 0;
 
   if (!isClient) {
     return (
@@ -103,7 +103,7 @@ export default function CompradorPage() {
       <main className="space-y-12 flex-grow">
         <section aria-labelledby="ticket-selection-heading">
           <h2 id="ticket-selection-heading" className="sr-only">Seleção de Bilhetes</h2>
-          <TicketSelectionForm onAddTicket={handleAddTicket} />
+          <TicketSelectionForm onAddTicket={handleAddTicket} isLotteryActive={isLotteryActive} />
         </section>
 
         <section aria-labelledby="ticket-management-heading" className="mt-16">
@@ -113,7 +113,6 @@ export default function CompradorPage() {
           <TicketList
             tickets={tickets}
             draws={draws}
-            // Removed onUpdateTicketStatus prop
           />
         </section>
       </main>

@@ -1,26 +1,49 @@
+
 "use client";
 
 import { useState, type FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateAutoFilledTicket, countOccurrences } from '@/lib/lottery-utils';
 import { NumberButton } from '@/components/number-button';
-import { X, Sparkles, Trash2, TicketPlus } from 'lucide-react';
+import { X, Sparkles, Trash2, TicketPlus, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface TicketSelectionFormProps {
   onAddTicket: (numbers: number[]) => void;
+  isLotteryActive?: boolean;
 }
 
 const MAX_PICKS = 10;
 const MAX_REPETITION = 4;
 
-export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket }) => {
+export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket, isLotteryActive = false }) => {
   const [currentPicks, setCurrentPicks] = useState<number[]>([]);
   const { toast } = useToast();
 
   const numberCounts = countOccurrences(currentPicks);
+
+  if (isLotteryActive) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center font-bold text-primary">Monte Seu Bilhete</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground">
+            <PauseCircle className="h-5 w-5 text-primary" />
+            <AlertTitle className="text-primary">Compras Pausadas</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              Novas compras de bilhetes estão temporariamente suspensas pois um bolão já foi iniciado.
+              Aguarde o administrador reiniciar o bolão para poder comprar novos bilhetes.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleNumberClick = (num: number) => {
     if (currentPicks.length >= MAX_PICKS) {

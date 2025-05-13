@@ -7,25 +7,47 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateAutoFilledTicket, countOccurrences } from '@/lib/lottery-utils';
 import { NumberButton } from '@/components/number-button';
-import { X, Sparkles, Trash2, TicketPlus, User, Phone } from 'lucide-react';
+import { X, Sparkles, Trash2, TicketPlus, User, Phone, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface SellerTicketCreationFormProps {
   onAddTicket: (numbers: number[], buyerName: string, buyerPhone: string) => void;
+  isLotteryActive?: boolean;
 }
 
 const MAX_PICKS = 10;
 const MAX_REPETITION = 4;
 
-export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ onAddTicket }) => {
+export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ onAddTicket, isLotteryActive = false }) => {
   const [currentPicks, setCurrentPicks] = useState<number[]>([]);
   const [buyerName, setBuyerName] = useState('');
   const [buyerPhone, setBuyerPhone] = useState('');
   const { toast } = useToast();
 
   const numberCounts = countOccurrences(currentPicks);
+
+  if (isLotteryActive) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center font-bold text-primary">Registrar Venda de Bilhete</CardTitle>
+        </CardHeader>
+        <CardContent>
+           <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground">
+            <PauseCircle className="h-5 w-5 text-primary" />
+            <AlertTitle className="text-primary">Vendas Pausadas</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              O registro de novas vendas de bilhetes está temporariamente suspenso pois um bolão já foi iniciado.
+              Aguarde o administrador reiniciar o bolão para registrar novas vendas.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleNumberClick = (num: number) => {
     if (currentPicks.length >= MAX_PICKS) {
