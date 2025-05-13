@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings } from 'lucide-react';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
@@ -23,7 +24,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center">
+    <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
       <header className="mb-12 text-center">
         <div className="inline-block p-3 rounded-full bg-primary shadow-lg mb-4">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary-foreground))" xmlns="http://www.w3.org/2000/svg" data-ai-hint="lottery ball">
@@ -37,7 +38,7 @@ export default function LandingPage() {
         <p className="text-xl text-muted-foreground mt-3">Bem-vindo! Escolha seu perfil para continuar.</p>
       </header>
 
-      <main className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-8">
+      <main className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8">
         <Link href="/comprador" passHref legacyBehavior>
           <a className="block transform hover:scale-105 transition-transform duration-300">
             <Card className="text-center h-full flex flex-col justify-between shadow-xl hover:shadow-2xl bg-card/90 backdrop-blur-sm border-primary/50">
@@ -75,26 +76,24 @@ export default function LandingPage() {
             </Card>
           </a>
         </Link>
-
-        <Link href="/admin" passHref legacyBehavior>
-          <a className="block transform hover:scale-105 transition-transform duration-300">
-            <Card className="text-center h-full flex flex-col justify-between shadow-xl hover:shadow-2xl bg-card/90 backdrop-blur-sm border-accent/50">
-              <CardHeader>
-                <ShieldCheck className="mx-auto h-16 w-16 text-accent mb-4" />
-                <CardTitle className="text-2xl font-bold text-accent">Admin</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Administre os sorteios e configurações do sistema.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="mt-auto pb-6">
-                <Button variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                  Acessar Admin <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          </a>
-        </Link>
       </main>
+
+      <div className="fixed bottom-6 left-6 z-50">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Opções de Administrador" className="shadow-lg rounded-full">
+              <Settings className="h-5 w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2">
+            <Link href="/admin" passHref legacyBehavior>
+              <Button variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <ShieldCheck className="mr-2 h-4 w-4" /> Acessar Admin
+              </Button>
+            </Link>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       <footer className="mt-20 py-8 text-center border-t border-border/50 w-full">
         <p className="text-sm text-muted-foreground">
