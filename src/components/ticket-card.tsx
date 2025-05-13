@@ -4,22 +4,20 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
 import type { Ticket, Draw } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Button } from '@/components/ui/button'; // For dev buttons
 import { Award, CircleDot, TimerOff, CalendarDays } from 'lucide-react';
 
 
 interface TicketCardProps {
   ticket: Ticket;
-  onUpdateTicketStatus?: (ticketId: string, newStatus: Ticket['status']) => void; // Optional for dev/demo
   draws?: Draw[]; // Added to receive draw information
 }
 
-export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, draws }) => {
+export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
   const getStatusProps = () => {
     switch (ticket.status) {
       case 'winning':
@@ -101,13 +99,13 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
             {processedTicketNumbers.map(({ numberValue, isMatched }, index) => (
               <Badge
                 key={`${ticket.id}-num-${index}`} // Ensure unique key for each number instance
-                variant="default" 
+                variant="default"
                 className={cn(
                   "text-md font-semibold px-2.5 py-1 shadow-sm",
                   isMatched
                     ? 'bg-accent text-accent-foreground' // Highlight for matched numbers
                     : (ticket.status === 'winning' // Style for non-matched numbers based on ticket status
-                        ? 'bg-primary-foreground text-primary' 
+                        ? 'bg-primary-foreground text-primary'
                         : 'bg-primary text-primary-foreground'),
                   isMatched && 'ring-2 ring-yellow-300 dark:ring-yellow-400 ring-offset-2 ring-offset-[hsl(var(--card))]' // Ring for matched numbers
                 )}
@@ -122,13 +120,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, onUpdateTicketStatus, 
           Criado em: {format(parseISO(ticket.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
         </div>
       </CardContent>
-      {onUpdateTicketStatus && ( // Dev buttons for status change
-        <CardFooter className="pt-3 flex gap-2 justify-end border-t border-current/20">
-          {ticket.status !== 'active' && <Button size="sm" variant="ghost" className="text-xs" onClick={() => onUpdateTicketStatus(ticket.id, 'active')}>Marcar Ativo</Button>}
-          {ticket.status !== 'winning' && <Button size="sm" variant="ghost" className="text-xs" onClick={() => onUpdateTicketStatus(ticket.id, 'winning')}>Marcar Premiado</Button>}
-          {ticket.status !== 'expired' && <Button size="sm" variant="ghost" className="text-xs" onClick={() => onUpdateTicketStatus(ticket.id, 'expired')}>Marcar Expirado</Button>}
-        </CardFooter>
-      )}
+      {/* Removed CardFooter with manual status update buttons */}
     </Card>
   );
 };

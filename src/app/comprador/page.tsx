@@ -38,7 +38,7 @@ export default function CompradorPage() {
     }
     // Set initial tickets; the processing effect will run after this.
     // The subsequent effect will process these tickets against draws and save them.
-    setTickets(initialTickets); 
+    setTickets(initialTickets);
 
   }, [isClient]);
 
@@ -49,7 +49,7 @@ export default function CompradorPage() {
       // and we don't want to overwrite localStorage with an empty array unless it was truly the result of processing.
       if (tickets.length > 0 || localStorage.getItem(COMPRADOR_TICKETS_STORAGE_KEY)) {
           const processedTickets = updateTicketStatusesBasedOnDraws(tickets, draws);
-          
+
           if (JSON.stringify(processedTickets) !== JSON.stringify(tickets)) {
             setTickets(processedTickets); // Update state if statuses changed
           }
@@ -63,17 +63,14 @@ export default function CompradorPage() {
   const handleAddTicket = (newNumbers: number[]) => {
     const newTicket: Ticket = {
       id: uuidv4(),
-      numbers: newNumbers.sort((a, b) => a - b), 
+      numbers: newNumbers.sort((a, b) => a - b),
       status: 'active', // Initial status, will be updated by the useEffect that processes tickets
       createdAt: new Date().toISOString(),
     };
     setTickets(prevTickets => [newTicket, ...prevTickets]); // Add new ticket, effect will process and save
   };
 
-  const handleUpdateTicketStatus = (ticketId: string, newStatus: Ticket['status']) => {
-    // Dev function: directly set status. The main useEffect will re-evaluate if it conflicts with winning logic.
-    setTickets(prevTickets => prevTickets.map(t => t.id === ticketId ? {...t, status: newStatus} : t));
-  };
+  // Removed handleUpdateTicketStatus function
 
   if (!isClient) {
     return (
@@ -113,10 +110,10 @@ export default function CompradorPage() {
           <h2 id="ticket-management-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
             Meus Bilhetes
           </h2>
-          <TicketList 
-            tickets={tickets} 
-            onUpdateTicketStatus={handleUpdateTicketStatus} 
+          <TicketList
+            tickets={tickets}
             draws={draws}
+            // Removed onUpdateTicketStatus prop
           />
         </section>
       </main>

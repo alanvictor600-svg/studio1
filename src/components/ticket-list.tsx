@@ -9,11 +9,10 @@ import { List, PlayCircle, Trophy, Clock3 } from 'lucide-react';
 
 interface TicketListProps {
   tickets: Ticket[];
-  onUpdateTicketStatus?: (ticketId: string, newStatus: Ticket['status']) => void; // Optional for dev/demo
   draws?: Draw[]; // Added to receive draw information
 }
 
-export const TicketList: FC<TicketListProps> = ({ tickets, onUpdateTicketStatus, draws }) => {
+export const TicketList: FC<TicketListProps> = ({ tickets, draws }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'winning' | 'expired'>('all');
 
   const filteredTickets = tickets.filter(ticket => {
@@ -43,11 +42,11 @@ export const TicketList: FC<TicketListProps> = ({ tickets, onUpdateTicketStatus,
       {filteredTickets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTickets.map(ticket => (
-            <TicketCard 
-              key={ticket.id} 
-              ticket={ticket} 
-              onUpdateTicketStatus={onUpdateTicketStatus}
+            <TicketCard
+              key={ticket.id}
+              ticket={ticket}
               draws={draws} // Pass draws to TicketCard
+              // Removed onUpdateTicketStatus prop
             />
           ))}
         </div>
