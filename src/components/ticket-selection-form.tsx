@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type FC } from 'react';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { generateAutoFilledTicket, countOccurrences } from '@/lib/lottery-utils';
+import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib/lottery-utils';
 import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, TicketPlus, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -110,16 +109,18 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket,
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">Escolha os Números:</h3>
-          <div className="grid grid-cols-5 sm:grid-cols-5 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
-            {Array.from({ length: 25 }, (_, i) => i + 1).map(num => (
+          <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">Escolha os Números (1-25):</h3>
+          <div className="grid grid-cols-5 sm:grid-cols-7 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
+            {animalMapping.map(animal => (
               <NumberButton
-                key={num}
-                number={num}
+                key={animal.number}
+                number={animal.number}
                 onClick={handleNumberClick}
-                disabled={(numberCounts[num] || 0) >= MAX_REPETITION || currentPicks.length >= MAX_PICKS}
-                isSelected={currentPicks.includes(num)}
-                countInSelection={numberCounts[num] || 0}
+                disabled={(numberCounts[animal.number] || 0) >= MAX_REPETITION || currentPicks.length >= MAX_PICKS}
+                isSelected={currentPicks.includes(animal.number)}
+                countInSelection={numberCounts[animal.number] || 0}
+                animalName={animal.name}
+                animalImageHint={animal.hint}
               />
             ))}
           </div>

@@ -1,6 +1,34 @@
 // src/lib/lottery-utils.ts
 import type { Ticket, Draw } from '@/types';
 
+export const animalMapping = [
+  { number: 1, name: "Avestruz", hint: "ostrich" },
+  { number: 2, name: "Águia", hint: "eagle" },
+  { number: 3, name: "Burro", hint: "donkey" },
+  { number: 4, name: "Borboleta", hint: "butterfly" },
+  { number: 5, name: "Cachorro", hint: "dog" },
+  { number: 6, name: "Cabra", hint: "goat" },
+  { number: 7, name: "Carneiro", hint: "ram" },
+  { number: 8, name: "Camelo", hint: "camel" },
+  { number: 9, name: "Cobra", hint: "snake" },
+  { number: 10, name: "Coelho", hint: "rabbit" },
+  { number: 11, name: "Cavalo", hint: "horse" },
+  { number: 12, name: "Elefante", hint: "elephant" },
+  { number: 13, name: "Galo", hint: "rooster" },
+  { number: 14, name: "Gato", hint: "cat" },
+  { number: 15, name: "Jacaré", hint: "alligator" },
+  { number: 16, name: "Leão", hint: "lion" },
+  { number: 17, name: "Macaco", hint: "monkey" },
+  { number: 18, name: "Porco", hint: "pig" },
+  { number: 19, name: "Pavão", hint: "peacock" },
+  { number: 20, name: "Peru", hint: "turkey bird" }, // "turkey" might give Thanksgiving turkey
+  { number: 21, name: "Touro", hint: "bull" },
+  { number: 22, name: "Tigre", hint: "tiger" },
+  { number: 23, name: "Urso", hint: "bear" },
+  { number: 24, name: "Veado", hint: "deer" },
+  { number: 25, name: "Vaca", hint: "cow" },
+];
+
 export function generateAutoFilledTicket(): number[] {
   const ticket: number[] = [];
   const counts: Record<number, number> = {};
