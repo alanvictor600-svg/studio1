@@ -65,7 +65,7 @@ export default function LandingPage() {
       <header className="mb-12 text-center">
         <div className="mb-6">
           <Image 
-            src="/logo-bolao-potiguar.png" // Caminho para a sua logo na pasta public
+            src="/logo.png" // Caminho para a sua logo na pasta public
             alt="Logo Bolão Potiguar"
             width={180} // Ajuste a largura conforme necessário
             height={180} // Ajuste a altura conforme necessário
