@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FC } from 'react';
@@ -158,8 +159,6 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ on
                 disabled={(numberCounts[animal.number] || 0) >= MAX_REPETITION || currentPicks.length >= MAX_PICKS}
                 isSelected={currentPicks.includes(animal.number)}
                 countInSelection={numberCounts[animal.number] || 0}
-                animalName={animal.name}
-                animalImageHint={animal.hint}
               />
             ))}
           </div>
