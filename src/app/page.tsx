@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings } from 'lucide-react';
+import { ThemeToggleButton } from '@/components/theme-toggle-button'; // Import the toggle button
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
@@ -25,6 +26,9 @@ export default function LandingPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
+      <div className="fixed top-6 right-6 z-50">
+        <ThemeToggleButton />
+      </div>
       <header className="mb-12 text-center">
         <div className="inline-block p-3 rounded-full bg-primary shadow-lg mb-4">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="hsl(var(--primary-foreground))" xmlns="http://www.w3.org/2000/svg" data-ai-hint="lottery ball">
