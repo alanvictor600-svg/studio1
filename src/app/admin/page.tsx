@@ -9,7 +9,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, ListChecks, PlusCircle, ShieldCheck, History, BarChart3 } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -154,7 +154,7 @@ export default function AdminPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
-      <header className="mb-10">
+      <header className="mb-6">
         <div className="flex justify-between items-center">
           <Link href="/" passHref>
             <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start">
@@ -168,12 +168,52 @@ export default function AdminPage() {
              </h1>
              <p className="text-lg text-muted-foreground mt-2">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
           </div>
-          <div className="w-[150px]"></div> 
+          <div className="w-[150px] sm:w-[180px] md:w-[200px]"></div> 
         </div>
       </header>
 
+      <nav className="mb-10 py-3 bg-card/70 backdrop-blur-sm rounded-lg shadow-md sticky top-4 z-10">
+        <ul className="flex flex-wrap justify-center items-center gap-x-2 gap-y-1 sm:gap-x-4">
+          <li>
+            <Link href="#admin-lottery-settings-section" passHref>
+              <Button variant="ghost" className="text-primary hover:bg-primary/10 text-xs sm:text-sm">
+                <Settings className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5" /> Configurações
+              </Button>
+            </Link>
+          </li>
+          <li>
+            <Link href="#admin-draw-submission-section" passHref>
+              <Button variant="ghost" className="text-primary hover:bg-primary/10 text-xs sm:text-sm">
+                <PlusCircle className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5" /> Cadastrar Sorteio
+              </Button>
+            </Link>
+          </li>
+          <li>
+            <Link href="#admin-lottery-controls-section" passHref>
+              <Button variant="ghost" className="text-primary hover:bg-primary/10 text-xs sm:text-sm">
+                <ShieldCheck className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5" /> Controles
+              </Button>
+            </Link>
+          </li>
+          <li>
+            <Link href="#admin-draw-history-section" passHref>
+              <Button variant="ghost" className="text-primary hover:bg-primary/10 text-xs sm:text-sm">
+                <History className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5" /> Histórico Sorteios
+              </Button>
+            </Link>
+          </li>
+          <li>
+            <Link href="#admin-winning-tickets-section" passHref>
+              <Button variant="ghost" className="text-primary hover:bg-primary/10 text-xs sm:text-sm">
+                <Trophy className="mr-1.5 h-4 w-4 sm:h-5 sm:w-5" /> Bilhetes Premiados
+              </Button>
+            </Link>
+          </li>
+        </ul>
+      </nav>
+
       <main className="space-y-12 flex-grow">
-        <section aria-labelledby="lottery-settings-heading">
+        <section id="admin-lottery-settings-section" aria-labelledby="lottery-settings-heading" className="scroll-mt-24">
             <h2 id="lottery-settings-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
                 <Settings className="mr-3 h-8 w-8 text-primary" />
                 Configurações da Loteria
@@ -227,18 +267,22 @@ export default function AdminPage() {
             </Card>
         </section>
         
-        <section aria-labelledby="draw-submission-heading" className="mt-12">
-          <h2 id="draw-submission-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
+        <section id="admin-draw-submission-section" aria-labelledby="draw-submission-heading" className="mt-12 scroll-mt-24">
+          <h2 id="draw-submission-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
+            <PlusCircle className="mr-3 h-8 w-8 text-primary" />
             Cadastrar Novo Sorteio
           </h2>
           <AdminDrawForm onAddDraw={handleAddDraw} hasWinningTickets={winningTickets.length > 0} />
         </section>
 
-        <section aria-labelledby="lottery-controls-heading" className="mt-12">
-          <h2 id="lottery-controls-heading" className="sr-only">Controles da Loteria</h2>
+        <section id="admin-lottery-controls-section" aria-labelledby="lottery-controls-heading" className="mt-12 scroll-mt-24">
+          <h2 id="lottery-controls-heading" className="sr-only">Controles da Loteria</h2> {/* Changed from text-3xl to sr-only as it's now visually represented by the card */}
           <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm border-destructive/50">
             <CardHeader>
-              <CardTitle className="text-xl text-center font-bold text-accent">Controles da Loteria</CardTitle>
+              <CardTitle className="text-xl text-center font-bold text-accent flex items-center justify-center">
+                <ShieldCheck className="mr-3 h-7 w-7" />
+                Controles da Loteria
+              </CardTitle>
               <CardDescription className="text-center text-muted-foreground">
                 Gerenciar o ciclo da loteria.
               </CardDescription>
@@ -274,14 +318,15 @@ export default function AdminPage() {
           </Card>
         </section>
 
-        <section aria-labelledby="draw-history-heading" className="mt-16">
-          <h2 id="draw-history-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
+        <section id="admin-draw-history-section" aria-labelledby="draw-history-heading" className="mt-16 scroll-mt-24">
+          <h2 id="draw-history-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
+            <History className="mr-3 h-8 w-8 text-primary" />
             Histórico de Sorteios
           </h2>
           <AdminDrawList draws={draws} />
         </section>
 
-        <section aria-labelledby="winning-tickets-heading" className="mt-16">
+        <section id="admin-winning-tickets-section" aria-labelledby="winning-tickets-heading" className="mt-16 scroll-mt-24">
           <h2 id="winning-tickets-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
             <Trophy className="mr-3 h-8 w-8 text-accent" />
             Bilhetes Premiados ({winningTickets.length})
