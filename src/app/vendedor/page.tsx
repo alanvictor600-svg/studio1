@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // Import Image component
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminDrawList } from '@/components/admin-draw-list';
@@ -108,12 +109,19 @@ export default function VendedorPage() {
             </Button>
           </Link>
           <div className="text-center flex-grow">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">
-              Área do Vendedor
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2">Painel de Controle e Vendas</p>
+            <div className="mb-2 flex justify-center"> {/* Added flex and justify-center */}
+              <Image
+                src="/logo.png" 
+                alt="Logo Bolão Potiguar" 
+                width={100} // Adjusted width for header
+                height={100} // Adjusted height for header
+                priority 
+                className="mx-auto"
+              />
+            </div>
+            <p className="text-lg text-muted-foreground mt-1">Painel de Controle e Vendas</p>
           </div>
-          <div className="w-[150px]"></div> 
+          <div className="w-[150px] sm:w-[180px] md:w-[200px]"></div> {/* Adjusted width for spacing */}
         </div>
       </header>
 
@@ -216,3 +224,5 @@ export default function VendedorPage() {
     </div>
   );
 }
+
+    
