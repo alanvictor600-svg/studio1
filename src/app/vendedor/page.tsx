@@ -1,37 +1,51 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
-import type { Draw, Ticket } from '@/types';
+import type { Draw, Ticket, LotteryConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, ClipboardList, Ticket as TicketIconLucide, BarChart3, PlusCircle, ListChecks, History, PieChart } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Ticket as TicketIconLucide, BarChart3, PlusCircle, ListChecks, History, PieChart, DollarSign, Percent, TrendingUp } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
 const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
+const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
+
+const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
+  ticketPrice: 2,
+  sellerCommissionPercentage: 10,
+};
 
 export default function VendedorPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [clienteTicketsForSummary, setClienteTicketsForSummary] = useState<Ticket[]>([]);
   const [vendedorManagedTickets, setVendedorManagedTickets] = useState<Ticket[]>([]);
+  const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
-  // Initial load of client status and draws
+  // Initial load of client status, draws, and lottery config
   useEffect(() => {
     setIsClient(true);
     const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
     if (storedDraws) {
       setDraws(JSON.parse(storedDraws));
+    }
+    const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
+    if (storedConfig) {
+      setLotteryConfig(JSON.parse(storedConfig));
+    } else {
+      // If no config, set default and save it
+      localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_LOTTERY_CONFIG));
     }
   }, []);
 
@@ -49,7 +63,6 @@ export default function VendedorPage() {
         setClienteTicketsForSummary(processedClienteTickets);
       }
       
-
       // Load vendedor tickets
       const storedVendedorTickets = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
       let initialVendedorTickets: Ticket[] = [];
@@ -60,9 +73,8 @@ export default function VendedorPage() {
        if (JSON.stringify(processedVendedorTickets) !== JSON.stringify(vendedorManagedTickets) || initialVendedorTickets.length !== vendedorManagedTickets.length) {
          setVendedorManagedTickets(processedVendedorTickets);
        }
-
     }
-  }, [isClient, draws, clienteTicketsForSummary]); 
+  }, [isClient, draws, clienteTicketsForSummary]); // Removed vendedorManagedTickets from deps to avoid loop with its own processing
 
   // Save vendedorManagedTickets to localStorage when it changes
   useEffect(() => {
@@ -70,7 +82,7 @@ export default function VendedorPage() {
       localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorManagedTickets));
       const processedVendedorTickets = updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws);
       if(JSON.stringify(processedVendedorTickets) !== JSON.stringify(vendedorManagedTickets)){
-        setVendedorManagedTickets(processedVendedorTickets);
+        setVendedorManagedTickets(processedVendedorTickets); //This might cause a loop if not careful
       }
     }
   }, [vendedorManagedTickets, draws, isClient]); 
@@ -86,7 +98,21 @@ export default function VendedorPage() {
       buyerPhone,
     };
     setVendedorManagedTickets(prevTickets => [newTicket, ...prevTickets]);
+    toast({ title: "Venda Registrada!", description: "Bilhete adicionado à sua lista de vendas.", className: "bg-primary text-primary-foreground" });
   };
+  
+  const { activeSellerTicketsCount, totalRevenueFromActiveTickets, commissionEarned } = useMemo(() => {
+    const activeTickets = vendedorManagedTickets.filter(ticket => ticket.status === 'active');
+    const count = activeTickets.length;
+    const revenue = count * lotteryConfig.ticketPrice;
+    const commission = revenue * (lotteryConfig.sellerCommissionPercentage / 100);
+    return {
+      activeSellerTicketsCount: count,
+      totalRevenueFromActiveTickets: revenue,
+      commissionEarned: commission,
+    };
+  }, [vendedorManagedTickets, lotteryConfig]);
+
 
   const isLotteryActive = draws.length > 0;
 
@@ -173,17 +199,19 @@ export default function VendedorPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-primary">{draws.length}</div>
+                 <p className="text-xs text-muted-foreground">Total de sorteios na loteria atual.</p>
               </CardContent>
             </Card>
             <Card className="shadow-lg bg-card text-card-foreground border-border hover:shadow-xl transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Bilhetes Vendidos por Mim
+                  Bilhetes Vendidos (Total)
                 </CardTitle>
                 <TicketIconLucide className="h-5 w-5 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-primary">{vendedorManagedTickets.length}</div>
+                <p className="text-xs text-muted-foreground">Todos os bilhetes que você já vendeu.</p>
               </CardContent>
             </Card>
             <Card className="shadow-lg bg-card text-card-foreground border-border hover:shadow-xl transition-shadow">
@@ -195,9 +223,51 @@ export default function VendedorPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-secondary">{clienteTicketsForSummary.length}</div> 
+                 <p className="text-xs text-muted-foreground">Total de bilhetes de clientes.</p>
               </CardContent>
             </Card>
           </div>
+        </section>
+
+        <section id="reports-heading" aria-labelledby="reports-heading-title" className="mt-16 scroll-mt-24">
+          <h2 id="reports-heading-title" className="text-3xl font-bold text-primary mb-8 text-center flex items-center justify-center">
+            <BarChart3 className="mr-3 h-8 w-8" /> Relatórios e Análises (Ciclo Atual)
+          </h2>
+          <Card className="shadow-xl bg-card/90 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-xl text-center font-semibold text-primary">Desempenho de Vendas</CardTitle>
+              <CardDescription className="text-center text-muted-foreground">
+                Seu resumo de vendas para o ciclo atual da loteria. A comissão é zerada ao iniciar uma nova loteria.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+              <div className="p-4 rounded-lg bg-background/70 shadow">
+                <TrendingUp className="h-10 w-10 text-primary mx-auto mb-2" />
+                <p className="text-sm font-medium text-muted-foreground">Bilhetes Ativos Vendidos</p>
+                <p className="text-2xl font-bold text-primary">{activeSellerTicketsCount}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-background/70 shadow">
+                <DollarSign className="h-10 w-10 text-green-500 mx-auto mb-2" />
+                <p className="text-sm font-medium text-muted-foreground">Valor Arrecadado (Ativos)</p>
+                <p className="text-2xl font-bold text-green-500">
+                  R$ {totalRevenueFromActiveTickets.toFixed(2).replace('.', ',')}
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-background/70 shadow">
+                <Percent className="h-10 w-10 text-accent mx-auto mb-2" />
+                <p className="text-sm font-medium text-muted-foreground">Comissão ({lotteryConfig.sellerCommissionPercentage}%)</p>
+                <p className="text-2xl font-bold text-accent">
+                  R$ {commissionEarned.toFixed(2).replace('.', ',')}
+                </p>
+              </div>
+            </CardContent>
+             <CardFooter className="pt-6">
+                <p className="text-xs text-muted-foreground text-center w-full">
+                    Preço atual do bilhete: R$ {lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}.
+                    A comissão é calculada sobre os bilhetes com status 'ativo' vendidos por você neste ciclo da loteria.
+                </p>
+            </CardFooter>
+          </Card>
         </section>
 
         <section id="seller-ticket-list-heading" aria-labelledby="seller-ticket-list-heading-title" className="mt-16 scroll-mt-24">
@@ -228,18 +298,6 @@ export default function VendedorPage() {
              </div>
           )}
         </section>
-        
-        <section id="reports-heading" aria-labelledby="reports-heading-title" className="mt-16 scroll-mt-24">
-          <h2 id="reports-heading-title" className="text-3xl font-bold text-primary mb-8 text-center">
-            Relatórios e Análises
-          </h2>
-          <div className="text-center py-10 bg-card/50 rounded-lg shadow">
-            <BarChart3 size={48} className="mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground text-lg">
-              Em breve: relatórios detalhados de vendas e desempenho.
-            </p>
-          </div>
-        </section>
       </main>
 
       <footer className="mt-20 py-8 text-center border-t border-border/50">
@@ -250,4 +308,3 @@ export default function VendedorPage() {
     </div>
   );
 }
-    
