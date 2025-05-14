@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // Importar o componente Image
+import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -65,11 +65,11 @@ export default function LandingPage() {
       <header className="mb-12 text-center">
         <div className="mb-6">
           <Image
-            src="/logo.png" // Caminho para a sua logo na pasta public
-            alt="Logo Bolão Potiguar - Tentativa 2" // Updated alt text
-            width={180} // Ajuste a largura conforme necessário
-            height={180} // Ajuste a altura conforme necessário
-            priority // Para carregar a logo mais rapidamente
+            src="/logo.png" 
+            alt="Logo Bolão Potiguar - Tentativa 2" 
+            width={180} 
+            height={180} 
+            priority 
             className="mx-auto"
           />
         </div>
