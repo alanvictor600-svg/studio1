@@ -76,11 +76,7 @@ export default function LandingPage() {
         <h1 className="text-5xl md:text-6xl font-extrabold text-primary tracking-tight">
           Bolão Potiguar
         </h1>
-        {currentUser ? (
-           <p className="text-xl text-muted-foreground mt-3">Bem-vindo(a) de volta, {currentUser.username}!</p>
-        ) : (
-           <p className="text-xl text-muted-foreground mt-3">Bem-vindo! Escolha seu perfil ou cadastre-se.</p>
-        )}
+        {/* Subtitle removed as per request */}
       </header>
 
       <main className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8">
