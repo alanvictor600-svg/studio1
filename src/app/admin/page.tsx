@@ -9,7 +9,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, ListFilter, Edit } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -49,6 +49,7 @@ export default function AdminPage() {
   const [commissionInput, setCommissionInput] = useState<string>(DEFAULT_LOTTERY_CONFIG.sellerCommissionPercentage.toString());
 
   const [activeSection, setActiveSection] = useState<AdminSection>('cadastrar-sorteio');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -150,6 +151,13 @@ export default function AdminPage() {
     }
     setLotteryConfig({ ticketPrice: price, sellerCommissionPercentage: commission });
     toast({ title: "Configurações Salvas!", description: "Preço do bilhete e comissão atualizados.", className: "bg-primary text-primary-foreground" });
+  };
+
+  const handleSectionChange = (sectionId: AdminSection) => {
+    setActiveSection(sectionId);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
   };
 
   if (!isClient) {
@@ -323,14 +331,40 @@ export default function AdminPage() {
              </h1>
              <p className="text-lg text-muted-foreground mt-2">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
           </div>
-          <div className="w-[150px] sm:w-[180px] md:w-[200px]"></div> 
+          <div className="w-10 md:hidden"> {/* Placeholder for hamburger button */}
+             <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Abrir menu"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
+          </div>
+          <div className="hidden md:block w-[150px] sm:w-[180px] md:w-[200px]"></div> 
         </div>
       </header>
 
       <div className="flex flex-col md:flex-row gap-x-8 gap-y-6 flex-grow mt-8">
-        {/* Vertical Menu */}
-        <aside className="w-full md:w-64 lg:w-72 flex-shrink-0 bg-card/70 backdrop-blur-sm p-4 rounded-lg shadow-md md:sticky md:top-20 md:self-start max-h-[calc(100vh-10rem)] overflow-y-auto">
-          <nav className="space-y-2">
+        {/* Vertical Menu - Mobile: Overlay, Desktop: Sticky Sidebar */}
+        <aside 
+          className={cn(
+            "bg-card/90 backdrop-blur-sm p-4 rounded-lg shadow-md md:sticky md:top-20 md:self-start max-h-[calc(100vh-10rem)] overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0",
+            "md:w-64 lg:w-72 flex-shrink-0",
+            isMobileMenuOpen 
+              ? "fixed inset-0 z-40 w-full h-full flex flex-col md:relative md:inset-auto md:h-auto md:w-64 lg:w-72" 
+              : "hidden md:flex" 
+          )}
+        >
+          {isMobileMenuOpen && (
+            <div className="flex justify-end p-2 md:hidden">
+              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} aria-label="Fechar menu">
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+          )}
+          <nav className="space-y-2 flex-grow md:flex-grow-0">
             {menuItems.map(item => (
               <Button
                 key={item.id}
@@ -341,7 +375,7 @@ export default function AdminPage() {
                     ? "bg-primary text-primary-foreground hover:bg-primary/90" 
                     : "hover:bg-muted/50 hover:text-primary"
                 )}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => handleSectionChange(item.id)}
               >
                 <item.Icon className={cn("mr-3 h-5 w-5", activeSection === item.id ? "text-primary-foreground" : "text-primary")} />
                 {item.label}
@@ -351,7 +385,7 @@ export default function AdminPage() {
         </aside>
 
         {/* Content Area */}
-        <main className="flex-grow">
+        <main className={cn("flex-grow", isMobileMenuOpen && "md:ml-0")}>
           {renderSectionContent()}
         </main>
       </div>
@@ -364,6 +398,4 @@ export default function AdminPage() {
     </div>
   );
 }
-    
-
     
