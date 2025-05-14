@@ -64,11 +64,11 @@ export default function LoginPage() {
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggleButton />
       </div>
-      <div className="fixed top-6 left-6 z-50">
+      <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50">
         <Link href="/" passHref>
-          <Button variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar para Home
+          <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline-block sm:ml-2">Voltar para Home</span>
           </Button>
         </Link>
       </div>

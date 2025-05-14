@@ -102,9 +102,9 @@ export default function VendedorPage() {
       <header className="mb-10">
         <div className="flex justify-between items-center">
           <Link href="/" passHref>
-            <Button variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para Home
+            <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline-block sm:ml-2">Voltar para Home</span>
             </Button>
           </Link>
           <div className="text-center flex-grow">
