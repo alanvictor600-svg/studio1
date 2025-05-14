@@ -9,26 +9,26 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { useAuth } from '@/context/auth-context'; 
+import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
-  const { currentUser, logout, isLoading } = useAuth(); 
+  const { currentUser, logout, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleClienteClick = () => { 
-    if (currentUser && currentUser.role === 'cliente') { 
-      router.push('/cliente'); 
-    } else if (currentUser && currentUser.role !== 'cliente') { 
-      router.push('/login?redirect=/cliente'); 
+  const handleClienteClick = () => {
+    if (currentUser && currentUser.role === 'cliente') {
+      router.push('/cliente');
+    } else if (currentUser && currentUser.role !== 'cliente') {
+      router.push('/login?redirect=/cliente');
     }
      else {
-      router.push('/login?redirect=/cliente'); 
+      router.push('/login?redirect=/cliente');
     }
   };
 
@@ -64,9 +64,9 @@ export default function LandingPage() {
       </div>
       <header className="mb-12 text-center">
         <div className="mb-6">
-          <Image 
+          <Image
             src="/logo.png" // Caminho para a sua logo na pasta public
-            alt="Logo Bolão Potiguar"
+            alt="Logo Bolão Potiguar - Tentativa 2" // Updated alt text
             width={180} // Ajuste a largura conforme necessário
             height={180} // Ajuste a altura conforme necessário
             priority // Para carregar a logo mais rapidamente
@@ -88,14 +88,14 @@ export default function LandingPage() {
         <Card className="text-center h-full flex flex-col justify-between shadow-xl hover:shadow-2xl bg-card/90 backdrop-blur-sm border-primary/50 transform hover:scale-105 transition-transform duration-300">
           <CardHeader>
             <Users className="mx-auto h-16 w-16 text-primary mb-4" />
-            <CardTitle className="text-2xl font-bold text-primary">Cliente</CardTitle> 
+            <CardTitle className="text-2xl font-bold text-primary">Cliente</CardTitle>
             <CardDescription className="text-muted-foreground">
-              {currentUser && currentUser.role === 'cliente' ? "Acessar meus bilhetes e tentar a sorte!" : "Compre seus bilhetes e tente a sorte!"} 
+              {currentUser && currentUser.role === 'cliente' ? "Acessar meus bilhetes e tentar a sorte!" : "Compre seus bilhetes e tente a sorte!"}
             </CardDescription>
           </CardHeader>
           <CardContent className="mt-auto pb-6">
             <Button onClick={handleClienteClick} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              <ArrowRight className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"} 
+              <ArrowRight className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"}
             </Button>
           </CardContent>
         </Card>
