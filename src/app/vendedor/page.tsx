@@ -5,15 +5,17 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'; // Added CardFooter
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import type { Draw, Ticket, LotteryConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, ClipboardList, Ticket as TicketIconLucide, BarChart3, PlusCircle, ListChecks, History, PieChart, DollarSign, Percent, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Ticket as TicketIconLucide, BarChart3, PlusCircle, ListChecks, History, PieChart, DollarSign, Percent, TrendingUp, Menu, X, LogOut, LogIn } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/context/auth-context';
+import { cn } from '@/lib/utils';
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
@@ -32,6 +34,8 @@ export default function VendedorPage() {
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const { currentUser, logout } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Initial load of client status, draws, and lottery config
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function VendedorPage() {
          setVendedorManagedTickets(processedVendedorTickets);
        }
     }
-  }, [isClient, draws, clienteTicketsForSummary]); // Removed vendedorManagedTickets from deps to avoid loop with its own processing
+  }, [isClient, draws, clienteTicketsForSummary]);
 
   // Save vendedorManagedTickets to localStorage when it changes
   useEffect(() => {
@@ -82,7 +86,7 @@ export default function VendedorPage() {
       localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorManagedTickets));
       const processedVendedorTickets = updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws);
       if(JSON.stringify(processedVendedorTickets) !== JSON.stringify(vendedorManagedTickets)){
-        setVendedorManagedTickets(processedVendedorTickets); //This might cause a loop if not careful
+        setVendedorManagedTickets(processedVendedorTickets);
       }
     }
   }, [vendedorManagedTickets, draws, isClient]); 
@@ -124,6 +128,13 @@ export default function VendedorPage() {
     );
   }
 
+  const menuNavItems = [
+    { href: "#seller-ticket-creation-heading", label: "Registrar Venda", Icon: PlusCircle },
+    { href: "#seller-ticket-list-heading", label: "Meus Bilhetes Vendidos", Icon: ListChecks },
+    { href: "#seller-draw-history-heading", label: "Histórico de Sorteios", Icon: History },
+    { href: "#reports-heading", label: "Relatórios e Análises", Icon: PieChart },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
       <header className="mb-6">
@@ -147,46 +158,83 @@ export default function VendedorPage() {
             </div>
             <p className="text-lg text-muted-foreground mt-1">Painel de Controle e Vendas</p>
           </div>
-          <div className="w-[150px] sm:w-[180px] md:w-[200px]"></div> 
+          <div className="w-10 md:hidden"> {/* Hamburger button container */}
+             <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Abrir menu"
+              >
+                <Menu className="h-6 w-6" />
+              </Button>
+          </div>
+          <div className="hidden md:block w-[150px] sm:w-[180px] md:w-[200px]"></div> 
         </div>
       </header>
 
-      <nav className="mb-10 py-3 bg-card/70 backdrop-blur-sm rounded-lg shadow-md sticky top-4 z-10">
-        <ul className="flex flex-wrap justify-center items-center gap-2 sm:gap-4">
-          <li>
-            <Link href="#seller-ticket-list-heading" passHref>
-              <Button variant="ghost" className="text-primary hover:bg-primary/10">
-                <ListChecks className="mr-2 h-5 w-5" /> Meus Bilhetes Vendidos
-              </Button>
-            </Link>
-          </li>
-          <li>
-            <Link href="#seller-draw-history-heading" passHref>
-              <Button variant="ghost" className="text-primary hover:bg-primary/10">
-                <History className="mr-2 h-5 w-5" /> Histórico de Sorteios
-              </Button>
-            </Link>
-          </li>
-          <li>
-            <Link href="#reports-heading" passHref>
-              <Button variant="ghost" className="text-primary hover:bg-primary/10">
-                <PieChart className="mr-2 h-5 w-5" /> Relatórios e Análises
-              </Button>
-            </Link>
-          </li>
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <aside 
+          className={cn(
+            "fixed inset-0 z-40 w-full h-full flex flex-col bg-card/95 backdrop-blur-sm p-4",
+            "md:hidden"
+          )}
+        >
+          <div className="flex justify-end p-2">
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} aria-label="Fechar menu">
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+          <nav className="space-y-2 flex-grow mt-4">
+            {menuNavItems.map(item => (
+              <Link key={item.label} href={item.href} passHref>
+                <Button variant="ghost" className="w-full justify-start text-lg py-3" onClick={() => setIsMobileMenuOpen(false)}>
+                  <item.Icon className="mr-3 h-6 w-6" /> {item.label}
+                </Button>
+              </Link>
+            ))}
+            {currentUser && (
+                <Button variant="outline" onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="w-full justify-start text-lg py-3 mt-6 border-primary text-primary hover:bg-primary/10">
+                    <LogOut className="mr-3 h-6 w-6" /> Sair
+                </Button>
+            )}
+            {!currentUser && (
+              <Link href="/login" passHref>
+                  <Button variant="outline" className="w-full justify-start text-lg py-3 mt-6 border-primary text-primary hover:bg-primary/10" onClick={() => setIsMobileMenuOpen(false)}>
+                      <LogIn className="mr-3 h-6 w-6" /> Login / Cadastro
+                  </Button>
+              </Link>
+            )}
+          </nav>
+        </aside>
+      )}
+
+      {/* Desktop Horizontal Navigation */}
+      <nav className="mb-10 py-3 bg-card/70 backdrop-blur-sm rounded-lg shadow-md sticky top-4 z-10 hidden md:flex">
+        <ul className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 mx-auto">
+          {menuNavItems.map(item => (
+            <li key={item.label}>
+              <Link href={item.href} passHref>
+                <Button variant="ghost" className="text-primary hover:bg-primary/10">
+                  <item.Icon className="mr-2 h-5 w-5" /> {item.label}
+                </Button>
+              </Link>
+            </li>
+          ))}
         </ul>
       </nav>
 
       <main className="space-y-12 flex-grow">
-        <section aria-labelledby="seller-ticket-creation-heading">
-          <h2 id="seller-ticket-creation-heading" className="text-3xl font-bold text-primary mb-6 text-center flex items-center justify-center">
+        <section id="seller-ticket-creation-heading" aria-labelledby="seller-ticket-creation-heading-title" className="scroll-mt-24">
+          <h2 id="seller-ticket-creation-heading-title" className="text-3xl font-bold text-primary mb-6 text-center flex items-center justify-center">
             <PlusCircle className="mr-3 h-7 w-7" /> Registrar Nova Venda de Bilhete
           </h2>
           <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} isLotteryActive={isLotteryActive} />
         </section>
 
-        <section aria-labelledby="dashboard-summary-heading" className="mt-16">
-          <h2 id="dashboard-summary-heading" className="text-3xl font-bold text-primary mb-6 text-center">
+        <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="mt-16 scroll-mt-24">
+          <h2 id="dashboard-summary-heading-title" className="text-3xl font-bold text-primary mb-6 text-center">
             Resumo Geral
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
