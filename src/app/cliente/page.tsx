@@ -20,7 +20,7 @@ const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 type ClienteSection = 'selecionar-bilhete' | 'meus-bilhetes';
 
 const menuItems: { id: ClienteSection; label: string; Icon: React.ElementType }[] = [
-  { id: 'selecionar-bilhete', label: 'Montar Bilhete', Icon: TicketIconLucide },
+  { id: 'selecionar-bilhete', label: 'Nova Venda', Icon: TicketIconLucide },
   { id: 'meus-bilhetes', label: 'Meus Bilhetes', Icon: ListChecks },
 ];
 
@@ -42,8 +42,6 @@ export default function ClientePage() {
     const storedTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY); 
     if (storedTicketsRaw) {
       initialTickets = JSON.parse(storedTicketsRaw);
-    } else {
-      // No longer creating default tickets if none are found, relies on user action.
     }
     if (currentUser) {
         initialTickets = initialTickets.map(ticket => ({
@@ -101,14 +99,14 @@ export default function ClientePage() {
     switch (activeSection) {
       case 'selecionar-bilhete':
         return (
-          <section aria-labelledby="ticket-selection-heading">
+          <section aria-labelledby="ticket-selection-heading" id="selecionar-bilhete" className="scroll-mt-20">
             <h2 id="ticket-selection-heading" className="sr-only">Seleção de Bilhetes</h2>
             <TicketSelectionForm onAddTicket={handleAddTicket} isLotteryActive={isLotteryActive} />
           </section>
         );
       case 'meus-bilhetes':
         return (
-          <section aria-labelledby="ticket-management-heading">
+          <section aria-labelledby="ticket-management-heading" id="meus-bilhetes" className="scroll-mt-20">
             <h2 id="ticket-management-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
               Meus Bilhetes
             </h2>

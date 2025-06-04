@@ -30,7 +30,7 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
 type VendedorSection = 'registrar-venda' | 'meus-bilhetes' | 'historico-sorteios' | 'relatorios';
 
 const menuItems: { id: VendedorSection; label: string; Icon: React.ElementType }[] = [
-  { id: 'registrar-venda', label: 'Registrar Venda', Icon: PlusCircle },
+  { id: 'registrar-venda', label: 'Nova Venda', Icon: PlusCircle },
   { id: 'meus-bilhetes', label: 'Bilhetes Vendidos', Icon: ListChecks },
   { id: 'historico-sorteios', label: 'Histórico Sorteios', Icon: History },
   { id: 'relatorios', label: 'Relatórios', Icon: PieChart },
@@ -85,7 +85,7 @@ export default function VendedorPage() {
          setVendedorManagedTickets(processedVendedorTickets);
        }
     }
-  }, [isClient, draws, clienteTicketsForSummary]); // Removed vendedorManagedTickets from dependencies to avoid loop with its own update
+  }, [isClient, draws, clienteTicketsForSummary]); 
 
   useEffect(() => {
     if (isClient) {
@@ -147,14 +147,14 @@ export default function VendedorPage() {
         return (
           <section id="seller-ticket-creation-heading" aria-labelledby="seller-ticket-creation-heading-title" className="scroll-mt-24">
             <h2 id="seller-ticket-creation-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
-              <PlusCircle className="mr-3 h-8 w-8 text-primary" /> Registrar Nova Venda
+              <PlusCircle className="mr-3 h-8 w-8 text-primary" /> Nova Venda
             </h2>
             <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} isLotteryActive={isLotteryActive} />
           </section>
         );
       case 'meus-bilhetes':
         return (
-          <section id="seller-ticket-list-heading" aria-labelledby="seller-ticket-list-heading-title" className="mt-0 scroll-mt-24">
+          <section id="seller-ticket-list-heading" aria-labelledby="seller-ticket-list-heading-title" className="scroll-mt-24">
             <h2 id="seller-ticket-list-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
               <ListChecks className="mr-3 h-8 w-8 text-primary" /> Meus Bilhetes Vendidos
             </h2>
@@ -171,7 +171,7 @@ export default function VendedorPage() {
         );
       case 'historico-sorteios':
         return (
-          <section id="seller-draw-history-heading" aria-labelledby="seller-draw-history-heading-title" className="mt-0 scroll-mt-24">
+          <section id="seller-draw-history-heading" aria-labelledby="seller-draw-history-heading-title" className="scroll-mt-24">
             <h2 id="seller-draw-history-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
               <History className="mr-3 h-8 w-8 text-primary" /> Histórico de Sorteios
             </h2>
@@ -188,7 +188,7 @@ export default function VendedorPage() {
       case 'relatorios':
         return (
           <>
-            <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="mt-0 scroll-mt-24">
+            <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="scroll-mt-24">
               <h2 id="dashboard-summary-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
                  <PieChart className="mr-3 h-8 w-8 text-primary" /> Resumo Geral e Relatórios
               </h2>
@@ -232,7 +232,7 @@ export default function VendedorPage() {
               </div>
             </section>
 
-            <section id="reports-commission-heading" aria-labelledby="reports-commission-heading-title" className="mt-0 scroll-mt-24">
+            <section id="reports-commission-heading" aria-labelledby="reports-commission-heading-title" className="scroll-mt-24">
               <Card className="shadow-xl bg-card/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-xl text-center font-semibold text-primary">Desempenho de Vendas (Ciclo Atual)</CardTitle>
@@ -315,7 +315,6 @@ export default function VendedorPage() {
       </header>
 
       <div className="flex flex-col md:flex-row gap-x-8 gap-y-6 flex-grow mt-8">
-         {/* Vertical Menu - Mobile: Overlay, Desktop: Sticky Sidebar */}
         <aside 
           className={cn(
             "bg-card/90 backdrop-blur-sm p-4 rounded-lg shadow-md md:sticky md:top-20 md:self-start max-h-[calc(100vh-10rem)] overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0",
@@ -364,7 +363,6 @@ export default function VendedorPage() {
           </nav>
         </aside>
 
-        {/* Content Area */}
         <main className={cn("flex-grow", isMobileMenuOpen && "md:ml-0")}>
           {renderSectionContent()}
         </main>
@@ -378,6 +376,3 @@ export default function VendedorPage() {
     </div>
   );
 }
-
-
-    
