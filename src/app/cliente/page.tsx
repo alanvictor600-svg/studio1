@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Menu, X, Ticket as TicketIconLucide, ListChecks, LogOut, LogIn } from 'lucide-react';
+import { Menu, X, Ticket as TicketIconLucide, ListChecks, LogOut, LogIn } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
@@ -125,12 +125,9 @@ export default function ClientePage() {
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
       <header className="mb-6">
         <div className="flex justify-between items-center">
-          <Link href="/" passHref>
-            <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline-block sm:ml-2">Voltar para Home</span>
-            </Button>
-          </Link>
+          {/* Left placeholder to balance the hamburger button */}
+          <div className="w-10 h-10" /> 
+          
           <div className="text-center flex-grow">
             <div className="mb-2 flex justify-center">
               <Image
@@ -144,18 +141,20 @@ export default function ClientePage() {
             </div>
              <p className="text-lg text-muted-foreground mt-1">Sua sorte começa aqui!</p>
           </div>
-          <div className="w-10 md:hidden"> 
+
+          {/* Right side: Hamburger button container */}
+          <div className="w-10 h-10 flex items-center justify-center"> 
              <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="md:hidden" // Hamburger button only on mobile
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label="Abrir menu"
               >
                 <Menu className="h-6 w-6" />
               </Button>
+              {/* This div provides w-10 h-10 space. On md+ screens, hamburger is hidden, div remains for balance. */}
           </div>
-          <div className="hidden md:block w-[150px] sm:w-[180px] md:w-[200px]"></div>
         </div>
       </header>
 
