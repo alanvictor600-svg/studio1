@@ -9,10 +9,11 @@ import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
-import { Menu, X, Ticket as TicketIconLucide, ListChecks, LogOut, LogIn } from 'lucide-react';
+import { Menu, X, Ticket as TicketIconLucide, ListChecks, LogOut, LogIn, Palette } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets'; 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
@@ -125,7 +126,6 @@ export default function ClientePage() {
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
       <header className="mb-6">
         <div className="flex justify-between items-center">
-          {/* Left placeholder to balance the hamburger button */}
           <div className="w-10 h-10" /> 
           
           <div className="text-center flex-grow">
@@ -142,18 +142,16 @@ export default function ClientePage() {
              <p className="text-lg text-muted-foreground mt-1">Sua sorte começa aqui!</p>
           </div>
 
-          {/* Right side: Hamburger button container */}
           <div className="w-10 h-10 flex items-center justify-center"> 
              <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden" // Hamburger button only on mobile
+                className="md:hidden"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label="Abrir menu"
               >
                 <Menu className="h-6 w-6" />
               </Button>
-              {/* This div provides w-10 h-10 space. On md+ screens, hamburger is hidden, div remains for balance. */}
           </div>
         </div>
       </header>
@@ -192,6 +190,17 @@ export default function ClientePage() {
                 {item.label}
               </Button>
             ))}
+
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center justify-between text-sm py-3 px-4 h-auto rounded-md hover:bg-muted/50">
+                <span className="flex items-center text-primary">
+                  <Palette className="mr-3 h-5 w-5" />
+                  Mudar Tema
+                </span>
+                <ThemeToggleButton />
+              </div>
+            </div>
+
             {currentUser && (
                 <Button variant="outline" onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="w-full justify-start text-sm py-3 px-4 h-auto mt-6 border-primary text-primary hover:bg-primary/10">
                     <LogOut className="mr-3 h-5 w-5" /> Sair

@@ -11,11 +11,12 @@ import { TicketList } from '@/components/ticket-list';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import type { Draw, Ticket, LotteryConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { ClipboardList, Ticket as TicketIconLucide, PieChart, PlusCircle, ListChecks, History, DollarSign, Percent, TrendingUp, Menu, X, LogOut, LogIn } from 'lucide-react';
+import { ClipboardList, Ticket as TicketIconLucide, PieChart, PlusCircle, ListChecks, History, DollarSign, Percent, TrendingUp, Menu, X, LogOut, LogIn, Palette } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
@@ -85,7 +86,7 @@ export default function VendedorPage() {
          setVendedorManagedTickets(processedVendedorTickets);
        }
     }
-  }, [isClient, draws, clienteTicketsForSummary, vendedorManagedTickets]); // Added vendedorManagedTickets to dependency array
+  }, [isClient, draws, clienteTicketsForSummary, vendedorManagedTickets]); 
 
   useEffect(() => {
     if (isClient) {
@@ -280,7 +281,6 @@ export default function VendedorPage() {
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
       <header className="mb-6">
         <div className="flex justify-between items-center">
-          {/* Left placeholder to balance the hamburger button */}
           <div className="w-10 h-10" />
 
           <div className="text-center flex-grow">
@@ -297,18 +297,16 @@ export default function VendedorPage() {
             <p className="text-lg text-muted-foreground mt-1">Painel de Controle e Vendas</p>
           </div>
 
-          {/* Right side: Hamburger button container */}
           <div className="w-10 h-10 flex items-center justify-center">
              <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden" // Hamburger button only on mobile
+                className="md:hidden" 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 aria-label="Abrir menu"
               >
                 <Menu className="h-6 w-6" />
               </Button>
-               {/* This div provides w-10 h-10 space. On md+ screens, hamburger is hidden, div remains for balance. */}
           </div>
         </div>
       </header>
@@ -347,6 +345,17 @@ export default function VendedorPage() {
                 {item.label}
               </Button>
             ))}
+
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex items-center justify-between text-sm py-3 px-4 h-auto rounded-md hover:bg-muted/50">
+                <span className="flex items-center text-primary">
+                  <Palette className="mr-3 h-5 w-5" />
+                  Mudar Tema
+                </span>
+                <ThemeToggleButton />
+              </div>
+            </div>
+
              {currentUser && (
                 <Button variant="outline" onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="w-full justify-start text-sm py-3 px-4 h-auto mt-6 border-primary text-primary hover:bg-primary/10">
                     <LogOut className="mr-3 h-5 w-5" /> Sair

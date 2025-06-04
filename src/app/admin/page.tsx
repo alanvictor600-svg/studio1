@@ -9,7 +9,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
@@ -177,53 +178,70 @@ export default function AdminPage() {
                 <Settings className="mr-3 h-8 w-8 text-primary" />
                 Configurações da Loteria
             </h2>
-            <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+            <div className="space-y-8">
+              <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                      <CardTitle className="text-xl text-center font-semibold">Definir Preços e Comissões</CardTitle>
+                      <CardDescription className="text-center text-muted-foreground">
+                          Ajuste o valor dos bilhetes e a comissão dos vendedores.
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                          <Label htmlFor="ticketPrice" className="flex items-center">
+                              <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                              Preço do Bilhete (R$)
+                          </Label>
+                          <Input 
+                              id="ticketPrice" 
+                              type="number" 
+                              value={ticketPriceInput}
+                              onChange={(e) => setTicketPriceInput(e.target.value)}
+                              placeholder="Ex: 2.50"
+                              className="bg-background/70"
+                              step="0.01"
+                              min="0.01"
+                          />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="sellerCommission" className="flex items-center">
+                               <Percent className="mr-2 h-4 w-4 text-muted-foreground" />
+                              Comissão do Vendedor (%)
+                          </Label>
+                          <Input 
+                              id="sellerCommission" 
+                              type="number" 
+                              value={commissionInput}
+                              onChange={(e) => setCommissionInput(e.target.value)}
+                              placeholder="Ex: 10"
+                              className="bg-background/70"
+                              min="0"
+                              max="100"
+                          />
+                      </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end">
+                      <Button onClick={handleSaveLotteryConfig} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                          <Settings className="mr-2 h-4 w-4" /> Salvar Configurações
+                      </Button>
+                  </CardFooter>
+              </Card>
+
+              <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
                 <CardHeader>
-                    <CardTitle className="text-xl text-center font-semibold">Definir Preços e Comissões</CardTitle>
+                    <CardTitle className="text-xl text-center font-semibold flex items-center justify-center">
+                        <PaletteIcon className="mr-2 h-5 w-5" />
+                        Tema da Aplicação
+                    </CardTitle>
                     <CardDescription className="text-center text-muted-foreground">
-                        Ajuste o valor dos bilhetes e a comissão dos vendedores.
+                        Escolha entre o tema claro ou escuro para a interface.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="ticketPrice" className="flex items-center">
-                            <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                            Preço do Bilhete (R$)
-                        </Label>
-                        <Input 
-                            id="ticketPrice" 
-                            type="number" 
-                            value={ticketPriceInput}
-                            onChange={(e) => setTicketPriceInput(e.target.value)}
-                            placeholder="Ex: 2.50"
-                            className="bg-background/70"
-                            step="0.01"
-                            min="0.01"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="sellerCommission" className="flex items-center">
-                             <Percent className="mr-2 h-4 w-4 text-muted-foreground" />
-                            Comissão do Vendedor (%)
-                        </Label>
-                        <Input 
-                            id="sellerCommission" 
-                            type="number" 
-                            value={commissionInput}
-                            onChange={(e) => setCommissionInput(e.target.value)}
-                            placeholder="Ex: 10"
-                            className="bg-background/70"
-                            min="0"
-                            max="100"
-                        />
-                    </div>
+                <CardContent className="flex justify-center items-center py-6">
+                    <ThemeToggleButton />
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleSaveLotteryConfig} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                        <Settings className="mr-2 h-4 w-4" /> Salvar Configurações
-                    </Button>
-                </CardFooter>
-            </Card>
+              </Card>
+            </div>
           </section>
         );
       case 'cadastrar-sorteio':
