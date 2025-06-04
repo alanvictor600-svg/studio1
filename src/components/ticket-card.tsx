@@ -103,7 +103,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
                 className={cn(
                   "text-md font-semibold px-2.5 py-1 shadow-sm",
                   isMatched
-                    ? 'bg-accent text-accent-foreground'
+                    ? 'bg-green-600 text-white' // Changed to green for matched numbers
                     : (ticket.status === 'winning'
                         ? 'bg-primary-foreground text-primary'
                         : 'bg-primary text-primary-foreground'),
