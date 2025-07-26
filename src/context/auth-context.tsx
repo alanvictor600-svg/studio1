@@ -56,7 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isLoading) {
-      localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
+      try {
+        localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
+      } catch (error) {
+        console.error("Failed to save users to localStorage", error);
+      }
     }
   }, [users, isLoading]);
 
@@ -91,7 +95,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [users, router, toast]);
 
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => {
-    if (users.find(u => u.username === username)) {
+    // Re-check inside the function to ensure we have the latest user list
+    const currentUsersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+    const currentUsers: User[] = currentUsersRaw ? JSON.parse(currentUsersRaw) : [];
+
+    if (currentUsers.find(u => u.username === username)) {
       toast({ title: "Erro de Cadastro", description: "Nome de usuário já existe.", variant: "destructive" });
       return false;
     }
@@ -103,11 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role,
       createdAt: new Date().toISOString(),
     };
-    setUsers(prevUsers => [...prevUsers, newUser]);
+    
+    const updatedUsers = [...currentUsers, newUser];
+    setUsers(updatedUsers);
+    // Explicitly save to storage here to ensure it's available for the login page
+    localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+
     toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground" });
     router.push('/login');
     return true;
-  }, [users, setUsers, router, toast]);
+  }, [router, toast]);
 
   const logout = useCallback(() => {
     setCurrentUser(null);
@@ -117,15 +130,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [router, toast]);
 
   const isAuthenticated = !isLoading && !!currentUser;
+  
+  const value = { currentUser, login, logout, register, isLoading, isAuthenticated };
+
+  // Render loading state until client-side hydration is complete
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <p className="text-foreground text-xl">Carregando sistema de autenticação...</p>
+      </div>
+    );
+  }
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, register, isLoading, isAuthenticated }}>
-      {!isLoading && children}
-      {isLoading && (
-         <div className="flex justify-center items-center min-h-screen bg-background">
-           <p className="text-foreground text-xl">Carregando sistema de autenticação...</p>
-         </div>
-      )}
+    <AuthContext.Provider value={value}>
+      {children}
     </AuthContext.Provider>
   );
 };
