@@ -50,7 +50,12 @@ export const ThemeProvider: FC<ThemeProviderProps> = ({
     return defaultTheme;
   });
   
-  const [resolvedTheme, setResolvedTheme] = useState<string | undefined>(undefined);
+  const [resolvedTheme, setResolvedTheme] = useState<string | undefined>(() => {
+      if (theme === 'system' && enableSystem && typeof window !== 'undefined') {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return theme;
+  });
 
   useEffect(() => {
     // This effect runs only on the client.
