@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
-const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
 const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
 const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
 
@@ -40,7 +39,6 @@ const menuItems: { id: VendedorSection; label: string; Icon: React.ElementType }
 
 export default function VendedorPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
-  const [clienteTicketsForSummary, setClienteTicketsForSummary] = useState<Ticket[]>([]);
   const [vendedorManagedTickets, setVendedorManagedTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [isClient, setIsClient] = useState(false);
@@ -72,10 +70,6 @@ export default function VendedorPage() {
     const initialVendedorTickets = storedVendedorTickets ? JSON.parse(storedVendedorTickets) : [];
     setVendedorManagedTickets(initialVendedorTickets);
 
-    const storedClienteTickets = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    const initialClienteTickets = storedClienteTickets ? JSON.parse(storedClienteTickets) : [];
-    setClienteTicketsForSummary(initialClienteTickets);
-    
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === LOTTERY_CONFIG_STORAGE_KEY && event.newValue) {
         setLotteryConfig(JSON.parse(event.newValue));
@@ -96,7 +90,6 @@ export default function VendedorPage() {
   useEffect(() => {
     if (isClient) {
       setVendedorManagedTickets(prev => updateTicketStatusesBasedOnDraws(prev, draws));
-      setClienteTicketsForSummary(prev => updateTicketStatusesBasedOnDraws(prev, draws));
     }
   }, [draws, isClient]);
 
@@ -199,7 +192,7 @@ export default function VendedorPage() {
               <h2 id="dashboard-summary-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
                  <PieChart className="mr-3 h-8 w-8 text-primary" /> Resumo Geral e Relatórios
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
                 <Card className="shadow-lg bg-card text-card-foreground border-border hover:shadow-xl transition-shadow">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -222,18 +215,6 @@ export default function VendedorPage() {
                   <CardContent>
                     <div className="text-3xl font-bold text-primary">{vendedorManagedTickets.length}</div>
                     <p className="text-xs text-muted-foreground">Todos os bilhetes que você já vendeu.</p>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-lg bg-card text-card-foreground border-border hover:shadow-xl transition-shadow">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Bilhetes (App Clientes) 
-                    </CardTitle>
-                    <TicketIconLucide className="h-5 w-5 text-secondary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-secondary">{clienteTicketsForSummary.length}</div> 
-                    <p className="text-xs text-muted-foreground">Total de bilhetes de clientes.</p>
                   </CardContent>
                 </Card>
               </div>
