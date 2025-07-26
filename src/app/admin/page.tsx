@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry } from '@/types';
+import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry, User } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminDrawForm } from '@/components/admin-draw-form';
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -18,22 +18,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { UserEditDialog } from '@/components/user-edit-dialog';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
-const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets'; // Added for history capture
+const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
-const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory'; // Added for history capture
+const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory';
+const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
+const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
-  ticketPrice: 2, // Default price R$2.00
-  sellerCommissionPercentage: 10, // Default 10%
+  ticketPrice: 2,
+  sellerCommissionPercentage: 10,
 };
 
-type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados';
+type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'gerenciar-contas';
 
 const menuItems: { id: AdminSection; label: string; Icon: React.ElementType }[] = [
+  { id: 'gerenciar-contas', label: 'Gerenciar Contas', Icon: Users },
   { id: 'configuracoes', label: 'Configurações', Icon: Settings },
   { id: 'cadastrar-sorteio', label: 'Cadastrar Sorteio', Icon: PlusCircle },
   { id: 'controles-loteria', label: 'Controles', Icon: ShieldCheck },
@@ -53,19 +59,25 @@ export default function AdminPage() {
   const [commissionInput, setCommissionInput] = useState<string>(DEFAULT_LOTTERY_CONFIG.sellerCommissionPercentage.toString());
   const [startLotteryPassword, setStartLotteryPassword] = useState('');
 
-  const [activeSection, setActiveSection] = useState<AdminSection>('cadastrar-sorteio');
+  const [activeSection, setActiveSection] = useState<AdminSection>('gerenciar-contas');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // State for user management
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [isUserEditDialogOpen, setIsUserEditDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    // Load lottery data
     const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-    if (storedDraws) {
-      setDraws(JSON.parse(storedDraws));
-    }
+    if (storedDraws) setDraws(JSON.parse(storedDraws));
+    
     const storedTickets = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    if (storedTickets) {
-      setAllTickets(JSON.parse(storedTickets));
-    }
+    if (storedTickets) setAllTickets(JSON.parse(storedTickets));
+
     const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
     if (storedConfig) {
       const parsedConfig = JSON.parse(storedConfig);
@@ -77,6 +89,11 @@ export default function AdminPage() {
       setCommissionInput(DEFAULT_LOTTERY_CONFIG.sellerCommissionPercentage.toString());
       localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_LOTTERY_CONFIG));
     }
+    
+    // Load user data
+    const storedUsers = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+    if (storedUsers) setAllUsers(JSON.parse(storedUsers));
+
   }, []); 
 
   useEffect(() => {
@@ -100,6 +117,12 @@ export default function AdminPage() {
       localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(lotteryConfig));
     }
   }, [lotteryConfig, isClient]);
+  
+  useEffect(() => {
+    if (isClient) {
+        localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(allUsers));
+    }
+  }, [allUsers, isClient]);
 
   const winningTickets = useMemo(() => {
     return allTickets.filter(ticket => ticket.status === 'winning');
@@ -160,7 +183,6 @@ export default function AdminPage() {
       return;
     }
     
-    // Capture seller history before resetting everything
     captureAndSaveSellerHistory();
   
     setDraws([]);
@@ -172,7 +194,6 @@ export default function AdminPage() {
         return ticket;
       })
     );
-    // Also reset seller tickets status
     const sellerTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
     if (sellerTicketsRaw) {
         let sellerTickets: Ticket[] = JSON.parse(sellerTicketsRaw);
@@ -205,6 +226,50 @@ export default function AdminPage() {
     setLotteryConfig({ ticketPrice: price, sellerCommissionPercentage: commission });
     toast({ title: "Configurações Salvas!", description: "Preço do bilhete e comissão atualizados.", className: "bg-primary text-primary-foreground" });
   };
+  
+  // User Management Handlers
+  const handleOpenEditUser = (user: User) => {
+    setUserToEdit(user);
+    setIsUserEditDialogOpen(true);
+  };
+
+  const handleSaveUser = (updatedUser: User) => {
+    setAllUsers(prevUsers => {
+        const isUsernameTaken = prevUsers.some(u => u.username === updatedUser.username && u.id !== updatedUser.id);
+        if (isUsernameTaken) {
+            toast({ title: "Erro ao Salvar", description: `O nome de usuário "${updatedUser.username}" já está em uso.`, variant: "destructive" });
+            return prevUsers; // Return original state if username is taken
+        }
+        toast({ title: "Usuário Atualizado!", description: `Os dados de ${updatedUser.username} foram salvos.`, className: "bg-primary text-primary-foreground" });
+        return prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u));
+    });
+    setIsUserEditDialogOpen(false);
+    setUserToEdit(null);
+  };
+  
+  const handleConfirmDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteUser = () => {
+    if (!userToDelete) return;
+    
+    // Prevent deleting the currently logged-in user for safety
+    const loggedInUser = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+    if(loggedInUser === userToDelete.username) {
+        toast({ title: "Ação Bloqueada", description: "Não é possível excluir o usuário que está logado.", variant: "destructive" });
+        setIsDeleteConfirmOpen(false);
+        setUserToDelete(null);
+        return;
+    }
+
+    setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
+    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} foi removido.`, className: "bg-destructive text-destructive-foreground" });
+    setIsDeleteConfirmOpen(false);
+    setUserToDelete(null);
+  };
+
 
   const handleSectionChange = (sectionId: AdminSection) => {
     setActiveSection(sectionId);
@@ -223,6 +288,65 @@ export default function AdminPage() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
+      case 'gerenciar-contas':
+        return (
+          <section aria-labelledby="user-management-heading">
+            <h2 id="user-management-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
+                <Users className="mr-3 h-8 w-8 text-primary" />
+                Gerenciar Contas de Usuários
+            </h2>
+            <div className="space-y-4">
+              {allUsers.length > 0 ? allUsers.map(user => (
+                <Card key={user.id} className="flex flex-col sm:flex-row items-center justify-between p-4 bg-card/80 backdrop-blur-sm shadow-md">
+                   <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                     <Avatar>
+                        <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                     </Avatar>
+                     <div className="flex-grow">
+                        <p className="font-semibold text-foreground">{user.username}</p>
+                        <Badge variant={user.role === 'vendedor' ? 'secondary' : 'outline'}>
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
+                     </div>
+                   </div>
+                   <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenEditUser(user)}>
+                            <Edit className="mr-2 h-4 w-4"/> Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleConfirmDeleteUser(user)}>
+                            <Trash2 className="mr-2 h-4 w-4"/> Excluir
+                        </Button>
+                   </div>
+                </Card>
+              )) : (
+                <p className="text-center text-muted-foreground py-10">Nenhum usuário registrado.</p>
+              )}
+            </div>
+            {userToEdit && (
+                <UserEditDialog
+                    isOpen={isUserEditDialogOpen}
+                    onOpenChange={setIsUserEditDialogOpen}
+                    user={userToEdit}
+                    onSave={handleSaveUser}
+                    onClose={() => setUserToEdit(null)}
+                />
+            )}
+            <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           Tem certeza que deseja excluir o usuário <span className="font-bold">{userToDelete?.username}</span>? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          </section>
+        );
       case 'configuracoes':
         return (
           <section aria-labelledby="lottery-settings-heading">
@@ -484,4 +608,6 @@ export default function AdminPage() {
     </div>
   );
 }
+    
+
     
