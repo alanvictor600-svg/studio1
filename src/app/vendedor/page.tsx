@@ -28,10 +28,10 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   sellerCommissionPercentage: 10,
 };
 
-type VendedorSection = 'registrar-venda' | 'meus-bilhetes' | 'historico-sorteios' | 'relatorios';
+type VendedorSection = 'nova-venda' | 'meus-bilhetes' | 'historico-sorteios' | 'relatorios';
 
 const menuItems: { id: VendedorSection; label: string; Icon: React.ElementType }[] = [
-  { id: 'registrar-venda', label: 'Nova Venda', Icon: PlusCircle },
+  { id: 'nova-venda', label: 'Nova Venda', Icon: PlusCircle },
   { id: 'meus-bilhetes', label: 'Bilhetes Vendidos', Icon: ListChecks },
   { id: 'historico-sorteios', label: 'Histórico Sorteios', Icon: History },
   { id: 'relatorios', label: 'Relatórios', Icon: PieChart },
@@ -47,39 +47,49 @@ export default function VendedorPage() {
   const { toast } = useToast();
   const { currentUser, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<VendedorSection>('registrar-venda');
+  const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
 
-
-  // Effect for initial data loading from localStorage
-  useEffect(() => {
-    setIsClient(true);
-    
-    // Load Draws
-    const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-    const localDraws = storedDraws ? JSON.parse(storedDraws) : [];
-    setDraws(localDraws);
-    
-    // Load Config
+  const loadLotteryConfig = () => {
     const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
     if (storedConfig) {
       setLotteryConfig(JSON.parse(storedConfig));
     } else {
+      setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
       localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_LOTTERY_CONFIG));
     }
+  };
 
-    // Load Seller Tickets
+  useEffect(() => {
+    setIsClient(true);
+    
+    const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
+    const localDraws = storedDraws ? JSON.parse(storedDraws) : [];
+    setDraws(localDraws);
+    
+    loadLotteryConfig();
+
     const storedVendedorTickets = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
     const initialVendedorTickets = storedVendedorTickets ? JSON.parse(storedVendedorTickets) : [];
     setVendedorManagedTickets(updateTicketStatusesBasedOnDraws(initialVendedorTickets, localDraws));
 
-    // Load Client Tickets for summary
     const storedClienteTickets = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
     const initialClienteTickets = storedClienteTickets ? JSON.parse(storedClienteTickets) : [];
     setClienteTicketsForSummary(updateTicketStatusesBasedOnDraws(initialClienteTickets, localDraws));
+    
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === LOTTERY_CONFIG_STORAGE_KEY && event.newValue) {
+        setLotteryConfig(JSON.parse(event.newValue));
+      }
+    };
 
-  }, []); // Empty dependency array: runs only once on mount
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
 
-  // Effect to re-evaluate ticket statuses when draws change
+  }, []);
+
   useEffect(() => {
     if (isClient) {
       setVendedorManagedTickets(prev => updateTicketStatusesBasedOnDraws(prev, draws));
@@ -87,7 +97,6 @@ export default function VendedorPage() {
     }
   }, [draws, isClient]);
 
-  // Effect to save seller tickets to localStorage whenever they change
   useEffect(() => {
     if (isClient) {
       localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorManagedTickets));
@@ -140,7 +149,7 @@ export default function VendedorPage() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
-      case 'registrar-venda':
+      case 'nova-venda':
         return (
           <section id="seller-ticket-creation-heading" aria-labelledby="seller-ticket-creation-heading-title" className="scroll-mt-24">
             <h2 id="seller-ticket-creation-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
@@ -379,5 +388,7 @@ export default function VendedorPage() {
       </footer>
     </div>
   );
+
+    
 
     
