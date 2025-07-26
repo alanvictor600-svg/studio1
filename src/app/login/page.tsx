@@ -27,7 +27,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (isClient && !authLoading && currentUser) {
       const redirectPath = searchParams.get('redirect');
-      router.push(redirectPath || (currentUser.role === 'cliente' ? '/cliente' : '/vendedor')); // Changed 'comprador' to 'cliente' and path
+      // If user is already logged in, redirect them to their correct dashboard.
+      router.push(redirectPath || (currentUser.role === 'cliente' ? '/cliente' : '/vendedor'));
     }
   }, [currentUser, authLoading, router, searchParams, isClient]);
 
@@ -36,7 +37,10 @@ export default function LoginPage() {
     if (!username || !password) {
       return;
     }
-    await login(username, password);
+    const redirectPath = searchParams.get('redirect');
+    const expectedRole = redirectPath?.includes('cliente') ? 'cliente' : redirectPath?.includes('vendedor') ? 'vendedor' : undefined;
+
+    await login(username, password, expectedRole);
   };
   
   if (authLoading && isClient) {

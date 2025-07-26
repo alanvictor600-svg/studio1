@@ -14,9 +14,9 @@ const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, passwordAttempt: string) => Promise<boolean>;
+  login: (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor') => Promise<boolean>;
   logout: () => void;
-  register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<boolean>; // Changed 'comprador' to 'cliente'
+  register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<boolean>;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -60,34 +60,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [users, isLoading]);
 
-  const login = useCallback(async (username: string, passwordAttempt: string): Promise<boolean> => {
+  const login = useCallback(async (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor'): Promise<boolean> => {
     const userToLogin = users.find(u => u.username === username);
-    if (userToLogin) {
-      // NOTE: This is plain text comparison, NOT secure for production.
-      // In a real app, compare passwordAttempt against userToLogin.passwordHash using bcrypt.compare or similar.
-      if (userToLogin.passwordHash === passwordAttempt) { // Direct comparison for prototype
-        setCurrentUser(userToLogin);
-        localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, userToLogin.username);
-        toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground" });
-        router.push(userToLogin.role === 'cliente' ? '/cliente' : '/vendedor'); // Changed 'comprador' to 'cliente' and path
-        return true;
-      } else {
-        toast({ title: "Erro de Login", description: "Senha incorreta.", variant: "destructive" });
-        return false;
-      }
-    } else {
+    
+    if (!userToLogin) {
       toast({ title: "Erro de Login", description: "Usuário não encontrado.", variant: "destructive" });
+      return false;
+    }
+    
+    // Check if the user's role matches the expected role for the login portal
+    if (expectedRole && userToLogin.role !== expectedRole) {
+      toast({ title: "Acesso Negado", description: `Esta conta é de ${userToLogin.role}. Use o portal correto.`, variant: "destructive" });
+      return false;
+    }
+
+    // NOTE: This is plain text comparison, NOT secure for production.
+    if (userToLogin.passwordHash === passwordAttempt) { // Direct comparison for prototype
+      setCurrentUser(userToLogin);
+      localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, userToLogin.username);
+      toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground" });
+      
+      // Redirect to the correct dashboard based on the user's actual role
+      const redirectPath = userToLogin.role === 'cliente' ? '/cliente' : '/vendedor';
+      router.push(redirectPath);
+      return true;
+    } else {
+      toast({ title: "Erro de Login", description: "Senha incorreta.", variant: "destructive" });
       return false;
     }
   }, [users, router, toast]);
 
-  const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => { // Changed 'comprador' to 'cliente'
+  const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => {
     if (users.find(u => u.username === username)) {
       toast({ title: "Erro de Cadastro", description: "Nome de usuário já existe.", variant: "destructive" });
       return false;
     }
     // NOTE: Storing passwordRaw directly as passwordHash for prototype simplicity.
-    // In a real app, hash the passwordRaw using bcrypt.hash or similar before storing.
     const newUser: User = {
       id: uuidv4(),
       username,
