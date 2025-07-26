@@ -47,29 +47,20 @@ export default function VendedorPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
 
-  const loadLotteryConfig = () => {
-    const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
-    if (storedConfig) {
-      setLotteryConfig(JSON.parse(storedConfig));
-    } else {
-      setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
-      localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(DEFAULT_LOTTERY_CONFIG));
-    }
-  };
-
   useEffect(() => {
     setIsClient(true);
     
+    // Load initial data from localStorage once
     const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-    const localDraws = storedDraws ? JSON.parse(storedDraws) : [];
-    setDraws(localDraws);
+    setDraws(storedDraws ? JSON.parse(storedDraws) : []);
     
-    loadLotteryConfig();
-
     const storedVendedorTickets = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-    const initialVendedorTickets = storedVendedorTickets ? JSON.parse(storedVendedorTickets) : [];
-    setVendedorManagedTickets(initialVendedorTickets);
+    setVendedorManagedTickets(storedVendedorTickets ? JSON.parse(storedVendedorTickets) : []);
 
+    const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
+    setLotteryConfig(storedConfig ? JSON.parse(storedConfig) : DEFAULT_LOTTERY_CONFIG);
+
+    // Listen for storage changes from other tabs (e.g., admin changing config)
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === LOTTERY_CONFIG_STORAGE_KEY && event.newValue) {
         setLotteryConfig(JSON.parse(event.newValue));
@@ -84,15 +75,16 @@ export default function VendedorPage() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
+  }, []); // Empty dependency array ensures this runs only once on mount
 
-  }, []);
-
+  // Effect to update ticket statuses when draws change
   useEffect(() => {
     if (isClient) {
       setVendedorManagedTickets(prev => updateTicketStatusesBasedOnDraws(prev, draws));
     }
   }, [draws, isClient]);
 
+  // Effect to save tickets to localStorage when they change
   useEffect(() => {
     if (isClient) {
       localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorManagedTickets));
@@ -113,13 +105,15 @@ export default function VendedorPage() {
     toast({ title: "Venda Registrada!", description: "Bilhete adicionado à sua lista de vendas.", className: "bg-primary text-primary-foreground" });
   };
   
-  const { activeSellerTicketsCount, totalRevenueFromActiveTickets } = useMemo(() => {
+  const { activeSellerTicketsCount, totalRevenueFromActiveTickets, commissionEarned } = useMemo(() => {
     const activeTickets = vendedorManagedTickets.filter(ticket => ticket.status === 'active');
     const count = activeTickets.length;
     const revenue = count * lotteryConfig.ticketPrice;
+    const commission = revenue * (lotteryConfig.sellerCommissionPercentage / 100);
     return {
       activeSellerTicketsCount: count,
       totalRevenueFromActiveTickets: revenue,
+      commissionEarned: commission,
     };
   }, [vendedorManagedTickets, lotteryConfig]);
 
@@ -228,7 +222,7 @@ export default function VendedorPage() {
                     Seu resumo de vendas para o ciclo atual da loteria (bilhetes com status 'ativo').
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                   <div className="p-4 rounded-lg bg-background/70 shadow">
                     <TrendingUp className="h-10 w-10 text-primary mx-auto mb-2" />
                     <p className="text-sm font-medium text-muted-foreground">Bilhetes Ativos Vendidos</p>
@@ -241,10 +235,20 @@ export default function VendedorPage() {
                       R$ {totalRevenueFromActiveTickets.toFixed(2).replace('.', ',')}
                     </p>
                   </div>
+                   <div className="p-4 rounded-lg bg-background/70 shadow">
+                    <Percent className="h-10 w-10 text-secondary mx-auto mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground">Comissão do Vendedor</p>
+                    <p className="text-2xl font-bold text-secondary">
+                      R$ {commissionEarned.toFixed(2).replace('.', ',')}
+                    </p>
+                  </div>
                 </CardContent>
-                <CardFooter className="pt-6">
-                    <p className="text-xs text-muted-foreground text-center w-full">
-                        Preço atual do bilhete: R$ {lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}.
+                <CardFooter className="pt-6 flex flex-col sm:flex-row justify-center items-center gap-x-4 gap-y-2">
+                    <p className="text-xs text-muted-foreground">
+                        Preço do bilhete: R$ {lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        Comissão: {lotteryConfig.sellerCommissionPercentage}%.
                     </p>
                 </CardFooter>
               </Card>
@@ -366,3 +370,4 @@ export default function VendedorPage() {
     
 
     
+
