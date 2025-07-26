@@ -289,7 +289,7 @@ export default function AdminPage() {
       return;
     }
     if (isNaN(ownerCommission) || ownerCommission < 0 || ownerCommission > 100) {
-      toast({ title: "Erro de Configuração", description: "Porcentagem de comissão do dono inválida (deve ser entre 0 e 100).", variant: "destructive" });
+      toast({ title: "Erro de Configuração", description: "Porcentagem de comissão geral inválida (deve ser entre 0 e 100).", variant: "destructive" });
       return;
     }
     if (isNaN(clientSalesCommission) || clientSalesCommission < 0 || clientSalesCommission > 100) {
@@ -476,7 +476,7 @@ export default function AdminPage() {
                       <div className="space-y-2">
                           <Label htmlFor="ownerCommission" className="flex items-center">
                                <Percent className="mr-2 h-4 w-4 text-muted-foreground" />
-                              Comissão Geral do Dono (%)
+                              Comissão Geral (Bolão %)
                           </Label>
                           <Input 
                               id="ownerCommission" 
@@ -653,10 +653,10 @@ export default function AdminPage() {
                             R$ {financialReport.sellerCommission.toFixed(2).replace('.', ',')}
                         </p>
                     </div>
-                    {/* Comissão Dono */}
+                    {/* Comissão Bolão */}
                     <div className="p-4 rounded-lg bg-background/70 shadow-inner lg:col-span-1">
                         <Percent className="h-10 w-10 text-primary mx-auto mb-2" />
-                        <p className="text-sm font-medium text-muted-foreground">Comissão (Dono)</p>
+                        <p className="text-sm font-medium text-muted-foreground">Comissão (Bolão)</p>
                         <p className="text-3xl font-bold text-primary">
                             R$ {financialReport.ownerCommission.toFixed(2).replace('.', ',')}
                         </p>
