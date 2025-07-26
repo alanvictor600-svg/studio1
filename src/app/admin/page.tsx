@@ -152,8 +152,8 @@ export default function AdminPage() {
     const totalActiveTicketsCount = activeClientTickets.length + activeVendedorTickets.length;
     const totalRevenue = totalActiveTicketsCount * lotteryConfig.ticketPrice;
     
-    const sellerRevenue = activeVendedorTickets.length * lotteryConfig.ticketPrice;
-    const sellerCommission = sellerRevenue * (lotteryConfig.sellerCommissionPercentage / 100);
+    const sellerSalesRevenue = activeVendedorTickets.length * lotteryConfig.ticketPrice;
+    const sellerCommission = sellerSalesRevenue * (lotteryConfig.sellerCommissionPercentage / 100);
     
     const ownerCommission = totalRevenue * (lotteryConfig.ownerCommissionPercentage / 100);
     
