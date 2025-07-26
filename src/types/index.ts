@@ -27,3 +27,11 @@ export interface LotteryConfig {
   ticketPrice: number;
   sellerCommissionPercentage: number; // Stored as a whole number, e.g., 10 for 10%
 }
+
+export interface SellerHistoryEntry {
+  id: string;
+  endDate: string; // ISO string for date when the lottery cycle ended
+  activeTicketsCount: number;
+  totalRevenue: number;
+  totalCommission: number;
+}

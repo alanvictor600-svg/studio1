@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import type { Draw, Ticket, LotteryConfig } from '@/types';
+import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminDrawForm } from '@/components/admin-draw-form';
 import { AdminDrawList } from '@/components/admin-draw-list';
@@ -20,8 +20,11 @@ import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
+const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets'; // Added for history capture
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
+const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory'; // Added for history capture
+
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2, // Default price R$2.00
@@ -119,8 +122,40 @@ export default function AdminPage() {
     setDraws(prevDraws => [newDraw, ...prevDraws]);
     toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado com sucesso.", className: "bg-primary text-primary-foreground" });
   };
+  
+  const captureAndSaveSellerHistory = () => {
+    const sellerTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
+    const sellerTickets: Ticket[] = sellerTicketsRaw ? JSON.parse(sellerTicketsRaw) : [];
+    
+    const configRaw = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
+    const currentConfig: LotteryConfig = configRaw ? JSON.parse(configRaw) : DEFAULT_LOTTERY_CONFIG;
+    
+    const activeTickets = sellerTickets.filter(ticket => ticket.status === 'active');
+    const activeSellerTicketsCount = activeTickets.length;
+    const totalRevenueFromActiveTickets = activeSellerTicketsCount * currentConfig.ticketPrice;
+    const commissionEarned = totalRevenueFromActiveTickets * (currentConfig.sellerCommissionPercentage / 100);
+
+    const newHistoryEntry: SellerHistoryEntry = {
+      id: uuidv4(),
+      endDate: new Date().toISOString(),
+      activeTicketsCount: activeSellerTicketsCount,
+      totalRevenue: totalRevenueFromActiveTickets,
+      totalCommission: commissionEarned,
+    };
+
+    const historyRaw = localStorage.getItem(SELLER_HISTORY_STORAGE_KEY);
+    const history: SellerHistoryEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
+    history.push(newHistoryEntry);
+    localStorage.setItem(SELLER_HISTORY_STORAGE_KEY, JSON.stringify(history));
+
+    toast({ title: "Histórico do Vendedor Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo.", className: "bg-secondary text-secondary-foreground" });
+  };
+
 
   const handleStartNewLottery = () => {
+    // Capture seller history before resetting everything
+    captureAndSaveSellerHistory();
+  
     setDraws([]);
     setAllTickets(prevTickets =>
       prevTickets.map(ticket => {
@@ -130,6 +165,15 @@ export default function AdminPage() {
         return ticket;
       })
     );
+    // Also reset seller tickets status
+    const sellerTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
+    if (sellerTicketsRaw) {
+        let sellerTickets: Ticket[] = JSON.parse(sellerTicketsRaw);
+        sellerTickets = sellerTickets.map(ticket => ({ ...ticket, status: 'expired' }));
+        localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(sellerTickets));
+    }
+
+
     toast({
       title: "Nova Loteria Iniciada!",
       description: "Sorteios anteriores e bilhetes ativos/premiados foram resetados/expirados.",
@@ -267,7 +311,7 @@ export default function AdminPage() {
                   Gerenciar Ciclo da Loteria
                 </CardTitle>
                 <CardDescription className="text-center text-muted-foreground">
-                  Esta ação reinicia a loteria, limpa os sorteios e expira bilhetes ativos/premiados.
+                  Esta ação reinicia a loteria, cria um histórico de vendas e expira bilhetes ativos.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
@@ -284,8 +328,7 @@ export default function AdminPage() {
                         Confirmar Nova Loteria?
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Esta ação irá limpar todos os sorteios existentes e marcar todos os bilhetes ativos e premiados como expirados.
-                        A comissão dos vendedores para o ciclo atual será baseada nos bilhetes ativos antes desta ação.
+                        Esta ação irá salvar um resumo do ciclo de vendas atual do vendedor, limpar todos os sorteios existentes e marcar todos os bilhetes ativos e premiados como expirados.
                         Esta ação não pode ser desfeita.
                       </AlertDialogDescription>
                     </AlertDialogHeader>

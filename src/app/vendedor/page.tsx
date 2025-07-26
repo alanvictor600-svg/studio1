@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
-import type { Draw, Ticket, LotteryConfig } from '@/types';
+import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { ClipboardList, Ticket as TicketIconLucide, PieChart, PlusCircle, ListChecks, History, DollarSign, Percent, TrendingUp, Menu, X, LogOut, LogIn, Palette } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
@@ -17,10 +17,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
 const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
+const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -41,6 +47,7 @@ export default function VendedorPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [vendedorManagedTickets, setVendedorManagedTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
+  const [sellerHistory, setSellerHistory] = useState<SellerHistoryEntry[]>([]);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const { currentUser, logout } = useAuth();
@@ -59,6 +66,9 @@ export default function VendedorPage() {
 
     const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
     setLotteryConfig(storedConfig ? JSON.parse(storedConfig) : DEFAULT_LOTTERY_CONFIG);
+    
+    const storedHistory = localStorage.getItem(SELLER_HISTORY_STORAGE_KEY);
+    setSellerHistory(storedHistory ? JSON.parse(storedHistory) : []);
 
     // Listen for storage changes from other tabs (e.g., admin changing config)
     const handleStorageChange = (event: StorageEvent) => {
@@ -67,6 +77,12 @@ export default function VendedorPage() {
       }
       if (event.key === DRAWS_STORAGE_KEY && event.newValue) {
         setDraws(JSON.parse(event.newValue));
+      }
+      if (event.key === VENDEDOR_TICKETS_STORAGE_KEY && event.newValue) {
+        setVendedorManagedTickets(JSON.parse(event.newValue));
+      }
+      if (event.key === SELLER_HISTORY_STORAGE_KEY && event.newValue) {
+        setSellerHistory(JSON.parse(event.newValue));
       }
     };
 
@@ -182,11 +198,11 @@ export default function VendedorPage() {
       case 'relatorios':
         return (
           <>
-            <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="scroll-mt-24">
+            <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="scroll-mt-24 space-y-12">
               <h2 id="dashboard-summary-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
                  <PieChart className="mr-3 h-8 w-8 text-primary" /> Resumo Geral e Relatórios
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="shadow-lg bg-card text-card-foreground border-border hover:shadow-xl transition-shadow">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -212,9 +228,7 @@ export default function VendedorPage() {
                   </CardContent>
                 </Card>
               </div>
-            </section>
-
-            <section id="reports-commission-heading" aria-labelledby="reports-commission-heading-title" className="scroll-mt-24">
+         
               <Card className="shadow-xl bg-card/90 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="text-xl text-center font-semibold text-primary">Desempenho de Vendas (Ciclo Atual)</CardTitle>
@@ -252,6 +266,47 @@ export default function VendedorPage() {
                     </p>
                 </CardFooter>
               </Card>
+
+              <Card className="shadow-xl bg-card/90 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl text-center font-semibold text-primary">Histórico de Ciclos Anteriores</CardTitle>
+                  <CardDescription className="text-center text-muted-foreground">
+                    Resumo do seu desempenho em cada ciclo de loteria encerrado pelo administrador.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {sellerHistory.length > 0 ? (
+                    <ScrollArea className="h-72 w-full rounded-md border">
+                        <Table>
+                          <TableCaption>Um registro do seu desempenho de vendas por ciclo.</TableCaption>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-center">Data Encerramento</TableHead>
+                              <TableHead className="text-center">Bilhetes Ativos</TableHead>
+                              <TableHead className="text-center">Receita (R$)</TableHead>
+                              <TableHead className="text-right">Comissão (R$)</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {sellerHistory.slice().reverse().map((entry) => (
+                              <TableRow key={entry.id}>
+                                <TableCell className="text-center font-medium">
+                                  {format(parseISO(entry.endDate), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}
+                                </TableCell>
+                                <TableCell className="text-center">{entry.activeTicketsCount}</TableCell>
+                                <TableCell className="text-center">{entry.totalRevenue.toFixed(2).replace('.', ',')}</TableCell>
+                                <TableCell className="text-right font-semibold text-secondary">{entry.totalCommission.toFixed(2).replace('.', ',')}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                    </ScrollArea>
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">Nenhum histórico de ciclo anterior encontrado.</p>
+                  )}
+                </CardContent>
+              </Card>
+
             </section>
           </>
         );
@@ -370,4 +425,5 @@ export default function VendedorPage() {
     
 
     
+
 
