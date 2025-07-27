@@ -35,7 +35,7 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
   sellerCommissionPercentage: 10,
   ownerCommissionPercentage: 5,
-  clientSalesCommissionToOwnerPercentage: 10, // Default to 10%
+  clientSalesCommissionToOwnerPercentage: 10,
 };
 
 type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'gerenciar-contas' | 'relatorios';
@@ -332,10 +332,10 @@ export default function AdminPage() {
 
   const handleDeleteUser = () => {
     if (!userToDelete) return;
-    
+
     // Prevent deleting the currently logged-in user for safety
-    const loggedInUser = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-    if(loggedInUser === userToDelete.username) {
+    const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+    if(loggedInUserRaw && loggedInUserRaw === userToDelete.username) {
         toast({ title: "Ação Bloqueada", description: "Não é possível excluir o usuário que está logado.", variant: "destructive" });
         setIsDeleteConfirmOpen(false);
         setUserToDelete(null);
@@ -797,4 +797,5 @@ export default function AdminPage() {
     
 
     
+
 
