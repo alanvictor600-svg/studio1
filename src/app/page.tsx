@@ -78,40 +78,42 @@ export default function LandingPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
-       <div className="fixed top-6 left-6 z-50">
-        <Popover>
-          <PopoverTrigger asChild>
-              <Button>
-                <LogIn className="mr-2 h-5 w-5" /> Entrar na sua conta
-              </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium leading-none">Acesso Rápido</h4>
-                <p className="text-sm text-muted-foreground">
-                  Escolha seu painel para continuar ou cadastre-se.
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Button onClick={handleClienteClick} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Users className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"}
-                </Button>
-                <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
-                   <ShoppingCart className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'vendedor' ? "Meu Painel de Vendas" : "Entrar como Vendedor"}
-                </Button>
-                 {!currentUser && (
-                    <Link href="/cadastrar" passHref className="mt-2">
-                      <Button variant="link" className="w-full">
-                        <UserPlus className="mr-2 h-4 w-4" /> Ainda não tem conta? Cadastre-se!
-                      </Button>
-                    </Link>
-                  )}
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
+       {draws.length > 0 && (
+          <div className="fixed top-6 left-6 z-50">
+            <Popover>
+              <PopoverTrigger asChild>
+                  <Button>
+                    <LogIn className="mr-2 h-5 w-5" /> Entrar na sua conta
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">Acesso Rápido</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Escolha seu painel para continuar ou cadastre-se.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Button onClick={handleClienteClick} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                      <Users className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"}
+                    </Button>
+                    <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
+                      <ShoppingCart className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'vendedor' ? "Meu Painel de Vendas" : "Entrar como Vendedor"}
+                    </Button>
+                    {!currentUser && (
+                        <Link href="/cadastrar" passHref className="mt-2">
+                          <Button variant="link" className="w-full">
+                            <UserPlus className="mr-2 h-4 w-4" /> Ainda não tem conta? Cadastre-se!
+                          </Button>
+                        </Link>
+                      )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+       )}
 
       <div className="fixed top-6 right-6 z-50 flex space-x-2">
         {currentUser && (
