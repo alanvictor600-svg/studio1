@@ -34,9 +34,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const localUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
       setUsers(localUsers);
 
-      const storedCurrentUserUsername = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-      if (storedCurrentUserUsername) {
-        const foundUser = localUsers.find((u: User) => u.username === storedCurrentUserUsername);
+      const storedCurrentUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+      if (storedCurrentUserRaw) {
+        const storedCurrentUser = JSON.parse(storedCurrentUserRaw);
+        const foundUser = localUsers.find((u: User) => u.username === storedCurrentUser.username);
         setCurrentUser(foundUser || null);
         if (!foundUser) {
             localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
@@ -76,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // NOTE: This is plain text comparison. In a real app, use a hashing library like bcrypt.
     if (userToLogin.passwordHash === passwordAttempt) { 
       setCurrentUser(userToLogin);
-      localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, userToLogin.username);
+      localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(userToLogin));
       setTimeout(() => {
         toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground" });
       }, 0);
@@ -133,11 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // This prevents rendering children until the auth state is determined,
   // avoiding flashes of incorrect content.
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Carregando sistema de autenticação...</p>
-      </div>
-    );
+    return null;
   }
 
   return (

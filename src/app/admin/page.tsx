@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry, User, AdminHistoryEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminDrawForm } from '@/components/admin-draw-form';
@@ -149,44 +149,44 @@ export default function AdminPage() {
     if (isClient) localStorage.setItem(ADMIN_HISTORY_STORAGE_KEY, JSON.stringify(adminHistory));
   }, [adminHistory, isClient]);
 
-  const allSystemTickets = useMemo(() => [...clientTickets, ...vendedorTickets], [clientTickets, vendedorTickets]);
+  const allSystemTickets = [...clientTickets, ...vendedorTickets];
 
-  const winningTickets = useMemo(() => allSystemTickets.filter(ticket => ticket.status === 'winning'), [allSystemTickets]);
+  const winningTickets = allSystemTickets.filter(ticket => ticket.status === 'winning');
 
-  const financialReport = useMemo(() => {
-    const activeClientTickets = clientTickets.filter(t => t.status === 'active');
-    const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
-    
-    const price = lotteryConfig.ticketPrice || 0;
-    const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
-    const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
-    const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
-    
-    const clientTicketCount = activeClientTickets.length;
-    const sellerTicketCount = activeVendedorTickets.length;
+  const financialReport = {
+    totalRevenue: 0,
+    sellerCommission: 0,
+    ownerCommission: 0,
+    prizePool: 0,
+    clientRevenue: 0,
+    sellerRevenue: 0,
+    clientTicketCount: 0,
+    sellerTicketCount: 0
+  };
 
-    const clientRevenue = clientTicketCount * price;
-    const sellerRevenue = sellerTicketCount * price;
-    const totalRevenue = clientRevenue + sellerRevenue;
+  if(isClient) {
+      const activeClientTickets = clientTickets.filter(t => t.status === 'active');
+      const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
+      
+      const price = lotteryConfig.ticketPrice || 0;
+      const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
+      const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
+      const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
+      
+      financialReport.clientTicketCount = activeClientTickets.length;
+      financialReport.sellerTicketCount = activeVendedorTickets.length;
 
-    const sellerCommission = sellerRevenue * (sellerCommPercent / 100);
-    const ownerBaseCommission = totalRevenue * (ownerCommPercent / 100);
-    const ownerExtraCommission = clientRevenue * (clientSalesCommPercent / 100);
-    const totalOwnerCommission = ownerBaseCommission + ownerExtraCommission;
+      financialReport.clientRevenue = financialReport.clientTicketCount * price;
+      financialReport.sellerRevenue = financialReport.sellerTicketCount * price;
+      financialReport.totalRevenue = financialReport.clientRevenue + financialReport.sellerRevenue;
 
-    const prizePool = totalRevenue - sellerCommission - totalOwnerCommission;
+      financialReport.sellerCommission = financialReport.sellerRevenue * (sellerCommPercent / 100);
+      const ownerBaseCommission = financialReport.totalRevenue * (ownerCommPercent / 100);
+      const ownerExtraCommission = financialReport.clientRevenue * (clientSalesCommPercent / 100);
+      financialReport.ownerCommission = ownerBaseCommission + ownerExtraCommission;
 
-    return {
-      totalRevenue,
-      sellerCommission,
-      ownerCommission: totalOwnerCommission,
-      prizePool,
-      clientRevenue,
-      sellerRevenue,
-      clientTicketCount,
-      sellerTicketCount
-    };
-  }, [clientTickets, vendedorTickets, lotteryConfig]);
+      financialReport.prizePool = financialReport.totalRevenue - financialReport.sellerCommission - financialReport.ownerCommission;
+  }
 
   const handleAddDraw = (newNumbers: number[], name?: string) => {
     if (winningTickets.length > 0) {
@@ -361,17 +361,30 @@ export default function AdminPage() {
 
   const handleDeleteUser = () => {
     if (!userToDelete) return;
-    
+
     const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-    if (loggedInUserRaw && loggedInUserRaw === userToDelete.username) {
+    const currentUser = loggedInUserRaw ? JSON.parse(loggedInUserRaw) : null;
+    
+    if (currentUser && currentUser.username === userToDelete.username) {
         toast({ title: "Ação Bloqueada", description: "Não é possível excluir o usuário que está logado.", variant: "destructive" });
         setIsDeleteConfirmOpen(false);
         setUserToDelete(null);
         return;
     }
 
+    // Remove tickets associated with the user
+    if (userToDelete.role === 'vendedor') {
+      setVendedorTickets(prev => prev.filter(ticket => ticket.sellerUsername !== userToDelete.username));
+    }
+    if (userToDelete.role === 'cliente') {
+      setClientTickets(prev => prev.filter(ticket => ticket.buyerName !== userToDelete.username));
+    }
+
+    // Remove the user
     setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
-    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} foi removido.`, className: "bg-destructive text-destructive-foreground" });
+
+    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground" });
+    
     setIsDeleteConfirmOpen(false);
     setUserToDelete(null);
   };
@@ -501,23 +514,30 @@ export default function AdminPage() {
         const totalAwaitingClients = awaitingClientTickets.length;
         const totalAwaitingSellers = awaitingSellerTickets.length;
         
-        const awaitingClientTicketsByBuyer = awaitingClientTickets.reduce((acc, ticket) => {
-          const buyerName = ticket.buyerName || 'Desconhecido';
-          if (!acc[buyerName]) {
-            acc[buyerName] = [];
-          }
-          acc[buyerName].push(ticket);
-          return acc;
-        }, {} as Record<string, Ticket[]>);
+        let awaitingClientTicketsByBuyer = {};
+        if (isClient) {
+            awaitingClientTicketsByBuyer = awaitingClientTickets.reduce((acc, ticket) => {
+              const buyerName = ticket.buyerName || 'Desconhecido';
+              if (!acc[buyerName]) {
+                acc[buyerName] = [];
+              }
+              acc[buyerName].push(ticket);
+              return acc;
+            }, {} as Record<string, Ticket[]>);
+        }
 
-        const awaitingSellerTicketsBySeller = awaitingSellerTickets.reduce((acc, ticket) => {
-          const seller = ticket.sellerUsername || 'Desconhecido';
-          if (!acc[seller]) {
-            acc[seller] = [];
-          }
-          acc[seller].push(ticket);
-          return acc;
-        }, {} as Record<string, Ticket[]>);
+
+        let awaitingSellerTicketsBySeller = {};
+        if (isClient) {
+            awaitingSellerTicketsBySeller = awaitingSellerTickets.reduce((acc, ticket) => {
+              const seller = ticket.sellerUsername || 'Desconhecido';
+              if (!acc[seller]) {
+                acc[seller] = [];
+              }
+              acc[seller].push(ticket);
+              return acc;
+            }, {} as Record<string, Ticket[]>);
+        }
 
         const filteredClients = Object.fromEntries(
           Object.entries(awaitingClientTicketsByBuyer).filter(([buyerName]) =>
@@ -1163,7 +1183,7 @@ export default function AdminPage() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Tem certeza que deseja excluir o usuário <span className="font-bold">{userToDelete?.username}</span>? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir o usuário <span className="font-bold">{userToDelete?.username}</span>? Todos os seus bilhetes também serão removidos. Esta ação não pode ser desfeita.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
