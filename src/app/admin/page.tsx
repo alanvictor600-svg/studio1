@@ -340,15 +340,47 @@ export default function AdminPage() {
   };
 
   const handleSaveUser = (updatedUser: User) => {
-    setAllUsers(prevUsers => {
-        const isUsernameTaken = prevUsers.some(u => u.username === updatedUser.username && u.id !== updatedUser.id);
-        if (isUsernameTaken) {
-            toast({ title: "Erro ao Salvar", description: `O nome de usuário "${updatedUser.username}" já está em uso.`, variant: "destructive" });
-            return prevUsers;
+    const oldUser = allUsers.find(u => u.id === updatedUser.id);
+    if (!oldUser) {
+        toast({ title: "Erro ao Salvar", description: "Usuário original não encontrado.", variant: "destructive" });
+        return;
+    }
+    const oldUsername = oldUser.username;
+    const newUsername = updatedUser.username;
+
+    // Check if new username is taken by someone else
+    const isUsernameTaken = allUsers.some(u => u.username === newUsername && u.id !== updatedUser.id);
+    if (isUsernameTaken) {
+        toast({ title: "Erro ao Salvar", description: `O nome de usuário "${newUsername}" já está em uso.`, variant: "destructive" });
+        return;
+    }
+    
+    // Update the user in the main users list
+    setAllUsers(prevUsers => prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u)));
+
+    // If username changed, update all related data
+    if (oldUsername !== newUsername) {
+        // Update seller tickets
+        setVendedorTickets(prevTickets => 
+            prevTickets.map(ticket => 
+                ticket.sellerUsername === oldUsername ? { ...ticket, sellerUsername: newUsername } : ticket
+            )
+        );
+        // Update client tickets
+        setClientTickets(prevTickets => 
+            prevTickets.map(ticket => 
+                ticket.buyerName === oldUsername ? { ...ticket, buyerName: newUsername } : ticket
+            )
+        );
+        
+        // Update current user session if the edited user is the one logged in
+        const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+        if (loggedInUserRaw && loggedInUserRaw === oldUsername) {
+            localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, newUsername);
         }
-        toast({ title: "Usuário Atualizado!", description: `Os dados de ${updatedUser.username} foram salvos.`, className: "bg-primary text-primary-foreground" });
-        return prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u));
-    });
+    }
+
+    toast({ title: "Usuário Atualizado!", description: `Os dados de ${newUsername} foram salvos.`, className: "bg-primary text-primary-foreground" });
     setIsUserEditDialogOpen(false);
     setUserToEdit(null);
   };
@@ -1141,20 +1173,23 @@ export default function AdminPage() {
               onClose={() => setUserToEdit(null)}
           />
       )}
-      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                      Tem certeza que deseja excluir o usuário <span className="font-bold">{userToDelete?.username}</span>? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
+      
+      {userToDelete && (
+        <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar Exclusão?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tem certeza que deseja excluir o usuário <span className="font-bold">{userToDelete?.username}</span>? Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Excluir</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       <footer className="mt-20 py-8 text-center border-t border-border/50">
         <p className="text-sm text-muted-foreground">
@@ -1164,3 +1199,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
