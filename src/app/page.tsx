@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award, PanelTopOpen } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
@@ -144,8 +145,8 @@ export default function LandingPage() {
         <p className="text-lg text-muted-foreground mt-2">Sua sorte começa aqui!</p> 
       </header>
 
-      <main className="w-full max-w-5xl space-y-12">
-        {draws.length > 0 && (
+      <main className="w-full max-w-5xl space-y-12 flex-grow">
+        {draws.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
                <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
@@ -158,6 +159,37 @@ export default function LandingPage() {
                   <Award className="mr-3 h-6 w-6" /> Placar de Acertos
               </h2>
               <TopTickets tickets={allTickets} draws={draws} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center">
+            <h2 className="text-2xl font-bold text-primary text-center mb-6">A loteria ainda não começou!</h2>
+            <p className="text-muted-foreground mb-8 text-center">Escolha um perfil abaixo para começar.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
+                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="items-center text-center">
+                    <Users className="w-12 h-12 text-primary mb-2" />
+                    <CardTitle className="text-2xl">Acessar como Cliente</CardTitle>
+                    <CardDescription>Compre e gerencie seus bilhetes.</CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button onClick={handleClienteClick} className="w-full">
+                       {currentUser && currentUser.role === 'cliente' ? "Ir para o Painel" : "Entrar como Cliente"} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                   <CardHeader className="items-center text-center">
+                    <ShoppingCart className="w-12 h-12 text-secondary mb-2" />
+                    <CardTitle className="text-2xl">Acessar como Vendedor</CardTitle>
+                    <CardDescription>Venda bilhetes e acompanhe seu desempenho.</CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
+                      {currentUser && currentUser.role === 'vendedor' ? "Ir para o Painel" : "Entrar como Vendedor"} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
             </div>
           </div>
         )}
