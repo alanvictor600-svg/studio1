@@ -13,6 +13,8 @@ import { useRouter } from 'next/navigation';
 import type { Draw, Ticket } from '@/types';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
@@ -21,7 +23,7 @@ const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [draws, setDraws] = useState<Draw[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
@@ -112,9 +114,19 @@ export default function LandingPage() {
 
       <div className="fixed top-6 right-6 z-50 flex space-x-2">
         {currentUser && (
-          <Button variant="outline" onClick={logout} className="shadow-md">
-            <LogOut className="mr-2 h-4 w-4" /> Sair
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={logout} className="shadow-md">
+                  <LogOut className="h-4 w-4" />
+                  <span className="sr-only">Sair</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Sair</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         <ThemeToggleButton />
       </div>
