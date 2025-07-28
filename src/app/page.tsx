@@ -30,6 +30,8 @@ export default function LandingPage() {
 
   useEffect(() => {
     setIsClient(true);
+    if (isLoading) return; // Aguarda o fim do carregamento da autenticação
+
     const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
     if (storedDraws) {
       setDraws(JSON.parse(storedDraws));
@@ -41,7 +43,7 @@ export default function LandingPage() {
     const vendedorTickets = vendedorTicketsRaw ? JSON.parse(vendedorTicketsRaw) : [];
 
     setAllTickets([...clientTickets, ...vendedorTickets]);
-  }, []);
+  }, [isLoading]);
 
   const handleClienteClick = () => {
     if (currentUser && currentUser.role === 'cliente') {
@@ -88,18 +90,17 @@ export default function LandingPage() {
         <div className="mb-6 flex justify-center"> {/* Added flex justify-center */}
           <Image
             src="/logo.png" 
-            alt="Logo Bolão Potiguar - Tentativa 2" 
+            alt="Logo Bolão Potiguar" 
             width={150} 
             height={150} 
             priority 
             className="mx-auto"
           />
         </div>
-        {/* Título principal removido */}
         <p className="text-lg text-muted-foreground mt-2">Sua sorte começa aqui!</p> 
       </header>
       
-      {draws.length > 0 && (
+      {!isLoading && draws.length > 0 && (
          <section className="w-full max-w-3xl mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-4">
                <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
