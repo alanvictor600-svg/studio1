@@ -5,9 +5,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award } from 'lucide-react';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award, PanelTopOpen } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -22,7 +21,7 @@ const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
-  const { currentUser, logout, isLoading } = useAuth();
+  const { currentUser, logout } = useAuth();
   const router = useRouter();
   const [draws, setDraws] = useState<Draw[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
@@ -73,16 +72,6 @@ export default function LandingPage() {
       </div>
     );
   }
-  
-  if (isLoading) {
-    // Show a loading state but don't block the initial render for non-auth data.
-    // This part can be enhanced with a better skeleton loader.
-     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Carregando Bolão Potiguar...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
@@ -95,7 +84,7 @@ export default function LandingPage() {
         <ThemeToggleButton />
       </div>
       <header className="mb-12 text-center">
-        <div className="mb-6 flex justify-center"> {/* Added flex justify-center */}
+        <div className="mb-6 flex justify-center">
           <Image
             src="/logo.png" 
             alt="Logo Bolão Potiguar" 
@@ -108,66 +97,62 @@ export default function LandingPage() {
         <p className="text-lg text-muted-foreground mt-2">Sua sorte começa aqui!</p> 
       </header>
 
-      <main className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8">
+      <main className="w-full max-w-5xl space-y-12">
         {draws.length > 0 && (
-          <>
-            <div className="md:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
                <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
                   <History className="mr-3 h-6 w-6" /> Último Sorteio
                </h2>
                <AdminDrawCard draw={draws[0]} />
             </div>
-            <div className="md:col-span-1 space-y-4">
+            <div className="space-y-4">
               <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
                   <Award className="mr-3 h-6 w-6" /> Placar de Acertos
               </h2>
               <TopTickets tickets={allTickets} draws={draws} />
             </div>
-          </>
+          </div>
         )}
-        
-        {/* Cliente Card */}
-        <Card className="text-center h-full flex flex-col justify-between shadow-xl hover:shadow-2xl bg-card/90 backdrop-blur-sm border-primary/50 transform hover:scale-105 transition-transform duration-300">
-          <CardHeader>
-            <Users className="mx-auto h-16 w-16 text-primary mb-4" />
-            <CardTitle className="text-2xl font-bold text-primary">Cliente</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {currentUser && currentUser.role === 'cliente' ? "Acessar meus bilhetes e tentar a sorte!" : "Compre seus bilhetes e tente a sorte!"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="mt-auto pb-6">
-            <Button onClick={handleClienteClick} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              <ArrowRight className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"}
-            </Button>
-          </CardContent>
-        </Card>
 
-        {/* Vendedor Card */}
-         <Card className="text-center h-full flex flex-col justify-between shadow-xl hover:shadow-2xl bg-card/90 backdrop-blur-sm border-secondary/50 transform hover:scale-105 transition-transform duration-300">
-          <CardHeader>
-            <ShoppingCart className="mx-auto h-16 w-16 text-secondary mb-4" />
-            <CardTitle className="text-2xl font-bold text-secondary">Vendedor</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {currentUser && currentUser.role === 'vendedor' ? "Gerenciar minhas vendas e bilhetes." : "Gerencie suas vendas e acompanhe seus bilhetes."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="mt-auto pb-6">
-             <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
-                <ArrowRight className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'vendedor' ? "Meu Painel de Vendas" : "Entrar como Vendedor"}
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-
-      {!currentUser && (
-        <div className="mt-12">
-          <Link href="/cadastrar" passHref>
-            <Button variant="outline" size="lg" className="text-lg py-3 px-6 shadow-md hover:shadow-lg">
-              <UserPlus className="mr-2 h-5 w-5" /> Ainda não tem conta? Cadastre-se!
-            </Button>
-          </Link>
+        <div className="text-center">
+            <Popover>
+              <PopoverTrigger asChild>
+                  <Button size="lg" className="text-lg py-3 px-8 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-transform duration-200">
+                    <PanelTopOpen className="mr-2 h-5 w-5" /> Acessar Painéis
+                  </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium leading-none">Acesso Rápido</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Escolha seu painel para continuar.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Button onClick={handleClienteClick} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                      <Users className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'cliente' ? "Meu Painel de Cliente" : "Entrar como Cliente"}
+                    </Button>
+                    <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
+                       <ShoppingCart className="mr-2 h-4 w-4" /> {currentUser && currentUser.role === 'vendedor' ? "Meu Painel de Vendas" : "Entrar como Vendedor"}
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
         </div>
-      )}
+        
+        {!currentUser && (
+          <div className="mt-8 text-center">
+            <Link href="/cadastrar" passHref>
+              <Button variant="link" size="lg" className="text-lg">
+                <UserPlus className="mr-2 h-5 w-5" /> Ainda não tem conta? Cadastre-se!
+              </Button>
+            </Link>
+          </div>
+        )}
+      </main>
 
       <div className="fixed bottom-6 left-6 z-50">
         <Popover>
