@@ -58,6 +58,29 @@ export function countOccurrences(arr: number[]): Record<number, number> {
   }, {} as Record<number, number>);
 }
 
+export function calculateTicketMatches(ticket: Ticket, draws: Draw[]): number {
+    if (!draws || draws.length === 0 || ticket.status !== 'active') {
+        return 0;
+    }
+
+    const drawnNumbersFrequency = countOccurrences(draws.flatMap(draw => draw.numbers));
+    const ticketNumbersFrequency = countOccurrences(ticket.numbers);
+
+    let matches = 0;
+
+    for (const numStr in ticketNumbersFrequency) {
+        const num = parseInt(numStr, 10);
+        const countInTicket = ticketNumbersFrequency[num];
+        const countInDraws = drawnNumbersFrequency[num] || 0;
+        
+        // The number of matches for a given number is the minimum of its count in the ticket and in the draws.
+        matches += Math.min(countInTicket, countInDraws);
+    }
+
+    return matches;
+}
+
+
 export function updateTicketStatusesBasedOnDraws(tickets: Ticket[], draws: Draw[]): Ticket[] {
   if (!Array.isArray(tickets)) {
     console.error("updateTicketStatusesBasedOnDraws: tickets is not an array", tickets);
@@ -128,5 +151,3 @@ export function updateTicketStatusesBasedOnDraws(tickets: Ticket[], draws: Draw[
     return { ...ticket, status: newStatus };
   });
 }
-
-    

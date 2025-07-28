@@ -7,20 +7,26 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History } from 'lucide-react';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import type { Draw } from '@/types';
+import type { Draw, Ticket } from '@/types';
 import { AdminDrawCard } from '@/components/admin-draw-card';
+import { TopTickets } from '@/components/TopTickets';
 
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
+const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
+const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
+
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const { currentUser, logout, isLoading } = useAuth();
   const router = useRouter();
   const [draws, setDraws] = useState<Draw[]>([]);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -28,6 +34,13 @@ export default function LandingPage() {
     if (storedDraws) {
       setDraws(JSON.parse(storedDraws));
     }
+    const clientTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
+    const clientTickets = clientTicketsRaw ? JSON.parse(clientTicketsRaw) : [];
+
+    const vendedorTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
+    const vendedorTickets = vendedorTicketsRaw ? JSON.parse(vendedorTicketsRaw) : [];
+
+    setAllTickets([...clientTickets, ...vendedorTickets]);
   }, []);
 
   const handleClienteClick = () => {
@@ -85,15 +98,24 @@ export default function LandingPage() {
         {/* Título principal removido */}
         <p className="text-lg text-muted-foreground mt-2">Sua sorte começa aqui!</p> 
       </header>
-
+      
       {draws.length > 0 && (
-        <section className="w-full max-w-3xl mb-12">
-            <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
-              <History className="mr-3 h-6 w-6" /> Último Sorteio Realizado
-            </h2>
-            <AdminDrawCard draw={draws[0]} />
-        </section>
+         <section className="w-full max-w-3xl mb-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+               <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
+                  <History className="mr-3 h-6 w-6" /> Último Sorteio
+               </h2>
+               <AdminDrawCard draw={draws[0]} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
+                  <Award className="mr-3 h-6 w-6" /> Top 5 Bilhetes
+              </h2>
+              <TopTickets tickets={allTickets} draws={draws} count={5} />
+            </div>
+         </section>
       )}
+
 
       <main className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Cliente Card */}
