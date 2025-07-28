@@ -66,7 +66,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
   const handleClear = () => {
     setNumbers(Array(NUM_OF_PICKS).fill(''));
     setDrawName('');
-    toast({ title: "Campos Limpos", description: "Os números e o nome do sorteio foram removidos." });
+    toast({ title: "Campos Limpos", description: "Os números e o nome do sorteio foram removidos.", duration: 3000 });
   }
 
   return (

@@ -125,7 +125,7 @@ export default function VendedorPage() {
       sellerUsername: currentUser.username, // Add seller username to the ticket
     };
     setVendedorManagedTickets(prevTickets => [newTicket, ...prevTickets]);
-    toast({ title: "Venda Registrada!", description: "Bilhete adicionado e aguarda aprovação do Admin.", className: "bg-primary text-primary-foreground" });
+    toast({ title: "Venda Registrada!", description: "Bilhete adicionado e aguarda aprovação do Admin.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
   
   const { activeSellerTicketsCount, totalRevenueFromActiveTickets, commissionEarned } = useMemo(() => {

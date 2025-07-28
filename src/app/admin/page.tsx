@@ -215,7 +215,7 @@ export default function AdminPage() {
     setClientTickets(updateTicketStatusesBasedOnDraws(updatedClientTickets, updatedDraws));
     setVendedorTickets(updateTicketStatusesBasedOnDraws(updatedVendedorTickets, updatedDraws));
     
-    toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado e os bilhetes pendentes foram invalidados.", className: "bg-primary text-primary-foreground" });
+    toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado e os bilhetes pendentes foram invalidados.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
   
   const captureAndSaveSellerHistory = useCallback(() => {
@@ -242,7 +242,7 @@ export default function AdminPage() {
     const history: SellerHistoryEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
     history.push(newHistoryEntry);
     localStorage.setItem(SELLER_HISTORY_STORAGE_KEY, JSON.stringify(history));
-    toast({ title: "Histórico do Vendedor Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo.", className: "bg-secondary text-secondary-foreground" });
+    toast({ title: "Histórico do Vendedor Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
   }, []);
   
   const captureAndSaveAdminHistory = useCallback(() => {
@@ -258,7 +258,7 @@ export default function AdminPage() {
         sellerTicketCount: currentReport.sellerTicketCount,
       };
       setAdminHistory(prevHistory => [...prevHistory, newHistoryEntry]);
-      toast({ title: "Histórico do Admin Salvo!", description: "Um resumo financeiro do ciclo atual foi salvo.", className: "bg-secondary text-secondary-foreground" });
+      toast({ title: "Histórico do Admin Salvo!", description: "Um resumo financeiro do ciclo atual foi salvo.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
   }, [financialReport]);
 
   const handleStartNewLottery = () => {
@@ -281,6 +281,7 @@ export default function AdminPage() {
       title: "Nova Loteria Iniciada!",
       description: "Sorteios e bilhetes ativos/premiados/pendentes foram resetados/expirados.",
       className: "bg-primary text-primary-foreground",
+      duration: 3000,
     });
     setStartLotteryPassword('');
     setIsConfirmDialogOpen(false); 
@@ -314,7 +315,7 @@ export default function AdminPage() {
       ownerCommissionPercentage: ownerCommission,
       clientSalesCommissionToOwnerPercentage: clientSalesCommission
     });
-    toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas.", className: "bg-primary text-primary-foreground" });
+    toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
   
   const handleOpenEditUser = (user: User) => {
@@ -360,7 +361,7 @@ export default function AdminPage() {
         }
     }
 
-    toast({ title: "Usuário Atualizado!", description: `Os dados de ${newUsername} foram salvos.`, className: "bg-primary text-primary-foreground" });
+    toast({ title: "Usuário Atualizado!", description: `Os dados de ${newUsername} foram salvos.`, className: "bg-primary text-primary-foreground", duration: 3000 });
     setIsUserEditDialogOpen(false);
     setUserToEdit(null);
   };
@@ -395,7 +396,7 @@ export default function AdminPage() {
     // Remove the user
     setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
 
-    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground" });
+    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
     
     setIsDeleteConfirmOpen(false);
     setUserToDelete(null);
@@ -427,6 +428,7 @@ export default function AdminPage() {
       title: `${selectedClientTickets.size} Bilhete(s) de Cliente Aprovado(s)!`,
       description: 'Os bilhetes selecionados agora estão ativos.',
       className: 'bg-primary text-primary-foreground',
+      duration: 3000
     });
     setSelectedClientTickets(new Set());
   };
@@ -448,6 +450,7 @@ export default function AdminPage() {
       title: `Bilhetes de ${buyerName} Aprovados!`,
       description: `Todos os bilhetes pendentes de ${buyerName} agora estão ativos.`,
       className: 'bg-primary text-primary-foreground',
+      duration: 3000,
     });
   };
 
@@ -477,6 +480,7 @@ export default function AdminPage() {
       title: `${selectedSellerTickets.size} Bilhete(s) Aprovado(s)!`,
       description: 'Os bilhetes de vendedor selecionados agora estão ativos.',
       className: 'bg-primary text-primary-foreground',
+      duration: 3000,
     });
     setSelectedSellerTickets(new Set());
   };
@@ -498,6 +502,7 @@ export default function AdminPage() {
       title: `Bilhetes de ${sellerName} Aprovados!`,
       description: `Todos os bilhetes pendentes de ${sellerName} agora estão ativos.`,
       className: 'bg-primary text-primary-foreground',
+      duration: 3000,
     });
   };
 

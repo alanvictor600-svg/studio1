@@ -67,12 +67,12 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ on
 
   const handleAutoFill = () => {
     setCurrentPicks(generateAutoFilledTicket());
-    toast({ title: "Números Gerados!", description: "Os números do bilhete foram preenchidos automaticamente." });
+    toast({ title: "Números Gerados!", description: "Os números do bilhete foram preenchidos automaticamente.", duration: 3000 });
   };
 
   const handleClearSelection = () => {
     setCurrentPicks([]);
-    toast({ title: "Seleção Limpa", description: "Todos os números foram removidos." });
+    toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
   const handleSubmitTicket = () => {
@@ -89,7 +89,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ on
     setCurrentPicks([]);
     setBuyerName('');
     setBuyerPhone('');
-    toast({ title: "Bilhete Vendido Adicionado!", description: "O bilhete foi registrado com sucesso.", className: "bg-primary text-primary-foreground" });
+    // The success toast is now in the parent component
   };
 
   return (

@@ -1,3 +1,4 @@
+
 "use client"
 
 // Inspired by react-hot-toast library
@@ -16,6 +17,7 @@ type ToasterToast = ToastProps & {
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  duration?: number // Add duration property
 }
 
 const actionTypes = {
@@ -163,6 +165,13 @@ function toast({ ...props }: Toast) {
       },
     },
   })
+
+  // If a duration is provided, schedule a dismiss action.
+  if (props.duration) {
+    setTimeout(() => {
+      dismiss();
+    }, props.duration);
+  }
 
   return {
     id: id,

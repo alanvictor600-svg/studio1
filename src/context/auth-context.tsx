@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(userToLogin);
       localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(userToLogin));
       setTimeout(() => {
-        toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground" });
+        toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground", duration: 3000 });
       }, 0);
       
       const redirectPath = userToLogin.role === 'cliente' ? '/cliente' : '/vendedor';
@@ -112,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
     
     setTimeout(() => {
-      toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground" });
+      toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
     }, 0);
     router.push('/login');
     return true;
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setCurrentUser(null);
     localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
     setTimeout(() => {
-      toast({ title: "Logout realizado", description: "Até logo!" });
+      toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
     }, 0);
     router.push('/');
   }, [router, toast]);

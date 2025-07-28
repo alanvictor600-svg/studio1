@@ -63,12 +63,12 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket,
 
   const handleAutoFill = () => {
     setCurrentPicks(generateAutoFilledTicket());
-     toast({ title: "Números Gerados!", description: "Seu bilhete foi preenchido automaticamente." });
+     toast({ title: "Números Gerados!", description: "Seu bilhete foi preenchido automaticamente.", duration: 3000 });
   };
 
   const handleClearSelection = () => {
     setCurrentPicks([]);
-    toast({ title: "Seleção Limpa", description: "Todos os números foram removidos." });
+    toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
   const handleSubmitTicket = () => {
@@ -78,7 +78,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket,
     }
     onAddTicket([...currentPicks].sort((a,b) => a-b)); // Ensure sorted before adding
     setCurrentPicks([]);
-    toast({ title: "Bilhete Adicionado!", description: "Boa sorte!", className: "bg-primary text-primary-foreground" });
+    toast({ title: "Bilhete Adicionado!", description: "Boa sorte!", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
 
   return (
