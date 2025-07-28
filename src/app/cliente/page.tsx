@@ -19,12 +19,12 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
 const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 
-type ClienteSection = 'selecionar-bilhete' | 'meus-bilhetes' | 'historico-sorteios';
+type ClienteSection = 'selecionar-bilhete' | 'meus-bilhetes' | 'resultados';
 
 const menuItems: { id: ClienteSection; label: string; Icon: React.ElementType }[] = [
   { id: 'selecionar-bilhete', label: 'Nova Aposta', Icon: TicketIconLucide },
   { id: 'meus-bilhetes', label: 'Meus Bilhetes', Icon: ListChecks },
-  { id: 'historico-sorteios', label: 'Resultados', Icon: History },
+  { id: 'resultados', label: 'Resultados', Icon: History },
 ];
 
 export default function ClientePage() {
@@ -119,9 +119,9 @@ export default function ClientePage() {
             />
           </section>
         );
-      case 'historico-sorteios':
+      case 'resultados':
         return (
-          <section aria-labelledby="draw-history-heading" id="historico-sorteios" className="scroll-mt-20">
+          <section aria-labelledby="draw-history-heading" id="resultados" className="scroll-mt-20">
             <h2 id="draw-history-heading" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center">
               Resultados dos Sorteios
             </h2>

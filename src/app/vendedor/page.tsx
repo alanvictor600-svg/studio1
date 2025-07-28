@@ -35,12 +35,12 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   clientSalesCommissionToOwnerPercentage: 10,
 };
 
-type VendedorSection = 'nova-venda' | 'meus-bilhetes' | 'historico-sorteios' | 'relatorios';
+type VendedorSection = 'nova-venda' | 'meus-bilhetes' | 'resultados' | 'relatorios';
 
 const menuItems: { id: VendedorSection; label: string; Icon: React.ElementType }[] = [
   { id: 'nova-venda', label: 'Nova Venda', Icon: PlusCircle },
   { id: 'meus-bilhetes', label: 'Bilhetes Vendidos', Icon: ListChecks },
-  { id: 'historico-sorteios', label: 'Histórico Sorteios', Icon: History },
+  { id: 'resultados', label: 'Resultados', Icon: History },
   { id: 'relatorios', label: 'Relatórios', Icon: PieChart },
 ];
 
@@ -187,11 +187,11 @@ export default function VendedorPage() {
             )}
           </section>
         );
-      case 'historico-sorteios':
+      case 'resultados':
         return (
           <section id="seller-draw-history-heading" aria-labelledby="seller-draw-history-heading-title" className="scroll-mt-24">
             <h2 id="seller-draw-history-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
-              <History className="mr-3 h-8 w-8 text-primary" /> Histórico de Sorteios
+              <History className="mr-3 h-8 w-8 text-primary" /> Resultados dos Sorteios
             </h2>
             <AdminDrawList draws={draws} />
           </section>
