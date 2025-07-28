@@ -146,4 +146,3 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     </Card>
   );
 };
-

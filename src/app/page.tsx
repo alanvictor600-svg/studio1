@@ -7,18 +7,27 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut } from 'lucide-react';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
+import type { Draw } from '@/types';
+import { AdminDrawCard } from '@/components/admin-draw-card';
+
+const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const { currentUser, logout, isLoading } = useAuth();
   const router = useRouter();
+  const [draws, setDraws] = useState<Draw[]>([]);
 
   useEffect(() => {
     setIsClient(true);
+    const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
+    if (storedDraws) {
+      setDraws(JSON.parse(storedDraws));
+    }
   }, []);
 
   const handleClienteClick = () => {
@@ -76,6 +85,15 @@ export default function LandingPage() {
         {/* Título principal removido */}
         <p className="text-lg text-muted-foreground mt-2">Sua sorte começa aqui!</p> 
       </header>
+
+      {draws.length > 0 && (
+        <section className="w-full max-w-3xl mb-12">
+            <h2 className="text-2xl font-bold text-primary text-center mb-4 flex items-center justify-center">
+              <History className="mr-3 h-6 w-6" /> Último Sorteio Realizado
+            </h2>
+            <AdminDrawCard draw={draws[0]} />
+        </section>
+      )}
 
       <main className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Cliente Card */}
