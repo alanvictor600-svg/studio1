@@ -80,6 +80,11 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
   }, [draws]);
 
   const processedTicketNumbers = useMemo(() => {
+    // If the ticket is expired or unpaid, no numbers should be marked as matched.
+    if (ticket.status === 'expired' || ticket.status === 'unpaid') {
+        return ticket.numbers.map(num => ({ numberValue: num, isMatched: false }));
+    }
+
     const tempDrawnFrequency = { ...drawnNumbersFrequency };
     return ticket.numbers.map(num => {
       let isMatchedInstance = false;
@@ -89,7 +94,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
       }
       return { numberValue: num, isMatched: isMatchedInstance };
     });
-  }, [ticket.numbers, drawnNumbersFrequency]);
+  }, [ticket.numbers, ticket.status, drawnNumbersFrequency]);
 
 
   return (
@@ -159,5 +164,3 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
     </Card>
   );
 };
-
-    
