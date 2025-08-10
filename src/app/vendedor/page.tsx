@@ -143,7 +143,7 @@ export default function VendedorPage() {
   }, [vendedorManagedTickets, lotteryConfig, currentUser?.username]);
 
 
-  const isLotteryActive = draws.length === 0;
+  const isLotteryPaused = draws.length > 0;
 
   const handleSectionChange = (sectionId: VendedorSection) => {
     setActiveSection(sectionId);
@@ -168,7 +168,7 @@ export default function VendedorPage() {
             <h2 id="seller-ticket-creation-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
               <PlusCircle className="mr-3 h-8 w-8 text-primary" /> Nova Venda
             </h2>
-            <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} isLotteryActive={isLotteryActive} />
+            <SellerTicketCreationForm onAddTicket={handleAddSellerTicket} isLotteryActive={isLotteryPaused} />
           </section>
         );
       case 'meus-bilhetes':
@@ -428,6 +428,9 @@ export default function VendedorPage() {
 
     
 
+
+
+    
 
 
     
