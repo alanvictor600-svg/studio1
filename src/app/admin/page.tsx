@@ -225,25 +225,33 @@ export default function AdminPage() {
     const configRaw = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
     const currentConfig: LotteryConfig = configRaw ? JSON.parse(configRaw) : DEFAULT_LOTTERY_CONFIG;
     
-    const activeTickets = sellerTickets.filter(ticket => ticket.status === 'active');
-    const activeSellerTicketsCount = activeTickets.length;
-    const totalRevenueFromActiveTickets = activeSellerTicketsCount * currentConfig.ticketPrice;
-    const commissionEarned = totalRevenueFromActiveTickets * (currentConfig.sellerCommissionPercentage / 100);
-
-    const newHistoryEntry: SellerHistoryEntry = {
-      id: uuidv4(), // Or create a more meaningful ID
-      endDate: new Date().toISOString(),
-      activeTicketsCount: activeSellerTicketsCount,
-      totalRevenue: totalRevenueFromActiveTickets,
-      totalCommission: commissionEarned,
-    };
-
     const historyRaw = localStorage.getItem(SELLER_HISTORY_STORAGE_KEY);
-    const history: SellerHistoryEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
-    history.push(newHistoryEntry);
-    localStorage.setItem(SELLER_HISTORY_STORAGE_KEY, JSON.stringify(history));
-    toast({ title: "Histórico do Vendedor Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
-  }, []);
+    const existingHistory: SellerHistoryEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
+
+    const sellers = allUsers.filter(u => u.role === 'vendedor');
+
+    sellers.forEach(seller => {
+        const activeTickets = sellerTickets.filter(ticket => ticket.status === 'active' && ticket.sellerUsername === seller.username);
+        const activeSellerTicketsCount = activeTickets.length;
+        const totalRevenueFromActiveTickets = activeSellerTicketsCount * currentConfig.ticketPrice;
+        const commissionEarned = totalRevenueFromActiveTickets * (currentConfig.sellerCommissionPercentage / 100);
+
+        if (activeSellerTicketsCount > 0) {
+            const newHistoryEntry: SellerHistoryEntry = {
+              id: `${seller.username}-${new Date().toISOString()}`,
+              sellerUsername: seller.username,
+              endDate: new Date().toISOString(),
+              activeTicketsCount: activeSellerTicketsCount,
+              totalRevenue: totalRevenueFromActiveTickets,
+              totalCommission: commissionEarned,
+            };
+            existingHistory.push(newHistoryEntry);
+        }
+    });
+
+    localStorage.setItem(SELLER_HISTORY_STORAGE_KEY, JSON.stringify(existingHistory));
+    toast({ title: "Histórico de Vendedores Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo para cada vendedor.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
+  }, [allUsers]);
   
   const captureAndSaveAdminHistory = useCallback(() => {
       const currentReport = financialReport;

@@ -33,6 +33,7 @@ export interface LotteryConfig {
 
 export interface SellerHistoryEntry {
   id: string;
+  sellerUsername: string; // The user this history entry belongs to
   endDate: string; // ISO string for date when the lottery cycle ended
   activeTicketsCount: number;
   totalRevenue: number;
@@ -49,5 +50,3 @@ export interface AdminHistoryEntry {
   clientTicketCount: number;
   sellerTicketCount: number;
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -110,7 +110,7 @@ export default function VendedorPage() {
   }, [vendedorManagedTickets, isClient]);
 
 
-  const handleAddSellerTicket = (numbers: number[], buyerName: string, buyerPhone: string) => {
+  const handleAddSellerTicket = useCallback((numbers: number[], buyerName: string, buyerPhone: string) => {
     if (!currentUser) {
       toast({ title: "Erro", description: "Vendedor não autenticado.", variant: "destructive" });
       return;
@@ -124,9 +124,11 @@ export default function VendedorPage() {
       buyerPhone,
       sellerUsername: currentUser.username, // Add seller username to the ticket
     };
+    
     setVendedorManagedTickets(prevTickets => [newTicket, ...prevTickets]);
     toast({ title: "Venda Registrada!", description: "Bilhete adicionado e aguarda aprovação do Admin.", className: "bg-primary text-primary-foreground", duration: 3000 });
-  };
+  }, [currentUser, toast]);
+
   
   const { activeSellerTicketsCount, totalRevenueFromActiveTickets, commissionEarned } = useMemo(() => {
     const activeTickets = vendedorManagedTickets.filter(ticket => ticket.status === 'active' && ticket.sellerUsername === currentUser?.username);
@@ -141,7 +143,7 @@ export default function VendedorPage() {
   }, [vendedorManagedTickets, lotteryConfig, currentUser?.username]);
 
 
-  const isLotteryActive = draws.length > 0;
+  const isLotteryActive = draws.length === 0;
 
   const handleSectionChange = (sectionId: VendedorSection) => {
     setActiveSection(sectionId);
@@ -197,7 +199,7 @@ export default function VendedorPage() {
           </section>
         );
       case 'relatorios':
-        const myHistory = sellerHistory.filter(h => h.id.startsWith(currentUser?.username + '-'));
+        const myHistory = sellerHistory.filter(h => h.sellerUsername === currentUser?.username);
         return (
           <>
             <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="scroll-mt-24 space-y-12">
