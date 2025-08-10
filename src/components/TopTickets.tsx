@@ -25,14 +25,14 @@ export const TopTickets: FC<TopTicketsProps> = ({ tickets, draws }) => {
       return [];
     }
     
-    const activeTicketsWithMatches = tickets
-      .filter(ticket => ticket.status === 'active')
+    const relevantTicketsWithMatches = tickets
+      .filter(ticket => ticket.status === 'active' || ticket.status === 'winning')
       .map(ticket => ({
         ...ticket,
         matches: calculateTicketMatches(ticket, draws),
       }));
 
-    const sortedTickets = activeTicketsWithMatches.sort((a, b) => {
+    const sortedTickets = relevantTicketsWithMatches.sort((a, b) => {
       if (b.matches !== a.matches) {
         return b.matches - a.matches;
       }
@@ -100,9 +100,14 @@ export const TopTickets: FC<TopTicketsProps> = ({ tickets, draws }) => {
                       }
                       return { numberValue: num, isMatched: isMatchedInstance };
                     });
+                    
+                    const isWinning = ticket.status === 'winning';
 
                     return (
-                    <li key={ticket.id} className="relative p-3 rounded-lg bg-background/70 shadow-sm border pb-8">
+                    <li key={ticket.id} className={cn(
+                      "relative p-3 rounded-lg bg-background/70 shadow-sm border pb-8",
+                       isWinning && "bg-accent/20 border-accent/50 ring-2 ring-accent"
+                    )}>
                         <div className="flex items-start gap-4">
                             <div className="flex-grow min-w-0">
                                 <div className="flex items-center gap-2">
@@ -115,8 +120,12 @@ export const TopTickets: FC<TopTicketsProps> = ({ tickets, draws }) => {
                                     </p>
                                 </div>
                             </div>
-                            <Badge variant="secondary" className="text-base font-bold py-1 px-3">
-                            {ticket.matches} Acerto{ticket.matches !== 1 ? 's' : ''}
+                            <Badge variant={isWinning ? "default" : "secondary"} className={cn(
+                              "text-base font-bold py-1 px-3",
+                              isWinning && "bg-accent text-accent-foreground"
+                            )}>
+                              {isWinning && <Trophy className="mr-1.5 h-4 w-4" />}
+                              {ticket.matches} Acerto{ticket.matches !== 1 ? 's' : ''}
                             </Badge>
                         </div>
                         <div className="mt-3">
@@ -127,7 +136,8 @@ export const TopTickets: FC<TopTicketsProps> = ({ tickets, draws }) => {
                                     variant="outline"
                                     className={cn(
                                         "font-mono text-xs",
-                                        isMatched ? "bg-green-500 text-white border-green-600 ring-2 ring-yellow-400" : "bg-muted/50 text-muted-foreground"
+                                        isMatched ? "bg-green-500 text-white border-green-600" : "bg-muted/50 text-muted-foreground",
+                                        isMatched && isWinning && "ring-2 ring-yellow-400"
                                     )}
                                 >
                                     {numberValue}
