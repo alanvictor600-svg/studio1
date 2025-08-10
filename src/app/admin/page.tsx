@@ -204,7 +204,7 @@ export default function AdminPage() {
     
     const newDraw: Draw = {
       id: uuidv4(),
-      numbers: newNumbers.sort((a, b) => a - b),
+      numbers: newNumbers,
       createdAt: new Date().toISOString(),
       name: name || undefined,
     };
