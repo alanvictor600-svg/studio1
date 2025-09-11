@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry, User, AdminHistoryEntry } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminDrawForm } from '@/components/admin-draw-form';
@@ -80,6 +80,7 @@ export default function AdminPage() {
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   
   const [adminHistory, setAdminHistory] = useState<AdminHistoryEntry[]>([]);
 
@@ -440,6 +441,15 @@ export default function AdminPage() {
     }
   };
   
+  const filteredUsers = useMemo(() => {
+    if (!userSearchTerm) {
+      return allUsers;
+    }
+    return allUsers.filter(user =>
+      user.username.toLowerCase().includes(userSearchTerm.toLowerCase())
+    );
+  }, [allUsers, userSearchTerm]);
+
   if (!isClient) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
@@ -566,7 +576,16 @@ export default function AdminPage() {
               </TabsContent>
               <TabsContent value="contas" className="mt-6">
                  <div className="space-y-4">
-                  {allUsers.length > 0 ? allUsers.map(user => (
+                  <div className="mb-6 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar por nome de usuário..."
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      className="pl-10 h-10"
+                    />
+                  </div>
+                  {filteredUsers.length > 0 ? filteredUsers.map(user => (
                     <Card key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-card/80 backdrop-blur-sm shadow-md">
                       <div className="flex items-center gap-4 mb-4 sm:mb-0">
                         <Avatar>
@@ -598,7 +617,13 @@ export default function AdminPage() {
                       </div>
                     </Card>
                   )) : (
-                    <p className="text-center text-muted-foreground py-10">Nenhum usuário registrado.</p>
+                    <div className="text-center py-10 bg-card/50 rounded-lg shadow">
+                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-lg text-muted-foreground">Nenhum usuário encontrado.</p>
+                      <p className="text-sm text-muted-foreground/80">
+                        {userSearchTerm ? 'Tente um termo de busca diferente.' : 'Nenhum usuário registrado ainda.'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </TabsContent>
