@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, forwardRef } from 'react';
 import type { User } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,13 @@ interface UserEditDialogProps {
   onDelete: () => void;
   onClose: () => void;
 }
+
+// forwardRef is needed for react-to-print to work with shadcn dialogs
+const CustomDialogFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
+    <DialogFooter {...props} ref={ref} />
+));
+CustomDialogFooter.displayName = 'CustomDialogFooter';
+
 
 export const UserEditDialog: FC<UserEditDialogProps> = ({
   isOpen,
@@ -135,7 +142,7 @@ export const UserEditDialog: FC<UserEditDialogProps> = ({
             </RadioGroup>
           </div>
         </div>
-        <DialogFooter className="justify-between sm:justify-between">
+        <CustomDialogFooter className="justify-between sm:justify-between">
             <Button type="button" variant="destructive" onClick={handleDeleteClick} className="mr-auto">
               <Trash2 className="mr-2 h-4 w-4" /> Excluir Usuário
             </Button>
@@ -149,10 +156,8 @@ export const UserEditDialog: FC<UserEditDialogProps> = ({
               Salvar Alterações
             </Button>
           </div>
-        </DialogFooter>
+        </CustomDialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
-
-    
