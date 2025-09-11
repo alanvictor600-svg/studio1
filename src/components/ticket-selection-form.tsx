@@ -10,16 +10,27 @@ import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib
 import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, TicketPlus, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import type { Ticket, User, LotteryConfig } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface TicketSelectionFormProps {
-  onAddTicket: (numbers: number[]) => void;
+  onAddTicket: (ticket: Ticket) => void;
   isLotteryPaused?: boolean;
+  currentUser: User | null;
+  updateCurrentUserCredits: (newCredits: number) => void;
+  lotteryConfig: LotteryConfig;
 }
 
 const MAX_PICKS = 10;
 const MAX_REPETITION = 4;
 
-export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket, isLotteryPaused = false }) => {
+export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ 
+  onAddTicket, 
+  isLotteryPaused = false,
+  currentUser,
+  updateCurrentUserCredits,
+  lotteryConfig
+}) => {
   const [currentPicks, setCurrentPicks] = useState<number[]>([]);
   const { toast } = useToast();
 
@@ -72,11 +83,37 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket,
   };
 
   const handleSubmitTicket = () => {
+    if (!currentUser) {
+        toast({ title: "Erro", description: "Você precisa estar logado para comprar.", variant: "destructive" });
+        return;
+    }
+    
     if (currentPicks.length !== MAX_PICKS) {
       toast({ title: "Seleção Incompleta", description: `Por favor, selecione ${MAX_PICKS} números.`, variant: "destructive" });
       return;
     }
-    onAddTicket([...currentPicks].sort((a,b) => a-b)); // Ensure sorted before adding
+
+    const ticketCost = lotteryConfig.ticketPrice;
+    if ((currentUser.credits || 0) < ticketCost) {
+      toast({
+        title: "Crédito Insuficiente",
+        description: `Você não tem créditos suficientes. Saldo: R$ ${(currentUser.credits || 0).toFixed(2).replace('.', ',')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newTicket: Ticket = {
+      id: uuidv4(),
+      numbers: [...currentPicks].sort((a,b) => a-b),
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      buyerName: currentUser.username,
+    };
+    
+    onAddTicket(newTicket);
+    updateCurrentUserCredits((currentUser.credits || 0) - ticketCost);
+    
     setCurrentPicks([]);
     toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu bilhete já está ativo.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
@@ -145,3 +182,5 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ onAddTicket,
     </Card>
   );
 };
+
+    

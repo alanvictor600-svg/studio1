@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { TicketSelectionForm } from '@/components/ticket-selection-form';
 import { TicketList } from '@/components/ticket-list';
 import type { Ticket, Draw, LotteryConfig } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AdminDrawList } from '@/components/admin-draw-list';
-import { useToast } from "@/hooks/use-toast";
 
 const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
 const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
@@ -46,7 +44,6 @@ export default function ClientePage() {
   const { currentUser, logout, isAuthenticated, updateCurrentUserCredits } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<ClienteSection>('selecionar-bilhete');
-  const { toast } = useToast();
 
   // Load data and update statuses
   useEffect(() => {
@@ -84,35 +81,16 @@ export default function ClientePage() {
 
   }, [isAuthenticated, currentUser?.username]);
 
-  const handleAddTicket = useCallback((newNumbers: number[]) => {
-    if (!currentUser) return;
-    
-    const ticketCost = lotteryConfig.ticketPrice;
-    if ((currentUser.credits || 0) < ticketCost) {
-      toast({
-        title: "Crédito Insuficiente",
-        description: `Você não tem créditos suficientes para comprar este bilhete. Saldo: R$ ${(currentUser.credits || 0).toFixed(2).replace('.', ',')}`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newTicket: Ticket = {
-      id: uuidv4(),
-      numbers: newNumbers.sort((a, b) => a - b),
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      buyerName: currentUser.username,
-    };
-
+  const handleAddTicket = useCallback((newTicket: Ticket) => {
+    // This function will now simply add the pre-validated ticket to the state
+    // and update localStorage.
     const storedTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
     const allClientTickets = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
     const updatedAllTickets = [newTicket, ...allClientTickets];
     localStorage.setItem(CLIENTE_TICKETS_STORAGE_KEY, JSON.stringify(updatedAllTickets));
     
     setMyTickets(prevTickets => [newTicket, ...prevTickets]);
-    updateCurrentUserCredits((currentUser.credits || 0) - ticketCost);
-  }, [currentUser, lotteryConfig.ticketPrice, toast, updateCurrentUserCredits]);
+  }, []);
 
   const handleSectionChange = (sectionId: ClienteSection) => {
     setActiveSection(sectionId);
@@ -140,7 +118,13 @@ export default function ClientePage() {
         return (
           <section aria-labelledby="ticket-selection-heading" id="selecionar-bilhete" className="scroll-mt-20">
             <h2 id="ticket-selection-heading" className="sr-only">Seleção de Bilhetes</h2>
-            <TicketSelectionForm onAddTicket={handleAddTicket} isLotteryPaused={isLotteryPaused} />
+            <TicketSelectionForm 
+              onAddTicket={handleAddTicket} 
+              isLotteryPaused={isLotteryPaused}
+              currentUser={currentUser}
+              updateCurrentUserCredits={updateCurrentUserCredits}
+              lotteryConfig={lotteryConfig}
+            />
           </section>
         );
       case 'meus-bilhetes':
@@ -286,3 +270,5 @@ export default function ClientePage() {
     </div>
   );
 }
+
+    
