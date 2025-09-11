@@ -57,8 +57,14 @@ Boa sorte! 🍀
         });
         toast({ title: 'Comprovante compartilhado!' });
       } catch (error) {
-        console.error('Erro ao compartilhar:', error);
-        toast({ title: 'Compartilhamento cancelado', variant: 'destructive' });
+        // This is a common case: user closes the share dialog.
+        // We check if the error name is 'AbortError' to avoid logging expected behavior.
+        if (error instanceof Error && error.name === 'AbortError') {
+            toast({ title: 'Compartilhamento cancelado', variant: 'destructive' });
+        } else {
+            console.error('Erro ao compartilhar:', error);
+            toast({ title: 'Ocorreu um erro ao compartilhar', variant: 'destructive' });
+        }
       }
     } else {
       // Fallback for browsers that don't support Web Share API
