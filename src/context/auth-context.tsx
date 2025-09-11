@@ -30,26 +30,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    try {
-      const storedUsersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-      const localUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-      setUsers(localUsers);
+    const loadInitialData = () => {
+      try {
+        const storedUsersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+        const localUsers: User[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+        setUsers(localUsers);
 
-      const storedCurrentUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-      if (storedCurrentUserRaw) {
-        const storedCurrentUser = JSON.parse(storedCurrentUserRaw);
-        const foundUser = localUsers.find((u: User) => u.username === storedCurrentUser.username);
-        setCurrentUser(foundUser || null);
-        if (!foundUser) {
-            localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
+        const storedCurrentUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+        if (storedCurrentUserRaw) {
+          const storedCurrentUser = JSON.parse(storedCurrentUserRaw);
+          const foundUser = localUsers.find((u: User) => u.username === storedCurrentUser.username);
+          setCurrentUser(foundUser || null);
+          if (!foundUser) {
+              localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
+          }
         }
+      } catch (error) {
+        console.error("Failed to load auth data from localStorage", error);
+      } finally {
+          setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load auth data from localStorage", error);
-    } finally {
-        setIsLoading(false);
     }
-  }, []);
+    
+    loadInitialData();
+    
+    const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === AUTH_USERS_STORAGE_KEY && event.newValue) {
+            const newUsers: User[] = JSON.parse(event.newValue);
+            setUsers(newUsers);
+            if (currentUser) {
+                const updatedCurrentUser = newUsers.find(u => u.id === currentUser.id);
+                if (updatedCurrentUser) {
+                    setCurrentUser(updatedCurrentUser);
+                    localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedCurrentUser));
+                } else {
+                    // Current user was deleted
+                    logout();
+                }
+            }
+        }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+
+  }, [currentUser?.id]); // Depend on currentUser.id to re-sync if the user changes
 
   useEffect(() => {
     // Persist users to localStorage whenever the list changes, but not on initial load.
@@ -61,9 +89,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateCurrentUserCredits = (newCredits: number) => {
     if (currentUser) {
       const updatedUser = { ...currentUser, credits: newCredits };
+      const newUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u)
+      setUsers(newUsers);
       setCurrentUser(updatedUser);
-      setUsers(prevUsers => prevUsers.map(u => u.id === updatedUser.id ? updatedUser : u));
       localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      // The useEffect for `users` will save the full list to localStorage.
     }
   };
 
