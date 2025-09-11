@@ -76,6 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
         }
+         if (event.key === AUTH_CURRENT_USER_STORAGE_KEY && event.newValue) {
+            const newCurrentUser = JSON.parse(event.newValue);
+            if (currentUser?.id === newCurrentUser.id) {
+                setCurrentUser(newCurrentUser);
+            }
+        }
          if (event.key === AUTH_CURRENT_USER_STORAGE_KEY && !event.newValue) {
             // This case handles logout from another tab
             setCurrentUser(null);
@@ -88,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         window.removeEventListener('storage', handleStorageChange);
     };
 
-  }, []); // Run only once on mount
+  }, [currentUser]); // Add currentUser to dependency array
 
   useEffect(() => {
     // Persist users to localStorage whenever the list changes, but not on initial load.
@@ -101,10 +107,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (currentUser) {
       const updatedUser = { ...currentUser, credits: newCredits };
       const newUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u)
-      setUsers(newUsers);
+      setUsers(newUsers); // This will trigger the useEffect above to save all users
       setCurrentUser(updatedUser);
       localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedUser));
-      // The useEffect for `users` will save the full list to localStorage.
     }
   };
 

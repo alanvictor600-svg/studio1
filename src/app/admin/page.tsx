@@ -377,6 +377,8 @@ export default function AdminPage() {
     const updatedUsers = allUsers.map(u => u.id === user.id ? updatedUser : u);
     setAllUsers(updatedUsers);
 
+    // Explicitly update localStorage for currentUser if they are being edited.
+    // This is crucial for cross-tab updates.
     const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
     if (loggedInUserRaw) {
         const loggedInUser = JSON.parse(loggedInUserRaw);
