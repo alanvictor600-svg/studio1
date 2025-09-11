@@ -227,10 +227,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return true;
 
         } catch (error: any) {
-            console.error("Google sign-in error:", error);
             if (error.code === 'auth/popup-closed-by-user') {
                 toast({ title: "Login cancelado", description: "Você fechou a janela de login do Google.", variant: "default" });
             } else {
+                 console.error("Google sign-in error:", error);
                  toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google.", variant: "destructive" });
             }
             return false;
@@ -312,7 +312,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-        {!isLoading && children}
+        {children}
     </AuthContext.Provider>
   );
 };
@@ -324,5 +324,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
