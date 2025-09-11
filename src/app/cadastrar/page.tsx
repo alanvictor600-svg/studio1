@@ -37,13 +37,10 @@ export default function CadastroPage() {
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (isClient && !authLoading && currentUser) {
+    if (!authLoading && currentUser) {
       router.push(currentUser.role === 'cliente' ? '/cliente' : '/vendedor');
     }
-  }, [currentUser, authLoading, router, isClient]);
+  }, [currentUser, authLoading, router]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,24 +60,13 @@ export default function CadastroPage() {
     await register(username.trim(), password, role);
   };
   
-  if (authLoading && isClient) {
+  if (authLoading || (isClient && currentUser)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando autenticação...</p>
       </div>
     );
   }
-
-   if (isClient && currentUser) {
-     return (
-        <div className="flex flex-col justify-center items-center min-h-screen bg-background p-4">
-            <p className="text-foreground text-lg mb-4">Você já está logado como {currentUser.username}. Não é possível se cadastrar.</p>
-            <Button onClick={() => router.push(currentUser.role === 'cliente' ? '/cliente' : '/vendedor')}> 
-                Ir para o painel
-            </Button>
-        </div>
-     );
-   }
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">

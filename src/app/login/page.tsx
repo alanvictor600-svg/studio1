@@ -39,7 +39,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (isClient && !authLoading && currentUser) {
       const redirectPath = searchParams.get('redirect');
-      // If user is already logged in, redirect them to their correct dashboard.
       router.push(redirectPath || (currentUser.role === 'cliente' ? '/cliente' : '/vendedor'));
     }
   }, [currentUser, authLoading, router, searchParams, isClient]);
@@ -55,25 +54,13 @@ export default function LoginPage() {
     await login(username, password, expectedRole);
   };
   
-  if (authLoading && isClient) {
+  if (authLoading || (isClient && currentUser)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando autenticação...</p>
       </div>
     );
   }
-  
-   if (isClient && currentUser) {
-     return (
-        <div className="flex flex-col justify-center items-center min-h-screen bg-background p-4">
-            <p className="text-foreground text-lg mb-4">Você já está logado como {currentUser.username}.</p>
-            <Button onClick={() => router.push(currentUser.role === 'cliente' ? '/cliente' : '/vendedor')}> 
-                Ir para o painel
-            </Button>
-        </div>
-     );
-   }
-
 
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
