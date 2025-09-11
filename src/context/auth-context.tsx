@@ -15,9 +15,10 @@ import {
     signInWithPopup,
     type User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, collection, where, query, getDocs } from 'firebase/firestore';
 
-const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
+
 const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
 
 
@@ -51,31 +52,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user);
-      if (user) {
-        const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-        const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-        const appUser = users.find(u => u.id === user.uid || u.username.toLowerCase() === (user.displayName || '').toLowerCase());
-        
-        if (appUser) {
+  const fetchAppUser = async (user: FirebaseUser): Promise<AppUser | null> => {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+          const appUser = userSnap.data() as AppUser;
           setCurrentUser(appUser);
           saveUserToLocalStorage(appUser);
-        } else if (user.displayName) {
-             const username = user.displayName;
-             const temporaryUser: AppUser = {
-                id: user.uid,
-                username: username,
-                role: 'cliente',
-                saldo: 0,
-                passwordHash: '(Login com Google)',
-                createdAt: user.metadata.creationTime || new Date().toISOString(),
-             };
-             setCurrentUser(temporaryUser);
-             saveUserToLocalStorage(temporaryUser);
-        }
+          return appUser;
+      }
+      return null;
+  };
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setFirebaseUser(user);
+      if (user) {
+        await fetchAppUser(user);
       } else {
         setCurrentUser(null);
         saveUserToLocalStorage(null);
@@ -112,16 +105,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [router, toast]);
   
-  const updateCurrentUserCredits = (newCredits: number) => {
-    if (currentUser) {
-      const updatedUser = { ...currentUser, saldo: newCredits };
-      setCurrentUser(updatedUser);
-      saveUserToLocalStorage(updatedUser);
-
-      const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-      let users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-      users = users.map(u => u.id === updatedUser.id ? updatedUser : u);
-      localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
+  const updateCurrentUserCredits = async (newCredits: number) => {
+    if (currentUser && firebaseUser) {
+      const userRef = doc(db, "users", firebaseUser.uid);
+      try {
+        await updateDoc(userRef, { saldo: newCredits });
+        const updatedUser = { ...currentUser, saldo: newCredits };
+        setCurrentUser(updatedUser);
+        saveUserToLocalStorage(updatedUser);
+      } catch (error) {
+        console.error("Error updating credits in Firestore: ", error);
+        toast({ title: "Erro", description: "Não foi possível atualizar o saldo.", variant: "destructive" });
+      }
     }
   };
 
@@ -135,16 +130,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
+      // Firebase Auth uses email for login, so we construct it.
       const email = `${username.trim().toLowerCase()}@bolao.app`;
-      await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      const fbUser = userCredential.user;
       
-      const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-      const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-      const appUser = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+      const appUser = await fetchAppUser(fbUser);
 
       if (!appUser) {
           await signOut(auth);
-          toast({ title: "Erro de Login", description: "Dados do usuário não encontrados.", variant: "destructive" });
+          toast({ title: "Erro de Login", description: "Dados do usuário não encontrados no sistema.", variant: "destructive" });
           return false;
       }
       
@@ -182,12 +177,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const result = await signInWithPopup(auth, provider);
             const gUser = result.user;
 
-            const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-            let users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-            let appUser = users.find(u => u.id === gUser.uid || u.username.toLowerCase() === (gUser.displayName || '').toLowerCase());
+            const userRef = doc(db, "users", gUser.uid);
+            const userSnap = await getDoc(userRef);
+
+            let appUser: AppUser;
             let isNewUser = false;
 
-            if (!appUser) {
+            if (!userSnap.exists()) {
                 isNewUser = true;
                 if (!gUser.displayName) {
                     toast({ title: "Erro de Login", description: "Não foi possível obter um nome de usuário da sua conta Google.", variant: "destructive" });
@@ -196,9 +192,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 
                 const sanitizedUsername = gUser.displayName.replace(/[^a-zA-Z0-9_.-]/g, '');
-                if (users.some(u => u.username.toLowerCase() === sanitizedUsername.toLowerCase())) {
-                    // Handle rare case where sanitized username already exists
-                    toast({ title: "Erro de Cadastro", description: "Um usuário com um nome similar já existe. Tente o login com e-mail/senha.", variant: "destructive" });
+
+                // Check if sanitized username already exists
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("username", "==", sanitizedUsername));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                     toast({ title: "Erro de Cadastro", description: "Um usuário com um nome similar já existe. Tente o login com e-mail/senha.", variant: "destructive" });
                     await signOut(auth);
                     return false;
                 }
@@ -207,13 +207,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     id: gUser.uid,
                     username: sanitizedUsername,
                     passwordHash: '(Login com Google)',
-                    role: 'cliente', 
+                    role: 'cliente', // Google sign-up defaults to 'cliente'
                     createdAt: new Date().toISOString(),
                     saldo: 0,
                 };
-                users.push(appUser);
-                localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
+                await setDoc(userRef, appUser);
+            } else {
+                appUser = userSnap.data() as AppUser;
             }
+
+            setCurrentUser(appUser);
+            saveUserToLocalStorage(appUser);
             
             toast({
                 title: isNewUser ? 'Cadastro realizado!' : 'Login bem-sucedido!',
@@ -243,7 +247,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => {
      setIsLoading(true);
      
-     if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
+     const trimmedUsername = username.trim();
+     if (!/^[a-zA-Z0-9_.-]+$/.test(trimmedUsername)) {
          toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _", variant: "destructive" });
          setIsLoading(false);
          return false;
@@ -255,13 +260,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
      }
 
-     const email = `${username.trim().toLowerCase()}@bolao.app`;
+     const email = `${trimmedUsername.toLowerCase()}@bolao.app`;
 
      try {
-        const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-        const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-        
-        if (users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
+        // Check if username already exists in Firestore
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("username", "==", trimmedUsername));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
             toast({ title: "Erro de Cadastro", description: "Nome de usuário já existe.", variant: "destructive" });
             setIsLoading(false);
             return false;
@@ -270,19 +276,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
         const firebaseUser = userCredential.user;
         
-        await updateProfile(firebaseUser, { displayName: username.trim() });
+        await updateProfile(firebaseUser, { displayName: trimmedUsername });
 
         const newUser: AppUser = {
           id: firebaseUser.uid,
-          username: username.trim(),
-          passwordHash: '**********', // Placeholder
+          username: trimmedUsername,
+          passwordHash: '**********', // Placeholder - DO NOT STORE RAW PASSWORD
           role,
           createdAt: new Date().toISOString(),
           saldo: 0, 
         };
         
-        const newUsers = [...users, newUser];
-        localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(newUsers));
+        // Save the new user's profile to Firestore
+        await setDoc(doc(db, "users", firebaseUser.uid), newUser);
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
         await signOut(auth); // Sign out user after registration to force them to log in

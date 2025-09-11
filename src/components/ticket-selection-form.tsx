@@ -11,13 +11,12 @@ import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, TicketPlus, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { Ticket, User, LotteryConfig } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
-
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface TicketSelectionFormProps {
-  onAddTicket: (ticket: Ticket) => void;
   isLotteryPaused?: boolean;
   currentUser: User | null;
   updateCurrentUserCredits: (newCredits: number) => void;
@@ -28,7 +27,6 @@ const MAX_PICKS = 10;
 const MAX_REPETITION = 4;
 
 export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({ 
-  onAddTicket, 
   isLotteryPaused = false,
   currentUser,
   updateCurrentUserCredits,
@@ -38,6 +36,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
   const { toast } = useToast();
   const [receiptTicket, setReceiptTicket] = useState<Ticket | null>(null);
   const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const numberCounts = countOccurrences(currentPicks);
 
@@ -87,7 +86,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
     toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
-  const handleSubmitTicket = () => {
+  const handleSubmitTicket = async () => {
     if (!currentUser) {
         toast({ title: "Erro", description: "Você precisa estar logado para comprar.", variant: "destructive" });
         return;
@@ -104,21 +103,34 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
       return;
     }
 
-    const newTicket: Ticket = {
-      id: uuidv4(),
+    setIsSubmitting(true);
+
+    const newTicketData: Omit<Ticket, 'id'> = {
       numbers: [...currentPicks].sort((a,b) => a-b),
       status: 'active',
       createdAt: new Date().toISOString(),
       buyerName: currentUser.username,
+      sellerUsername: null, // Explicitly null for client tickets
     };
     
-    onAddTicket(newTicket);
-    updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
-    
-    setCurrentPicks([]);
-    setReceiptTicket(newTicket); // Set ticket to show receipt
-    
-    toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu comprovante foi gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    try {
+        const docRef = await addDoc(collection(db, "tickets"), newTicketData);
+        const createdTicket = { id: docRef.id, ...newTicketData };
+        
+        const newBalance = (currentUser.saldo || 0) - ticketCost;
+        updateCurrentUserCredits(newBalance);
+
+        setCurrentPicks([]);
+        setReceiptTicket(createdTicket); // Set ticket to show receipt
+        
+        toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu comprovante foi gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+
+    } catch (error) {
+        console.error("Error creating ticket:", error);
+        toast({ title: "Erro", description: "Não foi possível registrar seu bilhete. Tente novamente.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -168,19 +180,19 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 pt-6">
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg">
+            <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
               <Sparkles className="mr-2 h-4 w-4" /> Auto-Preencher
             </Button>
-            <Button variant="destructive" onClick={handleClearSelection} className="flex-1 sm:flex-none shadow-md hover:shadow-lg">
+            <Button variant="destructive" onClick={handleClearSelection} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
               <Trash2 className="mr-2 h-4 w-4" /> Limpar
             </Button>
           </div>
           <Button 
             onClick={handleSubmitTicket} 
-            disabled={currentPicks.length !== MAX_PICKS}
+            disabled={currentPicks.length !== MAX_PICKS || isSubmitting}
             className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
           >
-            <TicketPlus className="mr-2 h-5 w-5" /> Adicionar Bilhete
+            <TicketPlus className="mr-2 h-5 w-5" /> {isSubmitting ? 'Registrando...' : 'Adicionar Bilhete'}
           </Button>
         </CardFooter>
       </Card>
@@ -205,5 +217,3 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
     </>
   );
 };
-
-    

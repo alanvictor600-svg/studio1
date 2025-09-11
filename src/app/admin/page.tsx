@@ -27,16 +27,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { db } from '@/lib/firebase';
+import { collection, doc, getDocs, getDoc, writeBatch, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc, query, orderBy } from 'firebase/firestore';
+import { useAuth } from '@/context/auth-context';
 
-const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
-const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
-const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
-const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
-const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory';
-const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
-const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
-const ADMIN_HISTORY_STORAGE_KEY = 'bolaoPotiguarAdminHistory';
-const CREDIT_REQUEST_CONFIG_STORAGE_KEY = 'bolaoPotiguarCreditRequestConfig';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -63,8 +57,7 @@ const menuItems: { id: AdminSection; label: string; Icon: React.ElementType }[] 
 
 export default function AdminPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
-  const [clientTickets, setClientTickets] = useState<Ticket[]>([]);
-  const [vendedorTickets, setVendedorTickets] = useState<Ticket[]>([]);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [creditRequestConfig, setCreditRequestConfig] = useState<CreditRequestConfig>(DEFAULT_CREDIT_CONFIG);
   const [isClient, setIsClient] = useState(false);
@@ -93,89 +86,83 @@ export default function AdminPage() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   
   const [adminHistory, setAdminHistory] = useState<AdminHistoryEntry[]>([]);
+  const { currentUser } = useAuth(); // Assuming admin is a logged-in user
 
-  // Load all data from localStorage on component mount
+  // Set up Firestore listeners
   useEffect(() => {
     setIsClient(true);
-    
-    try {
-        const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-        const initialDraws = storedDraws ? JSON.parse(storedDraws) : [];
-        setDraws(initialDraws);
 
-        const storedClientTickets = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-        const initialClientTickets = storedClientTickets ? JSON.parse(storedClientTickets) : [];
-        setClientTickets(updateTicketStatusesBasedOnDraws(initialClientTickets, initialDraws));
+    const unsubscribes: (() => void)[] = [];
 
-        const storedVendedorTickets = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-        const initialVendedorTickets = storedVendedorTickets ? JSON.parse(storedVendedorTickets) : [];
-        setVendedorTickets(updateTicketStatusesBasedOnDraws(initialVendedorTickets, initialDraws));
+    // Listener for draws
+    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
+    unsubscribes.push(onSnapshot(drawsQuery, (querySnapshot) => {
+        const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
+        setDraws(drawsData);
+    }));
 
-        const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
-        const initialConfig = storedConfig ? JSON.parse(storedConfig) : DEFAULT_LOTTERY_CONFIG;
-        setLotteryConfig(initialConfig);
-        setTicketPriceInput(initialConfig.ticketPrice.toString());
-        setCommissionInput(initialConfig.sellerCommissionPercentage.toString());
-        setOwnerCommissionInput((initialConfig.ownerCommissionPercentage || 0).toString());
-        setClientSalesCommissionInput((initialConfig.clientSalesCommissionToOwnerPercentage || 0).toString());
+    // Listener for tickets
+    unsubscribes.push(onSnapshot(collection(db, 'tickets'), (querySnapshot) => {
+        const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+        setAllTickets(ticketsData);
+    }));
 
-        const storedCreditConfig = localStorage.getItem(CREDIT_REQUEST_CONFIG_STORAGE_KEY);
-        const initialCreditConfig = storedCreditConfig ? JSON.parse(storedCreditConfig) : DEFAULT_CREDIT_CONFIG;
-        setCreditRequestConfig(initialCreditConfig);
-        setWhatsappInput(initialCreditConfig.whatsappNumber);
-        setPixKeyInput(initialCreditConfig.pixKey);
+    // Listener for users
+    unsubscribes.push(onSnapshot(collection(db, 'users'), (querySnapshot) => {
+        const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        setAllUsers(usersData);
+    }));
 
-        const storedUsers = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-        setAllUsers(storedUsers ? JSON.parse(storedUsers) : []);
+    // Listener for admin history
+    const adminHistoryQuery = query(collection(db, 'adminHistory'), orderBy('endDate', 'desc'));
+    unsubscribes.push(onSnapshot(adminHistoryQuery, (querySnapshot) => {
+        const historyData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminHistoryEntry));
+        setAdminHistory(historyData);
+    }));
+
+    // Listener for configs
+    unsubscribes.push(onSnapshot(doc(db, 'config', 'lottery'), (docSnap) => {
+        if (docSnap.exists()) {
+            const configData = docSnap.data() as LotteryConfig;
+            setLotteryConfig(configData);
+            setTicketPriceInput(configData.ticketPrice.toString());
+            setCommissionInput(configData.sellerCommissionPercentage.toString());
+            setOwnerCommissionInput((configData.ownerCommissionPercentage || 0).toString());
+            setClientSalesCommissionInput((configData.clientSalesCommissionToOwnerPercentage || 0).toString());
+        } else {
+             setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+        }
+    }));
+    unsubscribes.push(onSnapshot(doc(db, 'config', 'creditRequest'), (docSnap) => {
+        if (docSnap.exists()) {
+            const creditConfigData = docSnap.data() as CreditRequestConfig;
+            setCreditRequestConfig(creditConfigData);
+            setWhatsappInput(creditConfigData.whatsappNumber);
+            setPixKeyInput(creditConfigData.pixKey);
+        } else {
+            setCreditRequestConfig(DEFAULT_CREDIT_CONFIG);
+        }
+    }));
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, []);
+
+  // Update ticket statuses whenever tickets or draws change
+  useEffect(() => {
+    if (allTickets.length > 0 && isClient) {
+        const updatedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
         
-        const storedAdminHistory = localStorage.getItem(ADMIN_HISTORY_STORAGE_KEY);
-        setAdminHistory(storedAdminHistory ? JSON.parse(storedAdminHistory) : []);
-    } catch (error) {
-        console.error("Failed to load data from localStorage on admin page:", error);
-        toast({
-            title: "Erro ao Carregar Dados",
-            description: "Não foi possível carregar os dados do sistema. Tente limpar o cache do navegador.",
-            variant: "destructive"
-        });
+        // This is a tricky part. We only want to write back to Firestore if a status actually changed.
+        // A simple comparison can be expensive. A better approach is to do this update in a batch
+        // when a draw is added or a lottery is reset.
+        // For now, we'll just use the derived state.
     }
-  }, [toast]);
+  }, [allTickets, draws, isClient]);
 
-  // Save draws to localStorage whenever they change
-  useEffect(() => {
-    if (isClient) localStorage.setItem(DRAWS_STORAGE_KEY, JSON.stringify(draws));
-  }, [draws, isClient]);
-  
-  // Save tickets to localStorage whenever they change
-  useEffect(() => {
-    if (isClient) localStorage.setItem(CLIENTE_TICKETS_STORAGE_KEY, JSON.stringify(clientTickets));
-  }, [clientTickets, isClient]);
-
-  useEffect(() => {
-    if (isClient) localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorTickets));
-  }, [vendedorTickets, isClient]);
-
-  // Save config to localStorage whenever it changes
-  useEffect(() => {
-    if (isClient) localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(lotteryConfig));
-  }, [lotteryConfig, isClient]);
-
-  useEffect(() => {
-    if (isClient) localStorage.setItem(CREDIT_REQUEST_CONFIG_STORAGE_KEY, JSON.stringify(creditRequestConfig));
-  }, [creditRequestConfig, isClient]);
-  
-  // Save users to localStorage whenever they change
-  useEffect(() => {
-    if (isClient) localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(allUsers));
-  }, [allUsers, isClient]);
-  
-  // Save admin history to localStorage whenever it changes
-  useEffect(() => {
-    if (isClient) localStorage.setItem(ADMIN_HISTORY_STORAGE_KEY, JSON.stringify(adminHistory));
-  }, [adminHistory, isClient]);
-
-  const allSystemTickets = [...clientTickets, ...vendedorTickets];
-
-  const winningTickets = allSystemTickets.filter(ticket => ticket.status === 'winning');
+  const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(allTickets, draws), [allTickets, draws]);
+  const winningTickets = processedTickets.filter(ticket => ticket.status === 'winning');
+  const clientTickets = processedTickets.filter(t => !t.sellerUsername);
+  const vendedorTickets = processedTickets.filter(t => !!t.sellerUsername);
   
   const financialReport = useMemo(() => {
     const report = {
@@ -189,34 +176,33 @@ export default function AdminPage() {
         sellerTicketCount: 0
     };
 
-    if (isClient) {
-        const activeClientTickets = clientTickets.filter(t => t.status === 'active');
-        const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
-        
-        const price = lotteryConfig.ticketPrice || 0;
-        const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
-        const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
-        const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
-        
-        report.clientTicketCount = activeClientTickets.length;
-        report.sellerTicketCount = activeVendedorTickets.length;
+    const activeClientTickets = clientTickets.filter(t => t.status === 'active');
+    const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
+    
+    const price = lotteryConfig.ticketPrice || 0;
+    const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
+    const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
+    const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
+    
+    report.clientTicketCount = activeClientTickets.length;
+    report.sellerTicketCount = activeVendedorTickets.length;
 
-        report.clientRevenue = report.clientTicketCount * price;
-        report.sellerRevenue = report.sellerTicketCount * price;
-        report.totalRevenue = report.clientRevenue + report.sellerRevenue;
+    report.clientRevenue = report.clientTicketCount * price;
+    report.sellerRevenue = report.sellerTicketCount * price;
+    report.totalRevenue = report.clientRevenue + report.sellerRevenue;
 
-        report.sellerCommission = report.sellerRevenue * (sellerCommPercent / 100);
-        const ownerBaseCommission = report.totalRevenue * (ownerCommPercent / 100);
-        const ownerExtraCommission = report.clientRevenue * (clientSalesCommPercent / 100);
-        report.ownerCommission = ownerBaseCommission + ownerExtraCommission;
+    report.sellerCommission = report.sellerRevenue * (sellerCommPercent / 100);
+    const ownerBaseCommission = report.totalRevenue * (ownerCommPercent / 100);
+    const ownerExtraCommission = report.clientRevenue * (clientSalesCommPercent / 100);
+    report.ownerCommission = ownerBaseCommission + ownerExtraCommission;
 
-        report.prizePool = report.totalRevenue - report.sellerCommission - report.ownerCommission;
-    }
+    report.prizePool = report.totalRevenue - report.sellerCommission - report.ownerCommission;
+    
     return report;
-  }, [clientTickets, vendedorTickets, lotteryConfig, isClient]);
+  }, [clientTickets, vendedorTickets, lotteryConfig]);
 
 
-  const handleAddDraw = (newNumbers: number[], name?: string) => {
+  const handleAddDraw = async (newNumbers: number[], name?: string) => {
     if (winningTickets.length > 0) {
       toast({ title: "Ação Bloqueada", description: "Não é possível cadastrar sorteios enquanto houver bilhetes premiados. Inicie uma nova loteria.", variant: "destructive" });
       return;
@@ -226,61 +212,63 @@ export default function AdminPage() {
       return;
     }
 
-    const newDraw: Draw = {
-      id: uuidv4(),
+    const newDrawData: Omit<Draw, 'id'> = {
       numbers: newNumbers,
       createdAt: new Date().toISOString(),
       name: name || undefined,
     };
-    const updatedDraws = [newDraw, ...draws];
-    setDraws(updatedDraws);
 
-    // Update ticket statuses based on the new draw
-    setClientTickets(updateTicketStatusesBasedOnDraws(clientTickets, updatedDraws));
-    setVendedorTickets(updateTicketStatusesBasedOnDraws(vendedorTickets, updatedDraws));
-    
-    toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    try {
+        const docRef = await addDoc(collection(db, "draws"), newDrawData);
+        const newDraw = { id: docRef.id, ...newDrawData };
+        const updatedDraws = [newDraw, ...draws];
+        
+        // Batch update ticket statuses
+        const batch = writeBatch(db);
+        const updatedTickets = updateTicketStatusesBasedOnDraws(allTickets, updatedDraws);
+        updatedTickets.forEach(ticket => {
+            const ticketRef = doc(db, "tickets", ticket.id);
+            batch.update(ticketRef, { status: ticket.status });
+        });
+        await batch.commit();
+
+        toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado e os bilhetes atualizados.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    } catch (error) {
+        console.error("Error adding draw:", error);
+        toast({ title: "Erro", description: "Não foi possível cadastrar o sorteio.", variant: "destructive"});
+    }
   };
   
-  const captureAndSaveSellerHistory = useCallback(() => {
-    const sellerTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-    const sellerTickets: Ticket[] = sellerTicketsRaw ? JSON.parse(sellerTicketsRaw) : [];
-    
-    const configRaw = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
-    const currentConfig: LotteryConfig = configRaw ? JSON.parse(configRaw) : DEFAULT_LOTTERY_CONFIG;
-    
-    const historyRaw = localStorage.getItem(SELLER_HISTORY_STORAGE_KEY);
-    const existingHistory: SellerHistoryEntry[] = historyRaw ? JSON.parse(historyRaw) : [];
-
+  const captureAndSaveSellerHistory = useCallback(async () => {
     const sellers = allUsers.filter(u => u.role === 'vendedor');
-
+    const batch = writeBatch(db);
+    
     sellers.forEach(seller => {
-        const activeTickets = sellerTickets.filter(ticket => ticket.status === 'active' && ticket.sellerUsername === seller.username);
+        const activeTickets = vendedorTickets.filter(ticket => ticket.status === 'active' && ticket.sellerUsername === seller.username);
         const activeSellerTicketsCount = activeTickets.length;
-        const totalRevenueFromActiveTickets = activeSellerTicketsCount * currentConfig.ticketPrice;
-        const commissionEarned = totalRevenueFromActiveTickets * (currentConfig.sellerCommissionPercentage / 100);
+        const totalRevenueFromActiveTickets = activeSellerTicketsCount * lotteryConfig.ticketPrice;
+        const commissionEarned = totalRevenueFromActiveTickets * (lotteryConfig.sellerCommissionPercentage / 100);
 
         if (activeSellerTicketsCount > 0) {
-            const newHistoryEntry: SellerHistoryEntry = {
-              id: `${seller.username}-${new Date().toISOString()}`,
+            const newHistoryEntry: Omit<SellerHistoryEntry, 'id'> = {
               sellerUsername: seller.username,
               endDate: new Date().toISOString(),
               activeTicketsCount: activeSellerTicketsCount,
               totalRevenue: totalRevenueFromActiveTickets,
               totalCommission: commissionEarned,
             };
-            existingHistory.push(newHistoryEntry);
+            const historyRef = doc(collection(db, 'sellerHistory'));
+            batch.set(historyRef, newHistoryEntry);
         }
     });
 
-    localStorage.setItem(SELLER_HISTORY_STORAGE_KEY, JSON.stringify(existingHistory));
+    await batch.commit();
     toast({ title: "Histórico de Vendedores Salvo!", description: "Um resumo do ciclo de vendas atual foi salvo para cada vendedor.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
-  }, [allUsers, toast]);
+  }, [allUsers, vendedorTickets, lotteryConfig, toast]);
   
-  const captureAndSaveAdminHistory = useCallback(() => {
+  const captureAndSaveAdminHistory = useCallback(async () => {
       const currentReport = financialReport;
-      const newHistoryEntry: AdminHistoryEntry = {
-        id: uuidv4(),
+      const newHistoryEntry: Omit<AdminHistoryEntry, 'id'> = {
         endDate: new Date().toISOString(),
         totalRevenue: currentReport.totalRevenue,
         totalSellerCommission: currentReport.sellerCommission,
@@ -289,37 +277,55 @@ export default function AdminPage() {
         clientTicketCount: currentReport.clientTicketCount,
         sellerTicketCount: currentReport.sellerTicketCount,
       };
-      setAdminHistory(prevHistory => [...prevHistory, newHistoryEntry]);
+      await addDoc(collection(db, "adminHistory"), newHistoryEntry);
       toast({ title: "Histórico do Admin Salvo!", description: "Um resumo financeiro do ciclo atual foi salvo.", className: "bg-secondary text-secondary-foreground", duration: 3000 });
   }, [financialReport, toast]);
 
-  const handleStartNewLottery = () => {
+  const handleStartNewLottery = async () => {
     const CONTROL_PASSWORD = "Al@n2099";
     if (startLotteryPassword !== CONTROL_PASSWORD) {
       toast({ title: "Ação Bloqueada", description: "Senha de controle incorreta.", variant: "destructive" });
       return;
     }
     
-    captureAndSaveSellerHistory();
-    captureAndSaveAdminHistory();
-  
-    setDraws([]);
-    
-    const expireStatuses: Ticket['status'][] = ['active', 'winning', 'unpaid'];
-    setClientTickets(prev => prev.map(t => expireStatuses.includes(t.status) ? { ...t, status: 'expired' } : t));
-    setVendedorTickets(prev => prev.map(t => expireStatuses.includes(t.status) ? { ...t, status: 'expired' } : t));
+    try {
+        await captureAndSaveSellerHistory();
+        await captureAndSaveAdminHistory();
+      
+        const batch = writeBatch(db);
 
-    toast({
-      title: "Nova Loteria Iniciada!",
-      description: "Sorteios e bilhetes ativos/premiados foram resetados/expirados.",
-      className: "bg-primary text-primary-foreground",
-      duration: 3000,
-    });
-    setStartLotteryPassword('');
-    setIsConfirmDialogOpen(false); 
+        // Delete all draws
+        draws.forEach(draw => {
+            const drawRef = doc(db, "draws", draw.id);
+            batch.delete(drawRef);
+        });
+        
+        // Expire relevant tickets
+        const expireStatuses: Ticket['status'][] = ['active', 'winning', 'unpaid'];
+        allTickets.forEach(ticket => {
+            if (expireStatuses.includes(ticket.status)) {
+                const ticketRef = doc(db, "tickets", ticket.id);
+                batch.update(ticketRef, { status: 'expired' });
+            }
+        });
+        
+        await batch.commit();
+
+        toast({
+          title: "Nova Loteria Iniciada!",
+          description: "Sorteios e bilhetes ativos/premiados foram resetados/expirados.",
+          className: "bg-primary text-primary-foreground",
+          duration: 3000,
+        });
+        setStartLotteryPassword('');
+        setIsConfirmDialogOpen(false); 
+    } catch (error) {
+        console.error("Error starting new lottery:", error);
+        toast({ title: "Erro", description: "Não foi possível iniciar a nova loteria.", variant: "destructive" });
+    }
   };
 
-  const handleSaveLotteryConfig = () => {
+  const handleSaveLotteryConfig = async () => {
     const price = parseFloat(ticketPriceInput);
     const commission = parseInt(commissionInput, 10);
     const ownerCommission = parseInt(ownerCommissionInput, 10);
@@ -341,21 +347,35 @@ export default function AdminPage() {
       toast({ title: "Erro de Configuração", description: "Porcentagem de comissão de vendas de cliente inválida (deve ser entre 0 e 100).", variant: "destructive" });
       return;
     }
-    setLotteryConfig({ 
+
+    const newConfig: LotteryConfig = { 
       ticketPrice: price, 
       sellerCommissionPercentage: commission, 
       ownerCommissionPercentage: ownerCommission,
       clientSalesCommissionToOwnerPercentage: clientSalesCommission
-    });
-    toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    };
+
+    try {
+        await setDoc(doc(db, "config", "lottery"), newConfig);
+        toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    } catch(error) {
+        console.error("Error saving lottery config:", error);
+        toast({ title: "Erro", description: "Não foi possível salvar as configurações da loteria.", variant: "destructive" });
+    }
   };
   
-  const handleSaveCreditRequestConfig = () => {
-    setCreditRequestConfig({
+  const handleSaveCreditRequestConfig = async () => {
+    const newConfig: CreditRequestConfig = {
       whatsappNumber: whatsappInput.trim(),
       pixKey: pixKeyInput.trim(),
-    });
-    toast({ title: "Configurações Salvas!", description: "Informações de contato para solicitação de saldo atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    };
+    try {
+        await setDoc(doc(db, "config", "creditRequest"), newConfig);
+        toast({ title: "Configurações Salvas!", description: "Informações de contato atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    } catch(error) {
+        console.error("Error saving credit config:", error);
+        toast({ title: "Erro", description: "Não foi possível salvar as informações de contato.", variant: "destructive" });
+    }
   };
 
   const handleOpenViewUser = (user: User) => {
@@ -368,29 +388,23 @@ export default function AdminPage() {
     setIsCreditDialogOpen(true);
   };
   
-  const handleCreditChange = (user: User, amount: number) => {
-    const updatedUser = { ...user, saldo: (user.saldo || 0) + amount };
-    const updatedUsers = allUsers.map(u => u.id === user.id ? updatedUser : u);
-    setAllUsers(updatedUsers);
-
-    // Explicitly update localStorage for currentUser if they are being edited.
-    // This is crucial for cross-tab updates.
-    const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-    if (loggedInUserRaw) {
-        const loggedInUser = JSON.parse(loggedInUserRaw);
-        if (loggedInUser.id === user.id) {
-            localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedUser));
-        }
+  const handleCreditChange = async (user: User, amount: number) => {
+    const newBalance = (user.saldo || 0) + amount;
+    const userRef = doc(db, "users", user.id);
+    try {
+        await updateDoc(userRef, { saldo: newBalance });
+        toast({
+            title: "Saldo Atualizado!",
+            description: `O saldo de ${user.username} agora é R$ ${newBalance.toFixed(2).replace('.', ',')}.`,
+            className: "bg-primary text-primary-foreground",
+            duration: 3000
+        });
+        setIsCreditDialogOpen(false);
+        setUserToManageCredits(null);
+    } catch (error) {
+        console.error("Error updating user credits:", error);
+        toast({ title: "Erro", description: `Não foi possível atualizar o saldo de ${user.username}.`, variant: "destructive" });
     }
-
-    toast({
-        title: "Saldo Atualizado!",
-        description: `O saldo de ${user.username} agora é R$ ${updatedUser.saldo.toFixed(2).replace('.', ',')}.`,
-        className: "bg-primary text-primary-foreground",
-        duration: 3000
-    });
-    setIsCreditDialogOpen(false);
-    setUserToManageCredits(null);
   };
 
   const handleConfirmDeleteUser = (user: User) => {
@@ -398,41 +412,46 @@ export default function AdminPage() {
     setIsDeleteConfirmOpen(true);
   };
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
-    const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-    if (loggedInUserRaw) {
-      const currentUser = JSON.parse(loggedInUserRaw);
-      if (currentUser && currentUser.username === userToDelete.username) {
-          toast({ title: "Ação Bloqueada", description: "Não é possível excluir o usuário que está logado.", variant: "destructive" });
-          setIsDeleteConfirmOpen(false);
-          setUserToDelete(null);
-          return;
-      }
+    if (currentUser && currentUser.id === userToDelete.id) {
+      toast({ title: "Ação Bloqueada", description: "Não é possível excluir o usuário que está logado.", variant: "destructive" });
+      setIsDeleteConfirmOpen(false);
+      setUserToDelete(null);
+      return;
     }
     
-    // Remove tickets associated with the user
-    if (userToDelete.role === 'vendedor') {
-      setVendedorTickets(prev => prev.filter(ticket => ticket.sellerUsername !== userToDelete.username));
-    }
-    // For clients, buyerName is their username
-    setClientTickets(prev => prev.filter(ticket => ticket.buyerName !== userToDelete.username));
-    
+    try {
+        const batch = writeBatch(db);
 
-    // Remove the user
-    setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
-    
-    // Close the details dialog if the deleted user was being viewed
-    if (userToView && userToView.id === userToDelete.id) {
-        setIsUserViewDialogOpen(false);
-        setUserToView(null);
-    }
+        // Delete user's tickets
+        const userTickets = allTickets.filter(ticket => ticket.buyerName === userToDelete.username || ticket.sellerUsername === userToDelete.username);
+        userTickets.forEach(ticket => {
+            const ticketRef = doc(db, "tickets", ticket.id);
+            batch.delete(ticketRef);
+        });
 
-    toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
-    
-    setIsDeleteConfirmOpen(false);
-    setUserToDelete(null);
+        // Delete the user document
+        const userRef = doc(db, "users", userToDelete.id);
+        batch.delete(userRef);
+
+        await batch.commit();
+        
+        // Close the details dialog if the deleted user was being viewed
+        if (userToView && userToView.id === userToDelete.id) {
+            setIsUserViewDialogOpen(false);
+            setUserToView(null);
+        }
+
+        toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
+        
+        setIsDeleteConfirmOpen(false);
+        setUserToDelete(null);
+    } catch (error) {
+        console.error("Error deleting user and tickets:", error);
+        toast({ title: "Erro", description: "Não foi possível excluir o usuário.", variant: "destructive"});
+    }
   };
 
   const handleSectionChange = (sectionId: AdminSection) => {
@@ -443,13 +462,9 @@ export default function AdminPage() {
   };
   
   const getUserActiveTicketsCount = useCallback((user: User) => {
-    if (user.role === 'cliente') {
-      return clientTickets.filter(t => t.status === 'active' && t.buyerName === user.username).length;
-    }
-    if (user.role === 'vendedor') {
-      return vendedorTickets.filter(t => t.status === 'active' && t.sellerUsername === user.username).length;
-    }
-    return 0;
+    const ticketsToCheck = user.role === 'cliente' ? clientTickets : vendedorTickets;
+    const usernameField = user.role === 'cliente' ? 'buyerName' : 'sellerUsername';
+    return ticketsToCheck.filter(t => t.status === 'active' && t[usernameField] === user.username).length;
   }, [clientTickets, vendedorTickets]);
 
   const filteredUsers = useMemo(() => {
@@ -850,7 +865,7 @@ export default function AdminPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {adminHistory.slice().reverse().map((entry) => (
+                          {adminHistory.map((entry) => (
                             <TableRow key={entry.id}>
                               <TableCell className="text-center font-medium text-xs whitespace-nowrap">
                                 {format(parseISO(entry.endDate), "dd/MM/yy HH:mm", { locale: ptBR })}
@@ -980,7 +995,7 @@ export default function AdminPage() {
               isOpen={isUserViewDialogOpen}
               onOpenChange={setIsUserViewDialogOpen}
               user={userToView}
-              allTickets={allSystemTickets}
+              allTickets={processedTickets}
               onDelete={() => {
                 if (userToView) {
                   handleConfirmDeleteUser(userToView);
@@ -1025,10 +1040,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-

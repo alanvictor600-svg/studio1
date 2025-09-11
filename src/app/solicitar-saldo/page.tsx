@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, MessageSquare, Smartphone, Copy, AlertCircle, Send, QrCode } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Smartphone, Copy, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import Image from 'next/image';
 import type { CreditRequestConfig } from '@/types';
 import Link from 'next/link';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
-const CREDIT_REQUEST_CONFIG_STORAGE_KEY = 'bolaoPotiguarCreditRequestConfig';
 
 export default function SolicitarSaldoPage() {
   const router = useRouter();
@@ -22,10 +22,12 @@ export default function SolicitarSaldoPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const storedConfig = localStorage.getItem(CREDIT_REQUEST_CONFIG_STORAGE_KEY);
-    if (storedConfig) {
-      setConfig(JSON.parse(storedConfig));
-    }
+    const unsub = onSnapshot(doc(db, 'config', 'creditRequest'), (docSnap) => {
+        if (docSnap.exists()) {
+            setConfig(docSnap.data() as CreditRequestConfig);
+        }
+    });
+    return () => unsub();
   }, []);
 
   const handleCopy = (text: string, label: string) => {

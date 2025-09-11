@@ -11,7 +11,6 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 import { ClipboardList, Ticket as TicketIconLucide, PieChart, PlusCircle, ListChecks, History, DollarSign, Percent, TrendingUp, Menu, X, LogOut, LogIn, Palette, Coins } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
@@ -22,13 +21,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { db } from '@/lib/firebase';
+import { collection, doc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 
-
-const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
-const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
-const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
-const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
-const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -50,11 +45,9 @@ const menuItems: { id: VendedorSection; label: string; Icon: React.ElementType }
 export default function VendedorPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [vendedorManagedTickets, setVendedorManagedTickets] = useState<Ticket[]>([]);
-  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [sellerHistory, setSellerHistory] = useState<SellerHistoryEntry[]>([]);
   const [isClient, setIsClient] = useState(false);
-  const { toast } = useToast();
   const { currentUser, logout, updateCurrentUserCredits, isLoading, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
@@ -67,102 +60,47 @@ export default function VendedorPage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
+  // Set up Firestore listeners
   useEffect(() => {
     if (!isAuthenticated || !currentUser || currentUser.role !== 'vendedor') return;
 
-    // Load initial data from localStorage once
-    const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-    const localDraws = storedDraws ? JSON.parse(storedDraws) : [];
-    setDraws(localDraws);
-    
-    const storedVendedorTickets = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-    const vendedorTickets = storedVendedorTickets ? JSON.parse(storedVendedorTickets) : [];
-    
-    const clientTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    const clientTickets = clientTicketsRaw ? JSON.parse(clientTicketsRaw) : [];
+    const unsubscribes: (() => void)[] = [];
 
-    const combinedTickets = [...vendedorTickets, ...clientTickets];
-    setAllTickets(combinedTickets);
-    setVendedorManagedTickets(updateTicketStatusesBasedOnDraws(vendedorTickets, localDraws));
-    
-    const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
-    setLotteryConfig(storedConfig ? JSON.parse(storedConfig) : DEFAULT_LOTTERY_CONFIG);
-    
-    const storedHistory = localStorage.getItem(SELLER_HISTORY_STORAGE_KEY);
-    setSellerHistory(storedHistory ? JSON.parse(storedHistory) : []);
+    // Listener for draws
+    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
+    unsubscribes.push(onSnapshot(drawsQuery, (snapshot) => {
+        setDraws(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw)));
+    }));
 
-    // Listen for storage changes from other tabs (e.g., admin changing config)
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === LOTTERY_CONFIG_STORAGE_KEY && event.newValue) {
-        setLotteryConfig(JSON.parse(event.newValue));
-      }
-      if (event.key === DRAWS_STORAGE_KEY && event.newValue) {
-        const newDraws = JSON.parse(event.newValue);
-        setDraws(newDraws);
-      }
-      if (event.key === VENDEDOR_TICKETS_STORAGE_KEY && event.newValue) {
-        const updatedVendedorTickets = JSON.parse(event.newValue);
-        const clientTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY) || '[]';
-        setAllTickets([...updatedVendedorTickets, ...JSON.parse(clientTicketsRaw)]);
-        const localDrawsForUpdate = JSON.parse(localStorage.getItem(DRAWS_STORAGE_KEY) || '[]');
-        setVendedorManagedTickets(updateTicketStatusesBasedOnDraws(updatedVendedorTickets, localDrawsForUpdate));
-      }
-       if (event.key === CLIENTE_TICKETS_STORAGE_KEY && event.newValue) {
-        const updatedClientTickets = JSON.parse(event.newValue);
-        const vendedorTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY) || '[]';
-        setAllTickets([...JSON.parse(vendedorTicketsRaw), ...updatedClientTickets]);
-      }
-      if (event.key === SELLER_HISTORY_STORAGE_KEY && event.newValue) {
-        setSellerHistory(JSON.parse(event.newValue));
-      }
-    };
+    // Listener for seller's managed tickets
+    const ticketsQuery = query(collection(db, 'tickets'), where('sellerUsername', '==', currentUser.username));
+    unsubscribes.push(onSnapshot(ticketsQuery, (snapshot) => {
+        setVendedorManagedTickets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket)));
+    }));
 
-    window.addEventListener('storage', handleStorageChange);
+    // Listener for lottery config
+    unsubscribes.push(onSnapshot(doc(db, 'config', 'lottery'), (docSnap) => {
+        if (docSnap.exists()) {
+            setLotteryConfig(docSnap.data() as LotteryConfig);
+        } else {
+            setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+        }
+    }));
     
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    // Listener for seller's history
+    const historyQuery = query(collection(db, 'sellerHistory'), where('sellerUsername', '==', currentUser.username), orderBy('endDate', 'desc'));
+    unsubscribes.push(onSnapshot(historyQuery, (snapshot) => {
+        setSellerHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SellerHistoryEntry)));
+    }));
+
+    return () => unsubscribes.forEach(unsub => unsub());
   }, [isAuthenticated, currentUser]);
 
-  // Effect to save tickets to localStorage when they change
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem(VENDEDOR_TICKETS_STORAGE_KEY, JSON.stringify(vendedorManagedTickets));
-    }
-  }, [vendedorManagedTickets, isClient]);
+  const processedVendedorTickets = useMemo(() => updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws), [vendedorManagedTickets, draws]);
 
-
-  const handleAddSellerTicket = useCallback((numbers: number[], buyerName: string, buyerPhone: string): Ticket | undefined => {
-    if (!currentUser) {
-      toast({ title: "Erro", description: "Vendedor não autenticado.", variant: "destructive" });
-      return undefined;
-    }
-    const ticketCost = lotteryConfig.ticketPrice;
-    if ((currentUser.saldo || 0) < ticketCost) {
-      // This case is now handled inside the form to show a dialog
-      return undefined;
-    }
-    
-    const newTicket: Ticket = {
-      id: uuidv4(),
-      numbers: numbers.sort((a, b) => a - b),
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      buyerName,
-      buyerPhone,
-      sellerUsername: currentUser.username, // Add seller username to the ticket
-    };
-    
-    setVendedorManagedTickets(prevTickets => [newTicket, ...prevTickets]);
-    updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
-    toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
-    return newTicket;
-  }, [currentUser, toast, lotteryConfig.ticketPrice, updateCurrentUserCredits]);
-
-  
   const { activeSellerTicketsCount, totalRevenueFromActiveTickets, commissionEarned } = useMemo(() => {
     if (!currentUser || currentUser.role !== 'vendedor') return { activeSellerTicketsCount: 0, totalRevenueFromActiveTickets: 0, commissionEarned: 0 };
-    const activeTickets = vendedorManagedTickets.filter(ticket => ticket.status === 'active' && ticket.sellerUsername === currentUser.username);
+    const activeTickets = processedVendedorTickets.filter(ticket => ticket.status === 'active');
     const count = activeTickets.length;
     const revenue = count * lotteryConfig.ticketPrice;
     const commission = revenue * (lotteryConfig.sellerCommissionPercentage / 100);
@@ -171,7 +109,7 @@ export default function VendedorPage() {
       totalRevenueFromActiveTickets: revenue,
       commissionEarned: commission,
     };
-  }, [vendedorManagedTickets, lotteryConfig, currentUser]);
+  }, [processedVendedorTickets, lotteryConfig, currentUser]);
 
 
   const isLotteryPaused = useMemo(() => {
@@ -202,21 +140,19 @@ export default function VendedorPage() {
               <PlusCircle className="mr-3 h-8 w-8 text-primary" /> Nova Venda
             </h2>
             <SellerTicketCreationForm 
-              onAddTicket={handleAddSellerTicket} 
               isLotteryPaused={isLotteryPaused}
               lotteryConfig={lotteryConfig} 
             />
           </section>
         );
       case 'meus-bilhetes':
-        const mySoldTickets = vendedorManagedTickets.filter(t => t.sellerUsername === currentUser?.username);
         return (
           <section id="seller-ticket-list-heading" aria-labelledby="seller-ticket-list-heading-title" className="scroll-mt-24">
             <h2 id="seller-ticket-list-heading-title" className="text-3xl md:text-4xl font-bold text-primary mb-8 text-center flex items-center justify-center">
               <ListChecks className="mr-3 h-8 w-8 text-primary" /> Bilhetes Vendidos Por Mim
             </h2>
-            {mySoldTickets.length > 0 ? (
-              <TicketList tickets={mySoldTickets} draws={draws} /> 
+            {processedVendedorTickets.length > 0 ? (
+              <TicketList tickets={processedVendedorTickets} draws={draws} /> 
             ) : (
                <div className="text-center py-10 bg-card/50 rounded-lg shadow">
                   <TicketIconLucide size={48} className="mx-auto mb-4 text-muted-foreground" />
@@ -236,7 +172,6 @@ export default function VendedorPage() {
           </section>
         );
       case 'relatorios':
-        const myHistory = sellerHistory.filter(h => h.sellerUsername === currentUser?.username);
         return (
           <>
             <section id="dashboard-summary-heading" aria-labelledby="dashboard-summary-heading-title" className="scroll-mt-24 space-y-12">
@@ -264,7 +199,7 @@ export default function VendedorPage() {
                     <TicketIconLucide className="h-5 w-5 text-primary" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold text-primary">{vendedorManagedTickets.filter(t => t.sellerUsername === currentUser?.username).length}</div>
+                    <div className="text-3xl font-bold text-primary">{vendedorManagedTickets.length}</div>
                     <p className="text-xs text-muted-foreground">Todos os bilhetes que você já vendeu.</p>
                   </CardContent>
                 </Card>
@@ -316,7 +251,7 @@ export default function VendedorPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {myHistory.length > 0 ? (
+                  {sellerHistory.length > 0 ? (
                     <ScrollArea className="h-72 w-full rounded-md border">
                         <Table>
                           <TableCaption>Um registro do seu desempenho de vendas por ciclo.</TableCaption>
@@ -329,7 +264,7 @@ export default function VendedorPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {myHistory.slice().reverse().map((entry) => (
+                            {sellerHistory.map((entry) => (
                               <TableRow key={entry.id}>
                                 <TableCell className="text-center font-medium">
                                   {format(parseISO(entry.endDate), "dd/MM/yy 'às' HH:mm", { locale: ptBR })}

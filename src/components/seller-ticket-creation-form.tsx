@@ -15,9 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import type { Ticket, LotteryConfig } from '@/types';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
+import { useAuth } from '@/context/auth-context';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface SellerTicketCreationFormProps {
-  onAddTicket: (numbers: number[], buyerName: string, buyerPhone: string) => Ticket | undefined;
   isLotteryPaused?: boolean;
   lotteryConfig: LotteryConfig;
 }
@@ -26,7 +28,6 @@ const MAX_PICKS = 10;
 const MAX_REPETITION = 4;
 
 export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ 
-  onAddTicket, 
   isLotteryPaused = false,
   lotteryConfig
 }) => {
@@ -36,6 +37,8 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
   const { toast } = useToast();
   const [receiptTicket, setReceiptTicket] = useState<Ticket | null>(null);
   const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentUser, updateCurrentUserCredits } = useAuth();
 
   const numberCounts = countOccurrences(currentPicks);
 
@@ -85,7 +88,11 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
-  const handleSubmitTicket = () => {
+  const handleSubmitTicket = async () => {
+    if (!currentUser) {
+      toast({ title: "Erro", description: "Vendedor não autenticado.", variant: "destructive" });
+      return;
+    }
     if (currentPicks.length !== MAX_PICKS) {
       toast({ title: "Seleção Incompleta", description: `Por favor, selecione ${MAX_PICKS} números.`, variant: "destructive" });
       return;
@@ -95,19 +102,42 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       return;
     }
     
-    const createdTicket = onAddTicket([...currentPicks].sort((a,b) => a-b), buyerName, buyerPhone);
-    
-    if (createdTicket === undefined) {
-        // This means credit was insufficient.
+    const ticketCost = lotteryConfig.ticketPrice;
+    if ((currentUser.saldo || 0) < ticketCost) {
         setIsCreditsDialogOpen(true);
         return;
     }
 
-    if (createdTicket) {
-      setCurrentPicks([]);
-      setBuyerName('');
-      setBuyerPhone('');
-      setReceiptTicket(createdTicket); // Show receipt on success
+    setIsSubmitting(true);
+    
+    const newTicketData: Omit<Ticket, 'id'> = {
+      numbers: [...currentPicks].sort((a,b) => a-b),
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      buyerName: buyerName.trim(),
+      buyerPhone: buyerPhone.trim(),
+      sellerUsername: currentUser.username,
+    };
+
+    try {
+        const docRef = await addDoc(collection(db, "tickets"), newTicketData);
+        const createdTicket = { id: docRef.id, ...newTicketData };
+        
+        const newBalance = (currentUser.saldo || 0) - ticketCost;
+        updateCurrentUserCredits(newBalance);
+
+        setCurrentPicks([]);
+        setBuyerName('');
+        setBuyerPhone('');
+        setReceiptTicket(createdTicket);
+
+        toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+
+    } catch (error) {
+        console.error("Error creating seller ticket:", error);
+        toast({ title: "Erro", description: "Não foi possível registrar a venda. Tente novamente.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -132,6 +162,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
                 onChange={(e) => setBuyerName(e.target.value)}
                 placeholder="Nome do Comprador"
                 className="bg-background/50"
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -145,6 +176,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
                 onChange={(e) => setBuyerPhone(e.target.value)}
                 placeholder="(XX) XXXXX-XXXX"
                 className="bg-background/50"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -176,7 +208,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
                   key={animal.number}
                   number={animal.number}
                   onClick={handleNumberClick}
-                  disabled={(numberCounts[animal.number] || 0) >= MAX_REPETITION || currentPicks.length >= MAX_PICKS}
+                  disabled={isSubmitting || (numberCounts[animal.number] || 0) >= MAX_REPETITION || currentPicks.length >= MAX_PICKS}
                   isSelected={currentPicks.includes(animal.number)}
                   countInSelection={numberCounts[animal.number] || 0}
                 />
@@ -186,19 +218,19 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 pt-6">
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg">
+            <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
               <Sparkles className="mr-2 h-4 w-4" /> Auto-Preencher Números
             </Button>
-            <Button variant="destructive" onClick={handleClearSelection} className="flex-1 sm:flex-none shadow-md hover:shadow-lg">
+            <Button variant="destructive" onClick={handleClearSelection} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
               <Trash2 className="mr-2 h-4 w-4" /> Limpar Números
             </Button>
           </div>
           <Button 
             onClick={handleSubmitTicket} 
-            disabled={currentPicks.length !== MAX_PICKS || !buyerName.trim()}
+            disabled={isSubmitting || currentPicks.length !== MAX_PICKS || !buyerName.trim()}
             className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
           >
-            <TicketPlus className="mr-2 h-5 w-5" /> Registrar Venda
+            <TicketPlus className="mr-2 h-5 w-5" /> {isSubmitting ? 'Registrando...' : 'Registrar Venda'}
           </Button>
         </CardFooter>
       </Card>
@@ -223,5 +255,3 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     </>
   );
 };
-
-    

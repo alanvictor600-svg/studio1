@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { TicketSelectionForm } from '@/components/ticket-selection-form';
 import { TicketList } from '@/components/ticket-list';
@@ -15,11 +15,9 @@ import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AdminDrawList } from '@/components/admin-draw-list';
+import { db } from '@/lib/firebase';
+import { collection, doc, getDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 
-const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
-const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
-const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
-const LOTTERY_CONFIG_STORAGE_KEY = 'bolaoPotiguarLotteryConfig';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -38,7 +36,6 @@ const menuItems: { id: ClienteSection; label: string; Icon: React.ElementType }[
 
 export default function ClientePage() {
   const [myTickets, setMyTickets] = useState<Ticket[]>([]);
-  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [draws, setDraws] = useState<Draw[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [isClient, setIsClient] = useState(false);
@@ -54,50 +51,40 @@ export default function ClientePage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Load data and update statuses
+  // Set up Firestore listeners
   useEffect(() => {
     if (!isAuthenticated || !currentUser || currentUser.role !== 'cliente') return;
-    
-    const storedDrawsRaw = localStorage.getItem(DRAWS_STORAGE_KEY);
-    const localDraws = storedDrawsRaw ? JSON.parse(storedDrawsRaw) : [];
-    setDraws(localDraws);
 
-    const clientTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    const allClientTickets: Ticket[] = clientTicketsRaw ? JSON.parse(clientTicketsRaw) : [];
-    
-    const vendedorTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-    const allVendedorTickets: Ticket[] = vendedorTicketsRaw ? JSON.parse(vendedorTicketsRaw) : [];
+    const unsubscribes: (() => void)[] = [];
 
-    const combinedTickets = [...allClientTickets, ...allVendedorTickets];
-    setAllTickets(combinedTickets);
-    
-    // Process all tickets first to determine their status
-    const processedTickets = updateTicketStatusesBasedOnDraws(allClientTickets, localDraws);
-    
-    // Then, filter to show only the current user's tickets
-    const userTickets = processedTickets.filter(
-      (ticket: Ticket) => ticket.buyerName === currentUser?.username
-    );
-    setMyTickets(userTickets);
+    // Listener for user's tickets
+    const ticketsQuery = query(collection(db, 'tickets'), where('buyerName', '==', currentUser.username), where('sellerUsername', '==', null));
+    unsubscribes.push(onSnapshot(ticketsQuery, (snapshot) => {
+        const userTickets = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+        setMyTickets(userTickets);
+    }));
 
-    const storedConfig = localStorage.getItem(LOTTERY_CONFIG_STORAGE_KEY);
-    setLotteryConfig(storedConfig ? JSON.parse(storedConfig) : DEFAULT_LOTTERY_CONFIG);
+    // Listener for draws
+    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
+    unsubscribes.push(onSnapshot(drawsQuery, (snapshot) => {
+        const drawsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
+        setDraws(drawsData);
+    }));
+    
+    // Listener for lottery config
+    unsubscribes.push(onSnapshot(doc(db, 'config', 'lottery'), (docSnap) => {
+        if (docSnap.exists()) {
+            setLotteryConfig(docSnap.data() as LotteryConfig);
+        } else {
+            setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+        }
+    }));
 
-    // Also, re-save all tickets to ensure statuses are up-to-date in storage
-    localStorage.setItem(CLIENTE_TICKETS_STORAGE_KEY, JSON.stringify(processedTickets));
+    return () => unsubscribes.forEach(unsub => unsub());
 
   }, [isAuthenticated, currentUser]);
 
-  const handleAddTicket = useCallback((newTicket: Ticket) => {
-    // This function will now simply add the pre-validated ticket to the state
-    // and update localStorage.
-    const storedTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    const allClientTickets = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
-    const updatedAllTickets = [newTicket, ...allClientTickets];
-    localStorage.setItem(CLIENTE_TICKETS_STORAGE_KEY, JSON.stringify(updatedAllTickets));
-    
-    setMyTickets(prevTickets => [newTicket, ...prevTickets]);
-  }, []);
+  const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(myTickets, draws), [myTickets, draws]);
 
   const handleSectionChange = (sectionId: ClienteSection) => {
     setActiveSection(sectionId);
@@ -107,7 +94,7 @@ export default function ClientePage() {
   };
 
   const isLotteryPaused = useMemo(() => {
-    // Sales are paused if there are winning tickets
+    // Sales are paused if there are any draws, indicating the lottery has started
     return draws.length > 0;
   }, [draws]);
 
@@ -126,7 +113,6 @@ export default function ClientePage() {
           <section aria-labelledby="ticket-selection-heading" id="selecionar-bilhete" className="scroll-mt-20">
             <h2 id="ticket-selection-heading" className="sr-only">Seleção de Bilhetes</h2>
             <TicketSelectionForm 
-              onAddTicket={handleAddTicket} 
               isLotteryPaused={isLotteryPaused}
               currentUser={currentUser}
               updateCurrentUserCredits={updateCurrentUserCredits}
@@ -141,7 +127,7 @@ export default function ClientePage() {
               Meus Bilhetes
             </h2>
             <TicketList
-              tickets={myTickets}
+              tickets={processedTickets}
               draws={draws}
             />
           </section>

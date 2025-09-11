@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award, PanelTopOpen } from 'lucide-react';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -15,11 +15,8 @@ import type { Draw, Ticket } from '@/types';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-
-const DRAWS_STORAGE_KEY = 'bolaoPotiguarDraws';
-const CLIENTE_TICKETS_STORAGE_KEY = 'bolaoPotiguarClienteTickets';
-const VENDEDOR_TICKETS_STORAGE_KEY = 'bolaoPotiguarVendedorTickets';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 
 export default function LandingPage() {
@@ -32,17 +29,18 @@ export default function LandingPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const storedDraws = localStorage.getItem(DRAWS_STORAGE_KEY);
-    if (storedDraws) {
-      setDraws(JSON.parse(storedDraws));
-    }
-    const clientTicketsRaw = localStorage.getItem(CLIENTE_TICKETS_STORAGE_KEY);
-    const clientTickets = clientTicketsRaw ? JSON.parse(clientTicketsRaw) : [];
+    const unsubDraws = onSnapshot(query(collection(db, 'draws'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setDraws(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw)));
+    });
 
-    const vendedorTicketsRaw = localStorage.getItem(VENDEDOR_TICKETS_STORAGE_KEY);
-    const vendedorTickets = vendedorTicketsRaw ? JSON.parse(vendedorTicketsRaw) : [];
+    const unsubTickets = onSnapshot(collection(db, 'tickets'), (snapshot) => {
+      setAllTickets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket)));
+    });
 
-    setAllTickets([...clientTickets, ...vendedorTickets]);
+    return () => {
+      unsubDraws();
+      unsubTickets();
+    };
   }, []);
 
   const handleClienteClick = () => {
