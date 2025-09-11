@@ -9,7 +9,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins, CreditCard, Contact } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins, CreditCard, Contact, Eye } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { UserEditDialog } from '@/components/user-edit-dialog';
+import { UserDetailsDialog } from '@/components/user-details-dialog';
 import { CreditManagementDialog } from '@/components/credit-management-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -86,8 +86,8 @@ export default function AdminPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
-  const [isUserEditDialogOpen, setIsUserEditDialogOpen] = useState(false);
+  const [userToView, setUserToView] = useState<User | null>(null);
+  const [isUserViewDialogOpen, setIsUserViewDialogOpen] = useState(false);
   const [userToManageCredits, setUserToManageCredits] = useState<User | null>(null);
   const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -362,62 +362,14 @@ export default function AdminPage() {
     toast({ title: "Configurações Salvas!", description: "Informações de contato para solicitação de crédito atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
 
-  const handleOpenEditUser = (user: User) => {
-    setUserToEdit(user);
-    setIsUserEditDialogOpen(true);
+  const handleOpenViewUser = (user: User) => {
+    setUserToView(user);
+    setIsUserViewDialogOpen(true);
   };
   
   const handleOpenCreditDialog = (user: User) => {
     setUserToManageCredits(user);
     setIsCreditDialogOpen(true);
-  };
-
-  const handleSaveUser = (updatedUser: User) => {
-    const oldUser = allUsers.find(u => u.id === updatedUser.id);
-    if (!oldUser) {
-        toast({ title: "Erro ao Salvar", description: "Usuário original não encontrado.", variant: "destructive" });
-        return;
-    }
-    const oldUsername = oldUser.username;
-    const newUsername = updatedUser.username;
-
-    const isUsernameTaken = allUsers.some(u => u.username === newUsername && u.id !== updatedUser.id);
-    if (isUsernameTaken) {
-        toast({ title: "Erro ao Salvar", description: `O nome de usuário "${newUsername}" já está em uso.`, variant: "destructive" });
-        return;
-    }
-    
-    const updatedUsers = allUsers.map(u => (u.id === updatedUser.id ? updatedUser : u));
-    setAllUsers(updatedUsers);
-
-    if (oldUsername !== newUsername) {
-        setVendedorTickets(prevTickets => 
-            prevTickets.map(ticket => 
-                ticket.sellerUsername === oldUsername ? { ...ticket, sellerUsername: newUsername } : ticket
-            )
-        );
-        setClientTickets(prevTickets => 
-            prevTickets.map(ticket => 
-                ticket.buyerName === oldUsername ? { ...ticket, buyerName: newUsername } : ticket
-            )
-        );
-        
-        const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-        if (loggedInUserRaw) {
-            const loggedInUser = JSON.parse(loggedInUserRaw);
-            if (loggedInUser.username === oldUsername) {
-                // If the currently logged in user is the one being edited, update their session data
-                const newCurrentUser = updatedUsers.find(u => u.id === loggedInUser.id);
-                if (newCurrentUser) {
-                    localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(newCurrentUser));
-                }
-            }
-        }
-    }
-
-    toast({ title: "Usuário Atualizado!", description: `Os dados de ${newUsername} foram salvos.`, className: "bg-primary text-primary-foreground", duration: 3000 });
-    setIsUserEditDialogOpen(false);
-    setUserToEdit(null);
   };
   
   const handleCreditChange = (user: User, amount: number) => {
@@ -473,10 +425,10 @@ export default function AdminPage() {
     // Remove the user
     setAllUsers(prevUsers => prevUsers.filter(u => u.id !== userToDelete.id));
     
-    // Close the edit dialog if the deleted user was being edited
-    if (userToEdit && userToEdit.id === userToDelete.id) {
-        setIsUserEditDialogOpen(false);
-        setUserToEdit(null);
+    // Close the details dialog if the deleted user was being viewed
+    if (userToView && userToView.id === userToDelete.id) {
+        setIsUserViewDialogOpen(false);
+        setUserToView(null);
     }
 
     toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
@@ -662,8 +614,8 @@ export default function AdminPage() {
                             <Button variant="outline" size="sm" onClick={() => handleOpenCreditDialog(user)}>
                                 <CreditCard className="mr-2 h-4 w-4" /> Créditos
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleOpenEditUser(user)}>
-                                <Edit className="mr-2 h-4 w-4"/> Editar
+                            <Button variant="outline" size="sm" onClick={() => handleOpenViewUser(user)}>
+                                <Eye className="mr-2 h-4 w-4"/> Detalhes
                             </Button>
                       </div>
                     </Card>
@@ -1022,18 +974,17 @@ export default function AdminPage() {
         </main>
       </div>
 
-      {userToEdit && (
-          <UserEditDialog
-              isOpen={isUserEditDialogOpen}
-              onOpenChange={setIsUserEditDialogOpen}
-              user={userToEdit}
-              onSave={handleSaveUser}
+      {userToView && (
+          <UserDetailsDialog
+              isOpen={isUserViewDialogOpen}
+              onOpenChange={setIsUserViewDialogOpen}
+              user={userToView}
               onDelete={() => {
-                if (userToEdit) {
-                  handleConfirmDeleteUser(userToEdit);
+                if (userToView) {
+                  handleConfirmDeleteUser(userToView);
                 }
               }}
-              onClose={() => setUserToEdit(null)}
+              onClose={() => setUserToView(null)}
           />
       )}
       
