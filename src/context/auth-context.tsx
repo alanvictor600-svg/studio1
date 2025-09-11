@@ -18,6 +18,8 @@ import {
 import { auth } from '@/lib/firebase';
 
 const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
+const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
+
 
 interface AuthContextType {
   currentUser: AppUser | null;
@@ -39,6 +41,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  
+  const saveUserToLocalStorage = (user: AppUser | null) => {
+    if (user) {
+      localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -46,30 +56,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (user) {
         const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
         const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
-        const appUser = users.find(u => u.username.toLowerCase() === (user.displayName || '').toLowerCase());
+        const appUser = users.find(u => u.id === user.uid || u.username.toLowerCase() === (user.displayName || '').toLowerCase());
         
         if (appUser) {
           setCurrentUser(appUser);
-        } else {
-             const username = user.displayName || user.email?.split('@')[0] || 'unknown';
+          saveUserToLocalStorage(appUser);
+        } else if (user.displayName) {
+             const username = user.displayName;
              const temporaryUser: AppUser = {
                 id: user.uid,
                 username: username,
                 role: 'cliente',
                 saldo: 0,
-                passwordHash: '',
+                passwordHash: '(Login com Google)',
                 createdAt: user.metadata.creationTime || new Date().toISOString(),
              };
              setCurrentUser(temporaryUser);
+             saveUserToLocalStorage(temporaryUser);
         }
 
       } else {
         setCurrentUser(null);
+        saveUserToLocalStorage(null);
       }
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === AUTH_CURRENT_USER_STORAGE_KEY) {
+        const userRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+        setCurrentUser(userRaw ? JSON.parse(userRaw) : null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+        unsubscribe();
+        window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const logout = useCallback(async () => {
@@ -77,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signOut(auth);
       setCurrentUser(null);
       setFirebaseUser(null);
+      saveUserToLocalStorage(null);
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
       router.push('/');
     } catch (error) {
@@ -89,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (currentUser) {
       const updatedUser = { ...currentUser, saldo: newCredits };
       setCurrentUser(updatedUser);
+      saveUserToLocalStorage(updatedUser);
 
       const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
       let users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
@@ -178,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 appUser = {
                     id: gUser.uid,
                     username: sanitizedUsername,
-                    passwordHash: '',
+                    passwordHash: '(Login com Google)',
                     role: 'cliente', 
                     createdAt: new Date().toISOString(),
                     saldo: 0,
@@ -247,7 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newUser: AppUser = {
           id: firebaseUser.uid,
           username: username.trim(),
-          passwordHash: '',
+          passwordHash: '**********',
           role,
           createdAt: new Date().toISOString(),
           saldo: 0, 

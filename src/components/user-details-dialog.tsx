@@ -15,8 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Eye, EyeOff, Copy, Ticket as TicketIcon } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Trash2, KeyRound, Ticket as TicketIcon } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
@@ -40,8 +39,6 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   onDelete,
   onClose,
 }) => {
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const { toast } = useToast();
 
   const userActiveTickets = useMemo(() => {
     if (!user) return [];
@@ -57,7 +54,6 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-      setIsPasswordVisible(false); // Hide password when closing
       onClose();
     }
     onOpenChange(open);
@@ -65,14 +61,6 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
 
   const handleDeleteClick = () => {
     onDelete();
-  }
-
-  const handleCopyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-        title: `${label} copiada!`,
-        className: "bg-primary text-primary-foreground",
-    });
   }
 
   return (
@@ -93,23 +81,9 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
                 </div>
                 <div className="space-y-1">
                     <Label htmlFor="password">Senha</Label>
-                    <div className="relative">
-                        <Input
-                            id="password"
-                            type={isPasswordVisible ? 'text' : 'password'}
-                            readOnly
-                            value={user.passwordHash}
-                            className="pr-20 bg-muted"
-                        />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopyToClipboard(user.passwordHash, 'Senha')}>
-                                <Copy className="h-4 w-4" aria-hidden="true" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsPasswordVisible(prev => !prev)}>
-                                {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                <span className="sr-only">{isPasswordVisible ? 'Esconder senha' : 'Mostrar senha'}</span>
-                            </Button>
-                        </div>
+                    <div className="relative flex items-center p-2 bg-muted rounded-md text-sm text-muted-foreground">
+                        <KeyRound className="mr-2 h-4 w-4"/>
+                        <span>As senhas são criptografadas e não podem ser visualizadas.</span>
                     </div>
                 </div>
                 <div className="space-y-1">
