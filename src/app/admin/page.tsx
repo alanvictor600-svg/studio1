@@ -9,7 +9,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins, CreditCard } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { UserEditDialog } from '@/components/user-edit-dialog';
+import { CreditManagementDialog } from '@/components/credit-management-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -75,6 +76,8 @@ export default function AdminPage() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [isUserEditDialogOpen, setIsUserEditDialogOpen] = useState(false);
+  const [userToManageCredits, setUserToManageCredits] = useState<User | null>(null);
+  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   
@@ -143,6 +146,7 @@ export default function AdminPage() {
   const allSystemTickets = [...clientTickets, ...vendedorTickets];
 
   const winningTickets = allSystemTickets.filter(ticket => ticket.status === 'winning');
+  const isLotteryActive = draws.length > 0;
 
   const financialReport = {
     totalRevenue: 0,
@@ -268,7 +272,7 @@ export default function AdminPage() {
   
     setDraws([]);
     
-    const expireStatuses: Ticket['status'][] = ['active', 'winning', 'awaiting_payment', 'unpaid'];
+    const expireStatuses: Ticket['status'][] = ['active', 'winning', 'unpaid'];
     setClientTickets(prev => prev.map(t => expireStatuses.includes(t.status) ? { ...t, status: 'expired' } : t));
     setVendedorTickets(prev => prev.map(t => expireStatuses.includes(t.status) ? { ...t, status: 'expired' } : t));
 
@@ -317,6 +321,11 @@ export default function AdminPage() {
     setUserToEdit(user);
     setIsUserEditDialogOpen(true);
   };
+  
+  const handleOpenCreditDialog = (user: User) => {
+    setUserToManageCredits(user);
+    setIsCreditDialogOpen(true);
+  };
 
   const handleSaveUser = (updatedUser: User) => {
     const oldUser = allUsers.find(u => u.id === updatedUser.id);
@@ -333,7 +342,8 @@ export default function AdminPage() {
         return;
     }
     
-    setAllUsers(prevUsers => prevUsers.map(u => (u.id === updatedUser.id ? updatedUser : u)));
+    const updatedUsers = allUsers.map(u => (u.id === updatedUser.id ? updatedUser : u));
+    setAllUsers(updatedUsers);
 
     if (oldUsername !== newUsername) {
         setVendedorTickets(prevTickets => 
@@ -351,7 +361,10 @@ export default function AdminPage() {
         if (loggedInUserRaw) {
             const loggedInUser = JSON.parse(loggedInUserRaw);
             if (loggedInUser.username === oldUsername) {
-                localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify({ ...loggedInUser, username: newUsername, credits: updatedUser.credits }));
+                const newCurrentUser = updatedUsers.find(u => u.id === loggedInUser.id);
+                if (newCurrentUser) {
+                    localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(newCurrentUser));
+                }
             }
         }
     }
@@ -361,6 +374,29 @@ export default function AdminPage() {
     setUserToEdit(null);
   };
   
+  const handleCreditChange = (user: User, amount: number) => {
+    const updatedUser = { ...user, credits: (user.credits || 0) + amount };
+    const updatedUsers = allUsers.map(u => u.id === user.id ? updatedUser : u);
+    setAllUsers(updatedUsers);
+
+    const loggedInUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+    if (loggedInUserRaw) {
+        const loggedInUser = JSON.parse(loggedInUserRaw);
+        if (loggedInUser.id === user.id) {
+            localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedUser));
+        }
+    }
+
+    toast({
+        title: "Créditos Atualizados!",
+        description: `O saldo de ${user.username} agora é R$ ${updatedUser.credits.toFixed(2).replace('.', ',')}.`,
+        className: "bg-primary text-primary-foreground",
+        duration: 3000
+    });
+    setIsCreditDialogOpen(false);
+    setUserToManageCredits(null);
+  };
+
   const handleConfirmDeleteUser = (user: User) => {
     setUserToDelete(user);
     setIsDeleteConfirmOpen(true);
@@ -550,6 +586,9 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-2 self-end sm:self-center">
+                            <Button variant="outline" size="sm" onClick={() => handleOpenCreditDialog(user)}>
+                                <CreditCard className="mr-2 h-4 w-4" /> Créditos
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => handleOpenEditUser(user)}>
                                 <Edit className="mr-2 h-4 w-4"/> Editar
                             </Button>
@@ -867,6 +906,16 @@ export default function AdminPage() {
           />
       )}
       
+      {userToManageCredits && (
+          <CreditManagementDialog
+              isOpen={isCreditDialogOpen}
+              onOpenChange={setIsCreditDialogOpen}
+              user={userToManageCredits}
+              onSave={handleCreditChange}
+              onClose={() => setUserToManageCredits(null)}
+          />
+      )}
+      
       {userToDelete && (
         <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
             <AlertDialogContent>
@@ -892,3 +941,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
