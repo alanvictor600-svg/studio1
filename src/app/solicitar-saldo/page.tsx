@@ -84,14 +84,14 @@ export default function SolicitarSaldoPage() {
                         <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl shadow-md">1</div>
                         <div>
                             <h3 className="font-semibold text-lg text-foreground">Escolha um Método de Pagamento</h3>
-                            <p className="text-muted-foreground">Você pode pagar via Pix (Copia e Cola ou QR Code) ou entrar em contato direto pelo WhatsApp.</p>
+                            <p className="text-muted-foreground">Você pode pagar via Pix ou combinar o pagamento direto conosco pelo WhatsApp.</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-4">
                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl shadow-md">2</div>
                         <div>
                             <h3 className="font-semibold text-lg text-foreground">Envie o Comprovante</h3>
-                            <p className="text-muted-foreground">Após o pagamento, envie o comprovante para nosso WhatsApp. Isso agiliza a liberação do seu saldo.</p>
+                            <p className="text-muted-foreground">Após o pagamento, sempre envie o comprovante para nosso WhatsApp para agilizar a liberação do seu saldo.</p>
                         </div>
                     </div>
                      <div className="flex items-start gap-4">
@@ -150,8 +150,8 @@ export default function SolicitarSaldoPage() {
                 <Card className="shadow-lg hover:shadow-xl transition-shadow">
                     <CardHeader className="text-center pb-4">
                         <MessageSquare className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                        <CardTitle>Contato Direto</CardTitle>
-                        <CardDescription>Fale conosco no WhatsApp.</CardDescription>
+                        <CardTitle>Pagamento via WhatsApp</CardTitle>
+                        <CardDescription>Combine o pagamento conosco.</CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col justify-center h-full gap-4 pt-4">
                         <div className="p-3 rounded-md bg-muted text-center">
@@ -162,10 +162,10 @@ export default function SolicitarSaldoPage() {
                         </div>
                         <Button asChild disabled={!config?.whatsappNumber} className="w-full bg-green-500 hover:bg-green-600 text-white">
                             <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                            <Send className="mr-2 h-4 w-4" /> Enviar Comprovante
+                            <Send className="mr-2 h-4 w-4" /> Combinar Pagamento
                             </Link>
                         </Button>
-                        <p className="text-xs text-muted-foreground text-center pt-2">Clique no botão para abrir a conversa e enviar seu comprovante de pagamento.</p>
+                        <p className="text-xs text-muted-foreground text-center pt-2">Clique no botão para abrir a conversa, tirar dúvidas e combinar o pagamento.</p>
                     </CardContent>
                 </Card>
             </div>
