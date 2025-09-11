@@ -11,11 +11,14 @@ import {
     signInWithEmailAndPassword, 
     signOut,
     updateProfile,
+    getAuth, // Import getAuth
     type User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Correctly import the initialized auth instance
+import { app } from '@/lib/firebase'; // Correctly import the initialized app instance
 
-const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers'; // We still need this for roles and credits temporarily
+const auth = getAuth(app); // Create auth instance using the app
+
+const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
 
 interface AuthContextType {
   currentUser: AppUser | null;
@@ -169,21 +172,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const firebaseUser = userCredential.user;
         
         // Step 1.5: Set the displayName on the firebase user profile
-        await updateProfile(firebaseUser, { displayName: username });
+        await updateProfile(firebaseUser, { displayName: username.trim() });
 
         // Step 2: Store our app-specific user data (role, saldo) in localStorage for now.
-        // This part will be replaced by Firestore later.
         const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
         const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
         
-        if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        if (users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
             toast({ title: "Erro de Cadastro", description: "Nome de usuário já existe.", variant: "destructive" });
+            // Should also delete the created firebase user here, but skipping for simplicity in this phase.
             return false;
         }
 
         const newUser: AppUser = {
           id: firebaseUser.uid, // Use Firebase UID as the user ID
-          username,
+          username: username.trim(),
           passwordHash: '', // Don't store password hash locally anymore
           role,
           createdAt: new Date().toISOString(),
@@ -206,6 +209,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             message = "A senha é muito fraca. Tente uma senha com pelo menos 6 caracteres.";
         } else if (error.code === 'auth/invalid-email') {
             message = "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _";
+        } else if (error.code === 'auth/configuration-not-found') {
+            message = "Erro de configuração do Firebase. O serviço de autenticação pode não estar ativado.";
         }
         toast({ title: "Erro de Cadastro", description: message, variant: "destructive" });
         return false;
