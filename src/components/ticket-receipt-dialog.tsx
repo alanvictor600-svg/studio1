@@ -2,6 +2,7 @@
 "use client";
 
 import type { FC } from 'react';
+import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,8 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { Ticket, LotteryConfig } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Share2, Copy } from 'lucide-react';
+import { Printer, Share2, Copy } from 'lucide-react';
 import Image from 'next/image';
+import { useReactToPrint } from 'react-to-print';
+import { Separator } from '@/components/ui/separator';
 
 interface TicketReceiptDialogProps {
   isOpen: boolean;
@@ -25,106 +28,85 @@ interface TicketReceiptDialogProps {
   lotteryConfig: LotteryConfig;
 }
 
+const ReceiptContent: FC<{ ticket: Ticket; lotteryConfig: LotteryConfig }> = ({ ticket, lotteryConfig }) => (
+  <div className="bg-white text-black font-mono p-6 max-w-sm mx-auto rounded-lg shadow-lg border-2 border-dashed border-gray-400">
+    <div className="text-center mb-4">
+      <Image src="/logo.png" alt="Logo" width={80} height={80} className="mx-auto" />
+      <h2 className="text-2xl font-bold mt-2">Bolão Potiguar</h2>
+      <p className="text-sm">Comprovante de Aposta</p>
+    </div>
+
+    <Separator className="my-4 border-dashed bg-gray-400" />
+
+    <div className="space-y-2 text-sm">
+      <div className="flex justify-between"><span>Data/Hora:</span> <span>{format(parseISO(ticket.createdAt), "dd/MM/yy HH:mm", { locale: ptBR })}</span></div>
+      <div className="flex justify-between"><span>Bilhete ID:</span> <span>#{ticket.id.substring(0, 8)}</span></div>
+      <div className="flex justify-between"><span>Comprador:</span> <span className="font-bold">{ticket.buyerName}</span></div>
+      {ticket.sellerUsername && (
+        <div className="flex justify-between"><span>Vendedor:</span> <span>{ticket.sellerUsername}</span></div>
+      )}
+    </div>
+
+    <Separator className="my-4 border-dashed bg-gray-400" />
+
+    <p className="text-center text-sm uppercase tracking-widest mb-2">Seus Números da Sorte</p>
+    <div className="grid grid-cols-5 gap-2 text-center">
+      {ticket.numbers.map((num, index) => (
+        <span key={index} className="flex items-center justify-center h-10 w-10 rounded-md bg-gray-200 font-bold text-lg shadow-inner">
+          {num.toString().padStart(2, '0')}
+        </span>
+      ))}
+    </div>
+
+    <Separator className="my-4 border-dashed bg-gray-400" />
+
+    <div className="space-y-2 text-sm">
+      <div className="flex justify-between font-bold text-base">
+        <span>Valor Pago:</span>
+        <span>R$ {lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}</span>
+      </div>
+    </div>
+    
+    <div className="text-center mt-6">
+      <p className="font-bold text-sm">Boa Sorte! 🍀</p>
+      <p className="text-xs mt-1">Guarde este comprovante.</p>
+    </div>
+  </div>
+);
+
+
 export const TicketReceiptDialog: FC<TicketReceiptDialogProps> = ({ isOpen, onOpenChange, ticket, lotteryConfig }) => {
   const { toast } = useToast();
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => receiptRef.current,
+    documentTitle: `Comprovante-BolaoPotiguar-${ticket?.id.substring(0, 8)}`,
+    onAfterPrint: () => toast({ title: 'Impressão concluída!' }),
+    onPrintError: () => toast({ title: 'Ocorreu um erro ao imprimir', variant: 'destructive' }),
+  });
+
 
   if (!ticket) {
     return null;
   }
-
-  const receiptText = `
-*Comprovante de Aposta - Bolão Potiguar*
-
-*Bilhete ID:* ${ticket.id.substring(0, 8)}
-*Comprador:* ${ticket.buyerName || 'N/A'}
-*Vendedor:* ${ticket.sellerUsername || 'App Cliente'}
-*Data:* ${format(parseISO(ticket.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-
-*Números da Sorte:*
-${ticket.numbers.join(' - ')}
-
-*Valor:* R$ ${lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}
-
-Boa sorte! 🍀
-  `.trim();
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Comprovante de Aposta - Bolão Potiguar',
-          text: receiptText,
-        });
-        toast({ title: 'Comprovante compartilhado!' });
-      } catch (error) {
-        // This is a common case: user closes the share dialog.
-        // We check if the error name is 'AbortError' to avoid logging expected behavior.
-        if (error instanceof Error && error.name === 'AbortError') {
-            toast({ title: 'Compartilhamento cancelado', variant: 'destructive' });
-        } else {
-            console.error('Erro ao compartilhar:', error);
-            toast({ title: 'Ocorreu um erro ao compartilhar', variant: 'destructive' });
-        }
-      }
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      navigator.clipboard.writeText(receiptText);
-      toast({
-        title: 'API de compartilhamento não suportada',
-        description: 'O comprovante foi copiado para a sua área de transferência.',
-      });
-    }
-  };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-card">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold text-primary flex flex-col items-center gap-4">
-             <Image src="/logo.png" alt="Logo" width={80} height={80} />
-            Comprovante de Aposta
+          <DialogTitle className="text-center text-2xl font-bold text-primary">
+            Comprovante Gerado
           </DialogTitle>
         </DialogHeader>
 
-        <div className="my-4 space-y-4 p-4 rounded-lg bg-muted/50 border border-dashed">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">ID do Bilhete:</span>
-            <span className="font-mono text-sm font-semibold">#{ticket.id.substring(0, 8)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Comprador:</span>
-            <span className="font-semibold">{ticket.buyerName}</span>
-          </div>
-          {ticket.sellerUsername && (
-             <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Vendedor:</span>
-                <span className="font-semibold">{ticket.sellerUsername}</span>
-            </div>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Data:</span>
-            <span className="font-semibold">{format(parseISO(ticket.createdAt), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Valor:</span>
-            <span className="font-semibold">R$ {lotteryConfig.ticketPrice.toFixed(2).replace('.', ',')}</span>
-          </div>
-
-          <div className="pt-4 mt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground text-center mb-2">Seus Números da Sorte:</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {ticket.numbers.map((num, index) => (
-                <span key={index} className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-primary-foreground font-bold text-lg shadow-lg">
-                  {num}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div ref={receiptRef} className="my-4">
+          <ReceiptContent ticket={ticket} lotteryConfig={lotteryConfig} />
         </div>
 
         <DialogFooter className="sm:flex-col gap-3">
-          <Button type="button" onClick={handleShare} className="w-full bg-green-600 hover:bg-green-700 text-white">
-            <Share2 className="mr-2 h-4 w-4" /> Compartilhar Comprovante
+          <Button type="button" onClick={handlePrint} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Printer className="mr-2 h-4 w-4" /> Imprimir ou Salvar PDF
           </Button>
           <DialogClose asChild>
             <Button type="button" variant="secondary" className="w-full">
@@ -136,3 +118,4 @@ Boa sorte! 🍀
     </Dialog>
   );
 };
+
