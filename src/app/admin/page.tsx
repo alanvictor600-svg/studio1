@@ -2,14 +2,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry, User, AdminHistoryEntry } from '@/types';
+import type { Draw, Ticket, LotteryConfig, SellerHistoryEntry, User, AdminHistoryEntry, CreditRequestConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminDrawForm } from '@/components/admin-draw-form';
 import { AdminDrawList } from '@/components/admin-draw-list';
 import { TicketList } from '@/components/ticket-list';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins, CreditCard } from 'lucide-react';
+import { ArrowLeft, Trophy, Rocket, AlertTriangle, Settings, DollarSign, Percent, PlusCircle, ShieldCheck, History, Menu, X, Palette as PaletteIcon, KeyRound, Users, Trash2, Edit, PieChart, BookText, Search, Coins, CreditCard, Contact } from 'lucide-react';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -36,12 +36,19 @@ const SELLER_HISTORY_STORAGE_KEY = 'bolaoPotiguarSellerHistory';
 const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
 const AUTH_CURRENT_USER_STORAGE_KEY = 'bolaoPotiguarAuthCurrentUser';
 const ADMIN_HISTORY_STORAGE_KEY = 'bolaoPotiguarAdminHistory';
+const CREDIT_REQUEST_CONFIG_STORAGE_KEY = 'bolaoPotiguarCreditRequestConfig';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
   sellerCommissionPercentage: 10,
   ownerCommissionPercentage: 5,
   clientSalesCommissionToOwnerPercentage: 10,
+};
+
+const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
+    whatsappNumber: '',
+    pixKey: '',
+    pixQrCodeUrl: ''
 };
 
 type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'relatorios';
@@ -60,6 +67,7 @@ export default function AdminPage() {
   const [clientTickets, setClientTickets] = useState<Ticket[]>([]);
   const [vendedorTickets, setVendedorTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
+  const [creditRequestConfig, setCreditRequestConfig] = useState<CreditRequestConfig>(DEFAULT_CREDIT_CONFIG);
   const [isClient, setIsClient] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -69,6 +77,10 @@ export default function AdminPage() {
   const [ownerCommissionInput, setOwnerCommissionInput] = useState('');
   const [clientSalesCommissionInput, setClientSalesCommissionInput] = useState('');
   const [startLotteryPassword, setStartLotteryPassword] = useState('');
+
+  const [whatsappInput, setWhatsappInput] = useState('');
+  const [pixKeyInput, setPixKeyInput] = useState('');
+  const [pixQrCodeUrlInput, setPixQrCodeUrlInput] = useState('');
 
   const [activeSection, setActiveSection] = useState<AdminSection>('configuracoes');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -108,6 +120,13 @@ export default function AdminPage() {
     setOwnerCommissionInput((initialConfig.ownerCommissionPercentage || 0).toString());
     setClientSalesCommissionInput((initialConfig.clientSalesCommissionToOwnerPercentage || 0).toString());
 
+    const storedCreditConfig = localStorage.getItem(CREDIT_REQUEST_CONFIG_STORAGE_KEY);
+    const initialCreditConfig = storedCreditConfig ? JSON.parse(storedCreditConfig) : DEFAULT_CREDIT_CONFIG;
+    setCreditRequestConfig(initialCreditConfig);
+    setWhatsappInput(initialCreditConfig.whatsappNumber);
+    setPixKeyInput(initialCreditConfig.pixKey);
+    setPixQrCodeUrlInput(initialCreditConfig.pixQrCodeUrl);
+
     const storedUsers = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
     setAllUsers(storedUsers ? JSON.parse(storedUsers) : []);
     
@@ -133,6 +152,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (isClient) localStorage.setItem(LOTTERY_CONFIG_STORAGE_KEY, JSON.stringify(lotteryConfig));
   }, [lotteryConfig, isClient]);
+
+  useEffect(() => {
+    if (isClient) localStorage.setItem(CREDIT_REQUEST_CONFIG_STORAGE_KEY, JSON.stringify(creditRequestConfig));
+  }, [creditRequestConfig, isClient]);
   
   // Save users to localStorage whenever they change
   useEffect(() => {
@@ -147,42 +170,45 @@ export default function AdminPage() {
   const allSystemTickets = [...clientTickets, ...vendedorTickets];
 
   const winningTickets = allSystemTickets.filter(ticket => ticket.status === 'winning');
-  const isLotteryActive = draws.length > 0;
+  
+  const financialReport = useMemo(() => {
+    const report = {
+        totalRevenue: 0,
+        sellerCommission: 0,
+        ownerCommission: 0,
+        prizePool: 0,
+        clientRevenue: 0,
+        sellerRevenue: 0,
+        clientTicketCount: 0,
+        sellerTicketCount: 0
+    };
 
-  const financialReport = {
-    totalRevenue: 0,
-    sellerCommission: 0,
-    ownerCommission: 0,
-    prizePool: 0,
-    clientRevenue: 0,
-    sellerRevenue: 0,
-    clientTicketCount: 0,
-    sellerTicketCount: 0
-  };
+    if (isClient) {
+        const activeClientTickets = clientTickets.filter(t => t.status === 'active');
+        const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
+        
+        const price = lotteryConfig.ticketPrice || 0;
+        const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
+        const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
+        const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
+        
+        report.clientTicketCount = activeClientTickets.length;
+        report.sellerTicketCount = activeVendedorTickets.length;
 
-  if(isClient) {
-      const activeClientTickets = clientTickets.filter(t => t.status === 'active');
-      const activeVendedorTickets = vendedorTickets.filter(t => t.status === 'active');
-      
-      const price = lotteryConfig.ticketPrice || 0;
-      const sellerCommPercent = lotteryConfig.sellerCommissionPercentage || 0;
-      const ownerCommPercent = lotteryConfig.ownerCommissionPercentage || 0;
-      const clientSalesCommPercent = lotteryConfig.clientSalesCommissionToOwnerPercentage || 0;
-      
-      financialReport.clientTicketCount = activeClientTickets.length;
-      financialReport.sellerTicketCount = activeVendedorTickets.length;
+        report.clientRevenue = report.clientTicketCount * price;
+        report.sellerRevenue = report.sellerTicketCount * price;
+        report.totalRevenue = report.clientRevenue + report.sellerRevenue;
 
-      financialReport.clientRevenue = financialReport.clientTicketCount * price;
-      financialReport.sellerRevenue = financialReport.sellerTicketCount * price;
-      financialReport.totalRevenue = financialReport.clientRevenue + financialReport.sellerRevenue;
+        report.sellerCommission = report.sellerRevenue * (sellerCommPercent / 100);
+        const ownerBaseCommission = report.totalRevenue * (ownerCommPercent / 100);
+        const ownerExtraCommission = report.clientRevenue * (clientSalesCommPercent / 100);
+        report.ownerCommission = ownerBaseCommission + ownerExtraCommission;
 
-      financialReport.sellerCommission = financialReport.sellerRevenue * (sellerCommPercent / 100);
-      const ownerBaseCommission = financialReport.totalRevenue * (ownerCommPercent / 100);
-      const ownerExtraCommission = financialReport.clientRevenue * (clientSalesCommPercent / 100);
-      financialReport.ownerCommission = ownerBaseCommission + ownerExtraCommission;
+        report.prizePool = report.totalRevenue - report.sellerCommission - report.ownerCommission;
+    }
+    return report;
+  }, [clientTickets, vendedorTickets, lotteryConfig, isClient]);
 
-      financialReport.prizePool = financialReport.totalRevenue - financialReport.sellerCommission - financialReport.ownerCommission;
-  }
 
   const handleAddDraw = (newNumbers: number[], name?: string) => {
     if (winningTickets.length > 0) {
@@ -318,6 +344,15 @@ export default function AdminPage() {
     toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
   
+  const handleSaveCreditRequestConfig = () => {
+    setCreditRequestConfig({
+      whatsappNumber: whatsappInput.trim(),
+      pixKey: pixKeyInput.trim(),
+      pixQrCodeUrl: pixQrCodeUrlInput.trim()
+    });
+    toast({ title: "Configurações Salvas!", description: "Informações de contato para solicitação de crédito atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+  };
+
   const handleOpenEditUser = (user: User) => {
     setUserToEdit(user);
     setIsUserEditDialogOpen(true);
@@ -475,12 +510,15 @@ export default function AdminPage() {
                 Configurações
             </h2>
             <Tabs defaultValue="geral" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-auto">
+              <TabsList className="grid w-full grid-cols-3 h-auto">
                 <TabsTrigger value="geral" className="py-2.5">
                     <PaletteIcon className="mr-2 h-4 w-4" /> Geral
                 </TabsTrigger>
                 <TabsTrigger value="contas" className="py-2.5">
-                    <Users className="mr-2 h-4 w-4" /> Contas de Usuários
+                    <Users className="mr-2 h-4 w-4" /> Contas
+                </TabsTrigger>
+                <TabsTrigger value="contato" className="py-2.5">
+                    <Contact className="mr-2 h-4 w-4" /> Contato
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="geral" className="mt-6">
@@ -630,6 +668,56 @@ export default function AdminPage() {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+              <TabsContent value="contato" className="mt-6">
+                <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+                  <CardHeader>
+                      <CardTitle className="text-xl text-center font-semibold">Informações de Contato</CardTitle>
+                      <CardDescription className="text-center text-muted-foreground">
+                          Defina as informações que serão exibidas na página de solicitação de crédito.
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                          <Label htmlFor="whatsappNumber">Número do WhatsApp</Label>
+                          <Input 
+                              id="whatsappNumber" 
+                              type="text" 
+                              value={whatsappInput}
+                              onChange={(e) => setWhatsappInput(e.target.value)}
+                              placeholder="Ex: (84) 91234-5678"
+                              className="bg-background/70"
+                          />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="pixKey">Chave Pix</Label>
+                          <Input 
+                              id="pixKey" 
+                              type="text" 
+                              value={pixKeyInput}
+                              onChange={(e) => setPixKeyInput(e.target.value)}
+                              placeholder="Ex: seu-email@provedor.com"
+                              className="bg-background/70"
+                          />
+                      </div>
+                      <div className="space-y-2">
+                          <Label htmlFor="pixQrCodeUrl">URL da Imagem do QR Code Pix</Label>
+                          <Input 
+                              id="pixQrCodeUrl" 
+                              type="text" 
+                              value={pixQrCodeUrlInput}
+                              onChange={(e) => setPixQrCodeUrlInput(e.target.value)}
+                              placeholder="Ex: https://meusite.com/qrcode.png"
+                              className="bg-background/70"
+                          />
+                      </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end">
+                      <Button onClick={handleSaveCreditRequestConfig} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                          <Settings className="mr-2 h-4 w-4" /> Salvar Informações de Contato
+                      </Button>
+                  </CardFooter>
+                </Card>
               </TabsContent>
             </Tabs>
           </section>
@@ -975,5 +1063,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    

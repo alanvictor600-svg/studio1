@@ -32,6 +32,12 @@ export interface LotteryConfig {
   clientSalesCommissionToOwnerPercentage: number; // Stored as a whole number, e.g., 10 for 10%
 }
 
+export interface CreditRequestConfig {
+  whatsappNumber: string;
+  pixKey: string;
+  pixQrCodeUrl: string;
+}
+
 export interface SellerHistoryEntry {
   id: string;
   sellerUsername: string; // The user this history entry belongs to
