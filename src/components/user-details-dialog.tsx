@@ -80,13 +80,6 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
                     <p id="username" className="font-semibold text-foreground p-2 bg-muted rounded-md">{user.username}</p>
                 </div>
                 <div className="space-y-1">
-                    <Label htmlFor="password">Senha</Label>
-                    <div className="relative flex items-center p-2 bg-muted rounded-md text-sm text-muted-foreground">
-                        <KeyRound className="mr-2 h-4 w-4"/>
-                        <span>As senhas são criptografadas e não podem ser visualizadas.</span>
-                    </div>
-                </div>
-                <div className="space-y-1">
                     <Label htmlFor="role">Perfil</Label>
                     <div id="role">
                         <Badge variant={user.role === 'vendedor' ? 'secondary' : 'outline'}>
