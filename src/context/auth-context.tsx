@@ -28,76 +28,85 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
+  
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
+    setTimeout(() => {
+      toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
+    }, 0);
+    router.push('/');
+  }, [router, toast]);
 
+  // Effect for initial data load from localStorage
   useEffect(() => {
+    let isMounted = true;
     const loadInitialData = () => {
-      try {
-        const storedUsersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-        const localUsers: User[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-        setUsers(localUsers);
+        try {
+            const storedUsersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+            const localUsers: User[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+            if (isMounted) setUsers(localUsers);
 
-        const storedCurrentUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-        if (storedCurrentUserRaw) {
-          const storedCurrentUser = JSON.parse(storedCurrentUserRaw);
-          // Find user by ID for better reliability, but fallback to username
-          const foundUser = localUsers.find((u: User) => u.id === storedCurrentUser.id) || localUsers.find((u: User) => u.username === storedCurrentUser.username);
-          
-          if(foundUser){
-            setCurrentUser(foundUser);
-            // Refresh localStorage with the most up-to-date user data
-            localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(foundUser));
-          } else {
-            // User from storage not found in user list, clear it
-            localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
-            setCurrentUser(null);
-          }
+            const storedCurrentUserRaw = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
+            if (storedCurrentUserRaw) {
+                const storedCurrentUser = JSON.parse(storedCurrentUserRaw);
+                const foundUser = localUsers.find((u: User) => u.id === storedCurrentUser.id) || localUsers.find((u: User) => u.username === storedCurrentUser.username);
+                
+                if (foundUser) {
+                    if (isMounted) setCurrentUser(foundUser);
+                } else {
+                    localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load auth data from localStorage", error);
+        } finally {
+            if (isMounted) setIsLoading(false);
         }
-      } catch (error) {
-        console.error("Failed to load auth data from localStorage", error);
-      } finally {
-          setIsLoading(false);
-      }
-    }
+    };
     
     loadInitialData();
-    
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Effect for handling storage events from other tabs
+  useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
         if (event.key === AUTH_USERS_STORAGE_KEY && event.newValue) {
             const newUsers: User[] = JSON.parse(event.newValue);
             setUsers(newUsers);
+            
             if (currentUser) {
                 const updatedCurrentUser = newUsers.find(u => u.id === currentUser.id);
                 if (updatedCurrentUser) {
                     setCurrentUser(updatedCurrentUser);
                     localStorage.setItem(AUTH_CURRENT_USER_STORAGE_KEY, JSON.stringify(updatedCurrentUser));
                 } else {
-                    // Current user was deleted, so log out
                     logout();
                 }
             }
-        }
-         if (event.key === AUTH_CURRENT_USER_STORAGE_KEY && event.newValue) {
-            const newCurrentUser = JSON.parse(event.newValue);
-            if (currentUser?.id === newCurrentUser.id) {
-                setCurrentUser(newCurrentUser);
+        } else if (event.key === AUTH_CURRENT_USER_STORAGE_KEY) {
+            if (event.newValue) {
+              const newCurrentUser = JSON.parse(event.newValue);
+              setCurrentUser(newCurrentUser);
+            } else {
+              setCurrentUser(null);
             }
-        }
-         if (event.key === AUTH_CURRENT_USER_STORAGE_KEY && !event.newValue) {
-            // This case handles logout from another tab
-            setCurrentUser(null);
         }
     };
     
     window.addEventListener('storage', handleStorageChange);
-
     return () => {
         window.removeEventListener('storage', handleStorageChange);
     };
+  }, [currentUser, logout]);
 
-  }, [currentUser]); // Add currentUser to dependency array
 
+  // Effect to persist 'users' state back to localStorage
   useEffect(() => {
-    // Persist users to localStorage whenever the list changes, but not on initial load.
     if (!isLoading) {
       localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
     }
@@ -175,22 +184,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true;
   }, [users, router, toast]);
 
-  const logout = useCallback(() => {
-    setCurrentUser(null);
-    localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
-    setTimeout(() => {
-      toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
-    }, 0);
-    router.push('/');
-  }, [router, toast]);
-
   const isAuthenticated = !isLoading && !!currentUser;
   
   const value = { currentUser, login, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Avoids rendering children until auth state is resolved to prevent UI flashes */}
       {!isLoading && children}
     </AuthContext.Provider>
   );
@@ -203,3 +202,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
