@@ -213,9 +213,9 @@ export default function ClientePage() {
                     </p>
                 </div>
             )}
-             <Link href="/solicitar-creditos" passHref>
+             <Link href="/solicitar-saldo" passHref>
                 <Button variant="outline" className="w-full justify-center text-sm py-3 px-4 h-auto mb-2 border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400">
-                    <Coins className="mr-2 h-5 w-5" /> Solicitar Créditos
+                    <Coins className="mr-2 h-5 w-5" /> Solicitar Saldo
                 </Button>
             </Link>
             {menuItems.map(item => (
@@ -276,4 +276,5 @@ export default function ClientePage() {
   );
 }
 
+    
     

@@ -25,7 +25,7 @@ export const InsufficientCreditsDialog: FC<InsufficientCreditsDialogProps> = ({ 
   const router = useRouter();
 
   const handleRedirect = () => {
-    router.push('/solicitar-creditos');
+    router.push('/solicitar-saldo');
   };
 
   return (
@@ -33,18 +33,20 @@ export const InsufficientCreditsDialog: FC<InsufficientCreditsDialogProps> = ({ 
       <AlertDialogContent>
         <AlertDialogHeader className="text-center">
            <Sparkles className="mx-auto h-12 w-12 text-yellow-500 mb-2" />
-          <AlertDialogTitle className="text-2xl">Quase lá! Adicione créditos para continuar</AlertDialogTitle>
+          <AlertDialogTitle className="text-2xl">Quase lá! Adicione saldo para continuar</AlertDialogTitle>
           <AlertDialogDescription className="text-base text-muted-foreground pt-2">
-            Sua sorte está a um passo! Adicione mais créditos agora para não perder a chance de ganhar.
+            Sua sorte está a um passo! Adicione mais saldo agora para não perder a chance de ganhar.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="pt-4 flex-col-reverse sm:flex-row gap-2">
           <AlertDialogCancel className="w-full sm:w-auto">Fechar</AlertDialogCancel>
           <AlertDialogAction onClick={handleRedirect} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">
-            <Coins className="mr-2 h-4 w-4" /> Adquirir Créditos
+            <Coins className="mr-2 h-4 w-4" /> Adquirir Saldo
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 };
+
+    

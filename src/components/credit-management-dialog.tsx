@@ -49,7 +49,7 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
   const handleSave = () => {
     const creditsChange = Number(creditsToAdd);
     if(isNaN(creditsChange) || creditsToAdd === '') {
-      toast({ title: 'Erro de Validação', description: 'O valor dos créditos é inválido ou está vazio.', variant: 'destructive' });
+      toast({ title: 'Erro de Validação', description: 'O valor do saldo é inválido ou está vazio.', variant: 'destructive' });
       return;
     }
     
@@ -77,9 +77,9 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Gerenciar Créditos de {user.username}</DialogTitle>
+          <DialogTitle>Gerenciar Saldo de {user.username}</DialogTitle>
           <DialogDescription>
-            Adicione ou remova créditos do saldo do usuário. Use valores negativos para remover.
+            Adicione ou remova saldo do usuário. Use valores negativos para remover.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -94,7 +94,7 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="credits" className="text-right flex flex-col items-end">
-                    <span>Créditos</span>
+                    <span>Saldo</span>
                     <span className="text-xs text-muted-foreground">(+/-)</span>
                 </Label>
                 <div className="relative col-span-3">
@@ -124,3 +124,5 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
     </Dialog>
   );
 };
+
+    

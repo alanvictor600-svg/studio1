@@ -359,7 +359,7 @@ export default function AdminPage() {
       pixKey: pixKeyInput.trim(),
       pixQrCodeUrl: pixQrCodeUrlInput.trim()
     });
-    toast({ title: "Configurações Salvas!", description: "Informações de contato para solicitação de crédito atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    toast({ title: "Configurações Salvas!", description: "Informações de contato para solicitação de saldo atualizadas.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
 
   const handleOpenViewUser = (user: User) => {
@@ -388,7 +388,7 @@ export default function AdminPage() {
     }
 
     toast({
-        title: "Créditos Atualizados!",
+        title: "Saldo Atualizado!",
         description: `O saldo de ${user.username} agora é R$ ${updatedUser.credits.toFixed(2).replace('.', ',')}.`,
         className: "bg-primary text-primary-foreground",
         duration: 3000
@@ -617,7 +617,7 @@ export default function AdminPage() {
                                 </Badge>
                                 <Badge variant="outline" className="flex items-center gap-1 border-yellow-500/50 text-yellow-600 dark:text-yellow-400">
                                     <Coins className="h-3 w-3" />
-                                    Créditos: R$ {(user.credits || 0).toFixed(2).replace('.', ',')}
+                                    Saldo: R$ {(user.credits || 0).toFixed(2).replace('.', ',')}
                                 </Badge>
                                 <Badge variant="outline" className="flex items-center gap-1 border-primary/50 text-primary">
                                     <TicketIcon className="h-3 w-3" />
@@ -628,7 +628,7 @@ export default function AdminPage() {
                       </div>
                       <div className="flex gap-2 self-end sm:self-center">
                             <Button variant="outline" size="sm" onClick={() => handleOpenCreditDialog(user)}>
-                                <CreditCard className="mr-2 h-4 w-4" /> Créditos
+                                <CreditCard className="mr-2 h-4 w-4" /> Saldo
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleOpenViewUser(user)}>
                                 <Eye className="mr-2 h-4 w-4"/> Detalhes
@@ -651,7 +651,7 @@ export default function AdminPage() {
                   <CardHeader>
                       <CardTitle className="text-xl text-center font-semibold">Informações de Contato</CardTitle>
                       <CardDescription className="text-center text-muted-foreground">
-                          Defina as informações que serão exibidas na página de solicitação de crédito.
+                          Defina as informações que serão exibidas na página de solicitação de saldo.
                       </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -1040,6 +1040,8 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
 
     
 
