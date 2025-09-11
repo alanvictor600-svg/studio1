@@ -7,7 +7,6 @@ import type { User as AppUser } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { 
-    getAuth, 
     onAuthStateChanged, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
@@ -15,7 +14,7 @@ import {
     updateProfile,
     type User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Assuming you have this firebase config file
+import { auth } from '@/lib/firebase'; // Correctly import the initialized auth instance
 
 const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers'; // We still need this for roles and credits temporarily
 
