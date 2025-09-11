@@ -11,12 +11,14 @@ import {
     signInWithEmailAndPassword, 
     signOut,
     updateProfile,
-    getAuth, // Import getAuth
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
     type User as FirebaseUser 
 } from 'firebase/auth';
-import { app } from '@/lib/firebase'; // Correctly import the initialized app instance
+import { app } from '@/lib/firebase';
 
-const auth = getAuth(app); // Create auth instance using the app
+const auth = getAuth(app);
 
 const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
 
@@ -24,6 +26,7 @@ interface AuthContextType {
   currentUser: AppUser | null;
   firebaseUser: FirebaseUser | null;
   login: (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor') => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<boolean>;
   isLoading: boolean;
@@ -44,7 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setFirebaseUser(user);
       if (user) {
-        // User is signed in with Firebase, now get our app-specific user data (role, credits)
         const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
         const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
         const appUser = users.find(u => u.username.toLowerCase() === (user.displayName || '').toLowerCase());
@@ -52,22 +54,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (appUser) {
           setCurrentUser(appUser);
         } else {
-            // This case can happen if user exists in Firebase Auth but not in our local user list.
-            // For now, we create a temporary user object. This will be solved with Firestore.
              const username = user.displayName || user.email?.split('@')[0] || 'unknown';
              const temporaryUser: AppUser = {
                 id: user.uid,
                 username: username,
-                role: 'cliente', // default role
+                role: 'cliente',
                 saldo: 0,
-                passwordHash: '', // not needed on client
+                passwordHash: '',
                 createdAt: user.metadata.creationTime || new Date().toISOString(),
              };
              setCurrentUser(temporaryUser);
         }
 
       } else {
-        // User is signed out
         setCurrentUser(null);
       }
       setIsLoading(false);
@@ -79,7 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      // `onAuthStateChanged` will handle setting users to null.
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
       router.push('/');
     } catch (error) {
@@ -93,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const updatedUser = { ...currentUser, saldo: newCredits };
       setCurrentUser(updatedUser);
 
-      // Persist this change to our temporary local storage
       const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
       let users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
       users = users.map(u => u.id === updatedUser.id ? updatedUser : u);
@@ -111,11 +108,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Firebase Auth uses email, so we'll construct an email from the username.
       const email = `${username.trim().toLowerCase()}@bolao.app`;
-      const userCredential = await signInWithEmailAndPassword(auth, email, passwordAttempt);
+      await signInWithEmailAndPassword(auth, email, passwordAttempt);
       
-      // After firebase login, check role from our local storage data
       const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
       const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
       const appUser = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
@@ -132,8 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          return false;
       }
 
-      // onAuthStateChanged will set the user state.
-      toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${username}!`, className: "bg-primary text-primary-foreground", duration: 3000 });
+      toast({ title: "Login bem-sucedido!", description: `Bem-vindo de volta, ${appUser.username}!`, className: "bg-primary text-primary-foreground", duration: 3000 });
       
       const redirectPath = appUser.role === 'cliente' ? '/cliente' : '/vendedor';
       router.push(redirectPath);
@@ -154,6 +148,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [router, toast]);
 
+    const loginWithGoogle = async (): Promise<boolean> => {
+        setIsLoading(true);
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const gUser = result.user;
+
+            const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
+            let users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
+            let appUser = users.find(u => u.id === gUser.uid || u.username.toLowerCase() === (gUser.displayName || '').toLowerCase());
+            let isNewUser = false;
+
+            if (!appUser) {
+                isNewUser = true;
+                if (!gUser.displayName) {
+                    toast({ title: "Erro de Login", description: "Não foi possível obter um nome de usuário da sua conta Google.", variant: "destructive" });
+                    await signOut(auth);
+                    return false;
+                }
+                
+                appUser = {
+                    id: gUser.uid,
+                    username: gUser.displayName,
+                    passwordHash: '',
+                    role: 'cliente', 
+                    createdAt: new Date().toISOString(),
+                    saldo: 0,
+                };
+                users.push(appUser);
+                localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(users));
+            }
+            
+            toast({
+                title: isNewUser ? 'Cadastro realizado!' : 'Login bem-sucedido!',
+                description: `Bem-vindo, ${appUser.username}!`,
+                className: "bg-primary text-primary-foreground",
+                duration: 3000
+            });
+            
+            const redirectPath = appUser.role === 'cliente' ? '/cliente' : '/vendedor';
+            router.push(redirectPath);
+            return true;
+
+        } catch (error: any) {
+            console.error("Google sign-in error:", error);
+            let message = "Não foi possível fazer login com o Google.";
+            if (error.code === 'auth/popup-closed-by-user') {
+                message = "A janela de login foi fechada. Tente novamente.";
+            }
+            toast({ title: "Erro de Login", description: message, variant: "destructive" });
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => {
      setIsLoading(true);
      
@@ -163,31 +214,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
          return false;
      }
 
-     // For Firebase Auth, username must be a valid email format. We'll create a fake one.
      const email = `${username.trim().toLowerCase()}@bolao.app`;
 
      try {
-        // Step 1: Create user in Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
-        const firebaseUser = userCredential.user;
-        
-        // Step 1.5: Set the displayName on the firebase user profile
-        await updateProfile(firebaseUser, { displayName: username.trim() });
-
-        // Step 2: Store our app-specific user data (role, saldo) in localStorage for now.
         const usersRaw = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
         const users: AppUser[] = usersRaw ? JSON.parse(usersRaw) : [];
         
         if (users.some(u => u.username.toLowerCase() === username.trim().toLowerCase())) {
             toast({ title: "Erro de Cadastro", description: "Nome de usuário já existe.", variant: "destructive" });
-            // Should also delete the created firebase user here, but skipping for simplicity in this phase.
+            setIsLoading(false);
             return false;
         }
 
+        const userCredential = await createUserWithEmailAndPassword(auth, email, passwordRaw);
+        const firebaseUser = userCredential.user;
+        
+        await updateProfile(firebaseUser, { displayName: username.trim() });
+
         const newUser: AppUser = {
-          id: firebaseUser.uid, // Use Firebase UID as the user ID
+          id: firebaseUser.uid,
           username: username.trim(),
-          passwordHash: '', // Don't store password hash locally anymore
+          passwordHash: '',
           role,
           createdAt: new Date().toISOString(),
           saldo: 0, 
@@ -221,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !isLoading && !!firebaseUser;
   
-  const value = { currentUser, firebaseUser, login, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
+  const value = { currentUser, firebaseUser, login, loginWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
 
   return (
     <AuthContext.Provider value={value}>
