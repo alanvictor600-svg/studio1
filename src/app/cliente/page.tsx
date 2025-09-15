@@ -90,8 +90,14 @@ export default function ClientePage() {
       const allTicketsQuery = query(collection(db, 'tickets'));
       const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
           const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-          const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
-          setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+          // We need draws to be available to correctly process ticket statuses.
+          // This snapshot might run before the draws snapshot. We can pass draws state.
+          // Since this runs on every tickets change, we'll re-evaluate with the latest draws.
+          setDraws(currentDraws => {
+              const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, currentDraws);
+              setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+              return currentDraws; // Don't change draws, just use it.
+          });
       });
 
       // Load static config from localStorage
@@ -105,7 +111,7 @@ export default function ClientePage() {
         unsubscribeAllTickets();
       };
     }
-  }, [isClient, currentUser, draws, toast]);
+  }, [isClient, currentUser]);
 
   const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(myTickets, draws), [myTickets, draws]);
 
@@ -287,5 +293,3 @@ export default function ClientePage() {
     </div>
   );
 }
-
-    

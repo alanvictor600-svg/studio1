@@ -97,8 +97,11 @@ export default function VendedorPage() {
       const allTicketsQuery = query(collection(db, 'tickets'));
       const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
           const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-          const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
-          setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+          setDraws(currentDraws => {
+            const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, currentDraws);
+            setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+            return currentDraws;
+          });
       });
       
       // Load static data from localStorage
@@ -118,7 +121,7 @@ export default function VendedorPage() {
           unsubscribeAllTickets();
       };
     }
-  }, [isClient, currentUser, draws, toast]);
+  }, [isClient, currentUser]);
 
 
   const processedVendedorTickets = useMemo(() => updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws), [vendedorManagedTickets, draws]);
@@ -435,5 +438,3 @@ export default function VendedorPage() {
     </div>
   );
 }
-
-    

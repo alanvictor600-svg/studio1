@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, writeBatch, query } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, writeBatch, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -237,12 +237,6 @@ export default function AdminPage() {
     
     try {
         const docRef = await addDoc(collection(db, 'draws'), newDrawData);
-        
-        // This part is now handled by the onSnapshot listener,
-        // but we need to trigger the ticket status update logic after a draw is added.
-        // The onSnapshot will fetch the new draw, which triggers the useMemo for processedTickets.
-        // We might need to manually trigger an update of tickets if statuses are stored in DB.
-        
         toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado e os bilhetes atualizados.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e) {
@@ -1054,5 +1048,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
