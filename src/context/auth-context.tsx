@@ -43,9 +43,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkUser = async () => {
-      if (isLoading) {
+      // The authLoading check is important to wait for Firebase to initialize.
+      if (authLoading) {
+        setIsFirestoreLoading(true);
         return;
       }
+
       if (authError) {
         console.error("Firebase Auth Error:", authError);
         toast({ title: "Erro de Autenticação", description: "Ocorreu um problema ao verificar sua identidade.", variant: "destructive"});
@@ -59,10 +62,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
-          setCurrentUser(userDoc.data() as User);
+          const userData = userDoc.data() as User;
+          setCurrentUser(userData);
+
+          // On initial load or after login, redirect if necessary
+          const redirectPath = searchParams.get('redirect');
+          if (redirectPath) {
+            // Check role before redirecting
+             if ((redirectPath.includes('admin') && userData.role !== 'admin') ||
+                (redirectPath.includes('cliente') && userData.role !== 'cliente') ||
+                (redirectPath.includes('vendedor') && userData.role !== 'vendedor')) 
+             {
+                toast({ title: "Acesso Negado", description: `Você não tem permissão para acessar essa área.`, variant: "destructive" });
+                router.push('/'); 
+             } else {
+                router.push(redirectPath);
+             }
+          }
+          // No redirect param, maybe redirect based on role, but only if they are on the login page?
+          // This logic can be tricky, for now we rely on the page's own security checks.
+
         } else {
           toast({ title: "Erro de Perfil", description: "Não foi possível encontrar os dados do seu perfil.", variant: "destructive" });
-          auth.signOut();
+          await signOut(auth); // Sign out if profile is missing
           setCurrentUser(null);
         }
       } else {
@@ -72,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     checkUser();
-  }, [firebaseUser, authLoading, authError, toast, isLoading]);
+  }, [firebaseUser, authLoading, authError, toast, router, searchParams]);
 
 
   const login = useCallback(async (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor' | 'admin'): Promise<boolean> => {
@@ -80,40 +102,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      const fakeEmail = `${sanitizedUsername}@bolao.potiguar`;
 
      try {
-        const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
-        const loggedInUser = userCredential.user;
-
-        const userDocRef = doc(db, "users", loggedInUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            
-            if (expectedRole && userData.role !== expectedRole) {
-                toast({ title: "Acesso Negado", description: `Você não tem permissão para acessar a área de ${expectedRole}.`, variant: "destructive" });
-                await signOut(auth);
-                return false;
-            }
-
-            toast({ title: "Login realizado com sucesso!", description: `Bem-vindo(a) de volta, ${userData.username}!`, className: "bg-primary text-primary-foreground", duration: 3000 });
-
-            const redirectPath = searchParams.get('redirect');
-            if (redirectPath) {
-                router.push(redirectPath);
-            } else {
-                switch(userData.role) {
-                    case 'admin': router.push('/admin'); break;
-                    case 'cliente': router.push('/cliente'); break;
-                    case 'vendedor': router.push('/vendedor'); break;
-                    default: router.push('/');
-                }
-            }
-            return true;
-        } else {
-            toast({ title: "Erro de Login", description: "Dados do usuário não encontrados.", variant: "destructive" });
-            await signOut(auth);
-            return false;
-        }
+        await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
+        // The useEffect above will now handle setting the user and redirecting.
+        // We just need to signal success.
+        return true;
      } catch (error: any) {
         console.error("Firebase login error:", error);
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
@@ -123,7 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return false;
      }
-  }, [router, toast, searchParams]);
+  }, [toast]);
 
   const logout = useCallback(async () => {
     try {
@@ -137,10 +129,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [router, toast]);
 
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor'): Promise<boolean> => {
-    const sanitizedUsername = sanitizeUsernameForEmail(username);
-    if(sanitizedUsername !== username.trim()){
-        toast({ title: "Nome de Usuário Inválido", description: "Seu nome de usuário contém caracteres não permitidos e foi ajustado.", variant: "default" });
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username.trim())) {
+         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _", variant: "destructive" });
+         return false;
     }
+    const sanitizedUsername = sanitizeUsernameForEmail(username);
     const fakeEmail = `${sanitizedUsername}@bolao.potiguar`;
 
     try {

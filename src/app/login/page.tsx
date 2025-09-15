@@ -30,6 +30,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, isLoading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -49,13 +50,18 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
+      toast({ title: "Campos obrigatórios", description: "Por favor, preencha o usuário e a senha.", variant: "destructive" });
       return;
     }
+    
+    setIsSubmitting(true);
     const redirectPath = searchParams.get('redirect');
     const expectedRole = redirectPath?.includes('admin') ? 'admin' : redirectPath?.includes('cliente') ? 'cliente' : redirectPath?.includes('vendedor') ? 'vendedor' : undefined;
 
-    // The login function will now handle navigation on success.
     await login(username, password, expectedRole);
+    // The AuthProvider's useEffect will handle redirection.
+    // We just need to handle the loading state of the button.
+    setIsSubmitting(false);
   };
   
   if (authLoading) {
@@ -112,6 +118,7 @@ export default function LoginPage() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="bg-background/70 h-11"
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
@@ -125,6 +132,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="bg-background/70 h-11 pr-10"
+                        disabled={isSubmitting}
                     />
                     <Button
                         type="button"
@@ -132,14 +140,15 @@ export default function LoginPage() {
                         size="icon"
                         className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isSubmitting}
                     >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" disabled={authLoading}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" disabled={isSubmitting}>
                 <LogIn className="mr-2 h-5 w-5" />
-                {authLoading ? 'Entrando...' : 'Entrar com E-mail'}
+                {isSubmitting ? 'Entrando...' : 'Entrar com E-mail'}
               </Button>
             </form>
           </div>
