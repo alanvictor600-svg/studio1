@@ -46,8 +46,9 @@ export default function CadastroPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // This regex must match the sanitization logic in auth-context.tsx
     if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _", variant: "destructive" });
+         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras (a-z), números (0-9) e os caracteres: . - _", variant: "destructive" });
          return;
     }
     if (password !== confirmPassword) {
