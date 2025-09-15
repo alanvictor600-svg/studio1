@@ -37,29 +37,37 @@ export default function LandingPage() {
   useEffect(() => {
     setIsClient(true);
     
+    // Sorteios são públicos, qualquer um pode carregar
     const drawsQuery = query(collection(db, 'draws'));
     const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
         const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
         setDraws(drawsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     }, (error) => {
         console.error("Error fetching draws: ", error);
-        toast({ title: "Erro ao Carregar Dados", description: "Não foi possível carregar os sorteios.", variant: "destructive" });
+        toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
     });
 
-    const ticketsQuery = query(collection(db, 'tickets'));
-    const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
-        const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-        setAllTickets(ticketsData);
-    }, (error) => {
-        console.error("Error fetching tickets: ", error);
-        toast({ title: "Erro ao Carregar Dados", description: "Não foi possível carregar os bilhetes.", variant: "destructive" });
-    });
+    // Bilhetes são privados, carregue apenas se o usuário estiver logado
+    let unsubscribeTickets = () => {};
+    if (currentUser) {
+        const ticketsQuery = query(collection(db, 'tickets'));
+        unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
+            const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+            setAllTickets(ticketsData);
+        }, (error) => {
+            console.error("Error fetching tickets: ", error);
+            // Não mostre toast de erro aqui, pode ser apenas falta de permissão momentânea
+        });
+    } else {
+        // Limpa os bilhetes se o usuário deslogar
+        setAllTickets([]);
+    }
 
     return () => {
         unsubscribeDraws();
         unsubscribeTickets();
     };
-  }, [toast]);
+  }, [toast, currentUser]);
 
   const handlePainelClick = () => {
     if (!currentUser) {
@@ -147,65 +155,69 @@ export default function LandingPage() {
       </header>
 
       <main className="w-full max-w-5xl space-y-12 flex-grow">
-        {draws.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-               <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
-                  <History className="mr-3 h-6 w-6" /> Último Sorteio
-               </h2>
-               <AdminDrawCard draw={draws[0]} />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
-                  <Award className="mr-3 h-6 w-6" /> Acertos
-              </h2>
-              <TopTickets tickets={allTickets} draws={draws} />
-            </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+             <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
+                <History className="mr-3 h-6 w-6" /> Último Sorteio
+             </h2>
+             {draws.length > 0 ? (
+                <AdminDrawCard draw={draws[0]} />
+             ) : (
+                <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
+                    <p className="text-muted-foreground">Nenhum sorteio realizado ainda.</p>
+                </div>
+             )}
           </div>
-        ) : (
-          <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner">
-            <h2 className="text-2xl font-bold text-primary text-center mb-4">A loteria ainda não começou!</h2>
-            <p className="text-muted-foreground mb-8">Acesse a plataforma para começar a jogar ou vender.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <Link href="/login?redirect=/cliente" passHref>
-                <Card className="text-left hover:bg-muted/50 transition-colors shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-primary">
-                      <Users className="mr-3 h-6 w-6" />
-                      Acessar como Cliente
-                    </CardTitle>
-                    <CardDescription>
-                      Compre bilhetes, confira seus jogos e veja os resultados.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Button variant="link" className="p-0 h-auto">
-                      Entrar na sua conta de cliente <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </Link>
-              <Link href="/login?redirect=/vendedor" passHref>
-                <Card className="text-left hover:bg-muted/50 transition-colors shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-secondary-foreground">
-                      <ShoppingCart className="mr-3 h-6 w-6 text-secondary" />
-                      Acessar como Vendedor
-                    </CardTitle>
-                    <CardDescription>
-                      Venda bilhetes, gerencie suas vendas e acompanhe suas comissões.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                     <Button variant="link" className="p-0 h-auto">
-                      Entrar no painel de vendas <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </Link>
-            </div>
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
+                <Award className="mr-3 h-6 w-6" /> Acertos
+            </h2>
+            <TopTickets tickets={allTickets} draws={draws} />
           </div>
-        )}
+        </div>
+
+        <div className="text-center py-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <Link href="/login?redirect=/cliente" passHref>
+              <Card className="text-left hover:bg-muted/50 transition-colors shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-primary">
+                    <Users className="mr-3 h-6 w-6" />
+                    Acessar como Cliente
+                  </CardTitle>
+                  <CardDescription>
+                    Compre bilhetes, confira seus jogos e veja os resultados.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button variant="link" className="p-0 h-auto">
+                    Entrar na sua conta de cliente <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
+            <Link href="/login?redirect=/vendedor" passHref>
+              <Card className="text-left hover:bg-muted/50 transition-colors shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-secondary-foreground">
+                    <ShoppingCart className="mr-3 h-6 w-6 text-secondary" />
+                    Acessar como Vendedor
+                  </CardTitle>
+                  <CardDescription>
+                    Venda bilhetes, gerencie suas vendas e acompanhe suas comissões.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                   <Button variant="link" className="p-0 h-auto">
+                    Entrar no painel de vendas <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Link>
+          </div>
+        </div>
+        
       </main>
 
       <div className="fixed bottom-6 left-6 z-50">
@@ -291,5 +303,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
