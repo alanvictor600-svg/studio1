@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, writeBatch, query, doc, updateDoc, deleteDoc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, writeBatch, query, doc, updateDoc, deleteDoc, getDocs, setDoc, where } from 'firebase/firestore';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -91,32 +91,54 @@ export default function AdminPage() {
   const { currentUser, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  // Load static data from localStorage and listen for realtime data from Firestore
+  // Load configs from Firestore
+  useEffect(() => {
+      const configDocRef = doc(db, 'configs', 'global');
+      const unsubscribe = onSnapshot(configDocRef, (doc) => {
+          if (doc.exists()) {
+              const data = doc.data();
+              const newLotteryConfig = {
+                  ticketPrice: data.ticketPrice || DEFAULT_LOTTERY_CONFIG.ticketPrice,
+                  sellerCommissionPercentage: data.sellerCommissionPercentage || DEFAULT_LOTTERY_CONFIG.sellerCommissionPercentage,
+                  ownerCommissionPercentage: data.ownerCommissionPercentage || DEFAULT_LOTTERY_CONFIG.ownerCommissionPercentage,
+                  clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || DEFAULT_LOTTERY_CONFIG.clientSalesCommissionToOwnerPercentage,
+              };
+              const newCreditConfig = {
+                  whatsappNumber: data.whatsappNumber || DEFAULT_CREDIT_CONFIG.whatsappNumber,
+                  pixKey: data.pixKey || DEFAULT_CREDIT_CONFIG.pixKey,
+              };
+
+              setLotteryConfig(newLotteryConfig);
+              setCreditRequestConfig(newCreditConfig);
+
+              // Update input fields
+              setTicketPriceInput(newLotteryConfig.ticketPrice.toString());
+              setCommissionInput(newLotteryConfig.sellerCommissionPercentage.toString());
+              setOwnerCommissionInput(newLotteryConfig.ownerCommissionPercentage.toString());
+              setClientSalesCommissionInput(newLotteryConfig.clientSalesCommissionToOwnerPercentage.toString());
+              setWhatsappInput(newCreditConfig.whatsappNumber);
+              setPixKeyInput(newCreditConfig.pixKey);
+          } else {
+            // Document doesn't exist, use defaults
+            setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+            setCreditRequestConfig(DEFAULT_CREDIT_CONFIG);
+          }
+      }, (error) => {
+          console.error("Error fetching configs: ", error);
+          toast({ title: "Erro ao Carregar Configurações", description: "Não foi possível carregar as configurações do sistema.", variant: "destructive" });
+      });
+      
+      return () => unsubscribe();
+  }, [toast]);
+  
+  // Load local admin history
   useEffect(() => {
     setIsClient(true);
-    // Static data from localStorage
     if (typeof window !== 'undefined') {
-        const storedConfig = localStorage.getItem('lotteryConfig');
-        const storedCreditConfig = localStorage.getItem('creditRequestConfig');
         const storedAdminHistory = localStorage.getItem('adminHistory');
-
-        if (storedConfig) {
-            const config = JSON.parse(storedConfig);
-            setLotteryConfig(config);
-            setTicketPriceInput(config.ticketPrice.toString());
-            setCommissionInput(config.sellerCommissionPercentage.toString());
-            setOwnerCommissionInput((config.ownerCommissionPercentage || 0).toString());
-            setClientSalesCommissionInput((config.clientSalesCommissionToOwnerPercentage || 0).toString());
-        }
-        if (storedCreditConfig) {
-            const creditConfig = JSON.parse(storedCreditConfig);
-            setCreditRequestConfig(creditConfig);
-            setWhatsappInput(creditConfig.whatsappNumber);
-            setPixKeyInput(creditConfig.pixKey);
-        }
         if (storedAdminHistory) setAdminHistory(JSON.parse(storedAdminHistory));
     }
-  }, [isClient]);
+  }, []);
 
   // Auth check
   useEffect(() => {
@@ -130,7 +152,7 @@ export default function AdminPage() {
 
   // Realtime data from Firestore
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role !== 'admin') return;
 
     const ticketsQuery = query(collection(db, 'tickets'));
     const drawsQuery = query(collection(db, 'draws'));
@@ -160,7 +182,6 @@ export default function AdminPage() {
         toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível carregar os dados dos usuários.", variant: "destructive" });
     });
     
-    // Cleanup subscription on unmount
     return () => {
         unsubscribeTickets();
         unsubscribeDraws();
@@ -234,7 +255,7 @@ export default function AdminPage() {
     };
     
     try {
-        const docRef = await addDoc(collection(db, 'draws'), newDrawData);
+        await addDoc(collection(db, 'draws'), newDrawData);
         toast({ title: "Sorteio Cadastrado!", description: "O novo sorteio foi registrado e os bilhetes atualizados.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e) {
@@ -303,15 +324,11 @@ export default function AdminPage() {
     try {
         const batch = writeBatch(db);
 
-        // Expire active/winning/unpaid tickets
-        allTickets.forEach(ticket => {
-            if (ticket.status === 'active' || ticket.status === 'winning' || ticket.status === 'unpaid') {
-                const ticketRef = doc(db, 'tickets', ticket.id);
-                batch.update(ticketRef, { status: 'expired' });
-            }
+        const ticketsSnapshot = await getDocs(query(collection(db, 'tickets'), where('status', 'in', ['active', 'winning', 'unpaid'])));
+        ticketsSnapshot.forEach(ticketDoc => {
+            batch.update(ticketDoc.ref, { status: 'expired' });
         });
-
-        // Clear draws by fetching all and deleting them in the same batch
+        
         const drawsSnapshot = await getDocs(query(collection(db, 'draws')));
         drawsSnapshot.forEach(drawDoc => {
             batch.delete(drawDoc.ref);
@@ -335,7 +352,7 @@ export default function AdminPage() {
     setIsConfirmDialogOpen(false); 
   };
 
-  const handleSaveLotteryConfig = () => {
+  const handleSaveLotteryConfig = async () => {
     const price = parseFloat(ticketPriceInput);
     const commission = parseInt(commissionInput, 10);
     const ownerCommission = parseInt(ownerCommissionInput, 10);
@@ -358,25 +375,36 @@ export default function AdminPage() {
       return;
     }
 
-    const newConfig: LotteryConfig = { 
+    const newConfigData = { 
       ticketPrice: price, 
       sellerCommissionPercentage: commission, 
       ownerCommissionPercentage: ownerCommission,
       clientSalesCommissionToOwnerPercentage: clientSalesCommission
     };
-    setLotteryConfig(newConfig);
-    localStorage.setItem('lotteryConfig', JSON.stringify(newConfig));
-    toast({ title: "Configurações Salvas!", description: "As novas configurações da loteria foram salvas localmente.", className: "bg-primary text-primary-foreground", duration: 3000 });
+
+    try {
+        const configDocRef = doc(db, 'configs', 'global');
+        await setDoc(configDocRef, newConfigData, { merge: true });
+        toast({ title: "Configurações Salvas!", description: "As novas configurações da loteria foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    } catch(e) {
+        console.error("Error saving lottery config: ", e);
+        toast({ title: "Erro", description: "Não foi possível salvar as configurações.", variant: "destructive" });
+    }
   };
   
-  const handleSaveCreditRequestConfig = () => {
-    const newConfig: CreditRequestConfig = {
+  const handleSaveCreditRequestConfig = async () => {
+    const newConfigData = {
       whatsappNumber: whatsappInput.trim(),
       pixKey: pixKeyInput.trim(),
     };
-    setCreditRequestConfig(newConfig);
-    localStorage.setItem('creditRequestConfig', JSON.stringify(newConfig));
-    toast({ title: "Configurações Salvas!", description: "As informações de contato foram salvas localmente.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    try {
+        const configDocRef = doc(db, 'configs', 'global');
+        await setDoc(configDocRef, newConfigData, { merge: true });
+        toast({ title: "Configurações Salvas!", description: "As informações de contato foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
+    } catch (e) {
+        console.error("Error saving credit request config: ", e);
+        toast({ title: "Erro", description: "Não foi possível salvar as informações de contato.", variant: "destructive" });
+    }
   };
 
   const handleOpenViewUser = (user: User) => {
@@ -424,26 +452,19 @@ export default function AdminPage() {
       return;
     }
     
-    const batch = writeBatch(db);
-
-    // Delete user's tickets
-    const ticketsToDelete = allTickets.filter(ticket => ticket.buyerId === userToDelete.id || ticket.sellerId === userToDelete.id);
-    ticketsToDelete.forEach(ticket => {
-        const ticketRef = doc(db, 'tickets', ticket.id);
-        batch.delete(ticketRef);
-    });
-
-    // Delete the user
-    const userRef = doc(db, 'users', userToDelete.id);
-    batch.delete(userRef);
-    
     try {
-        await batch.commit();
+        const userRef = doc(db, 'users', userToDelete.id);
+        await deleteDoc(userRef);
+        // Note: Associated tickets are not deleted to preserve sales history.
+        // If hard deletion is required, a more complex process (e.g., Cloud Function) is needed
+        // to delete subcollections or related documents due to security rules.
+        
         if (userToView && userToView.id === userToDelete.id) {
             setIsUserViewDialogOpen(false);
             setUserToView(null);
         }
-        toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} e todos os seus bilhetes foram removidos.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
+        toast({ title: "Usuário Excluído", description: `O usuário ${userToDelete.username} foi removido.`, className: "bg-destructive text-destructive-foreground", duration: 3000 });
+
     } catch (e) {
         console.error("Error deleting user: ", e);
         toast({ title: "Erro", description: "Falha ao excluir o usuário no banco de dados.", variant: "destructive" });
@@ -1048,7 +1069,5 @@ export default function AdminPage() {
     </div>
   );
 }
-
-    
 
     
