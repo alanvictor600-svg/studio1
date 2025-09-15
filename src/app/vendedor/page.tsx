@@ -21,6 +21,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -50,6 +53,7 @@ export default function VendedorPage() {
   const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
   const router = useRouter();
   const [isLotteryPaused, setIsLotteryPaused] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -63,34 +67,41 @@ export default function VendedorPage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Load data from localStorage on mount and when currentUser changes
+  // Load data from localStorage and listen for realtime data from Firestore
   useEffect(() => {
     if (isClient && currentUser) {
-      const allTicketsData = localStorage.getItem('tickets');
-      if (allTicketsData) {
-        const allTickets: Ticket[] = JSON.parse(allTicketsData);
-        // Filter tickets managed by the current seller
-        const sellerTickets = allTickets.filter(ticket => ticket.sellerUsername === currentUser.username);
+      // Listen for tickets sold by the current seller
+      const ticketsQuery = query(
+        collection(db, 'tickets'),
+        where('sellerId', '==', currentUser.id)
+      );
+      const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
+        const sellerTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
         setVendedorManagedTickets(sellerTickets);
-      }
+      }, (error) => {
+        console.error("Error fetching seller tickets: ", error);
+        toast({ title: "Erro ao Carregar Bilhetes", description: "Não foi possível carregar os bilhetes que você vendeu.", variant: "destructive" });
+      });
+
+      // Listen for all draws
+      const drawsQuery = query(collection(db, 'draws'));
+      const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
+        const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
+        setDraws(drawsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      }, (error) => {
+        console.error("Error fetching draws: ", error);
+        toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
+      });
+
+      // Listen for all tickets to determine if lottery is paused
+      const allTicketsQuery = query(collection(db, 'tickets'));
+      const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
+          const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+          const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
+          setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+      });
       
-      const drawsData = localStorage.getItem('draws');
-      if (drawsData) {
-        const storedDraws = JSON.parse(drawsData);
-        setDraws(storedDraws);
-
-        const allTicketsData = localStorage.getItem('tickets');
-        if (allTicketsData) {
-            const allTickets: Ticket[] = JSON.parse(allTicketsData);
-            const processedAllTickets = updateTicketStatusesBasedOnDraws(allTickets, storedDraws);
-            setIsLotteryPaused(processedAllTickets.some(ticket => ticket.status === 'winning'));
-        } else {
-            setIsLotteryPaused(false);
-        }
-      } else {
-          setIsLotteryPaused(false);
-      }
-
+      // Load static data from localStorage
       const configData = localStorage.getItem('lotteryConfig');
       if (configData) setLotteryConfig(JSON.parse(configData));
 
@@ -99,8 +110,15 @@ export default function VendedorPage() {
           const allHistory: SellerHistoryEntry[] = JSON.parse(historyData);
           setSellerHistory(allHistory.filter(h => h.sellerUsername === currentUser.username));
       }
+
+      // Cleanup subscriptions
+      return () => {
+          unsubscribeTickets();
+          unsubscribeDraws();
+          unsubscribeAllTickets();
+      };
     }
-  }, [isClient, currentUser]);
+  }, [isClient, currentUser, draws, toast]);
 
 
   const processedVendedorTickets = useMemo(() => updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws), [vendedorManagedTickets, draws]);
@@ -145,7 +163,8 @@ export default function VendedorPage() {
               isLotteryPaused={isLotteryPaused}
               lotteryConfig={lotteryConfig} 
               onTicketCreated={(newTicket) => {
-                setVendedorManagedTickets(prev => [...prev, newTicket]);
+                // The onSnapshot listener will automatically update the state,
+                // so we don't need to manually add the ticket here.
               }}
             />
           </section>
@@ -416,3 +435,5 @@ export default function VendedorPage() {
     </div>
   );
 }
+
+    

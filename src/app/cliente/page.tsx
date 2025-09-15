@@ -15,6 +15,9 @@ import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { AdminDrawList } from '@/components/admin-draw-list';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -42,6 +45,7 @@ export default function ClientePage() {
   const [activeSection, setActiveSection] = useState<ClienteSection>('selecionar-bilhete');
   const router = useRouter();
   const [isLotteryPaused, setIsLotteryPaused] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -55,41 +59,53 @@ export default function ClientePage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Load data from localStorage on mount and when currentUser changes
+  // Load data from localStorage and listen for realtime data from Firestore
   useEffect(() => {
     if (isClient && currentUser) {
-      const allTicketsData = localStorage.getItem('tickets');
-      if (allTicketsData) {
-        const allTickets: Ticket[] = JSON.parse(allTicketsData);
-        // Filter tickets for the current user, only client tickets (no sellerUsername)
-        const userTickets = allTickets.filter(
-          ticket => ticket.buyerName === currentUser.username && !ticket.sellerUsername
-        );
+      // Listen for tickets owned by the current user
+      const ticketsQuery = query(
+        collection(db, 'tickets'),
+        where('buyerId', '==', currentUser.id)
+      );
+
+      const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
+        const userTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
         setMyTickets(userTickets);
-      }
-      
-      const drawsData = localStorage.getItem('draws');
-      if (drawsData) {
-          const storedDraws = JSON.parse(drawsData);
-          setDraws(storedDraws);
+      }, (error) => {
+          console.error("Error fetching user tickets: ", error);
+          toast({ title: "Erro ao Carregar Bilhetes", description: "Não foi possível carregar seus bilhetes.", variant: "destructive" });
+      });
 
-          // Check for winning tickets to pause lottery
-          const allTicketsData = localStorage.getItem('tickets');
-          if (allTicketsData) {
-              const allTickets: Ticket[] = JSON.parse(allTicketsData);
-              const processedAllTickets = updateTicketStatusesBasedOnDraws(allTickets, storedDraws);
-              setIsLotteryPaused(processedAllTickets.some(ticket => ticket.status === 'winning'));
-          } else {
-              setIsLotteryPaused(false);
-          }
-      } else {
-          setIsLotteryPaused(false);
-      }
+      // Listen for all draws
+      const drawsQuery = query(collection(db, 'draws'));
+      const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
+        const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
+        setDraws(drawsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      }, (error) => {
+          console.error("Error fetching draws: ", error);
+          toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
+      });
 
+      // Listen for all tickets to determine if lottery is paused
+      const allTicketsQuery = query(collection(db, 'tickets'));
+      const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
+          const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+          const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, draws);
+          setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
+      });
+
+      // Load static config from localStorage
       const configData = localStorage.getItem('lotteryConfig');
       if (configData) setLotteryConfig(JSON.parse(configData));
+
+      // Cleanup subscriptions on unmount
+      return () => {
+        unsubscribeTickets();
+        unsubscribeDraws();
+        unsubscribeAllTickets();
+      };
     }
-  }, [isClient, currentUser]);
+  }, [isClient, currentUser, draws, toast]);
 
   const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(myTickets, draws), [myTickets, draws]);
 
@@ -271,3 +287,5 @@ export default function ClientePage() {
     </div>
   );
 }
+
+    
