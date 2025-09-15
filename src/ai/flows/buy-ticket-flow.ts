@@ -68,7 +68,7 @@ const buyTicketFlow = ai.defineFlow(
   },
   async (input) => {
     // Ensure admin is initialized before proceeding
-    if (!getApps().length || !db) {
+    if (!db) {
         return {
             success: false,
             error: "Firebase Admin SDK is not initialized. Check server configuration and FIREBASE_SERVICE_ACCOUNT_KEY.",
