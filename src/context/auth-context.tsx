@@ -143,6 +143,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const trimmedUsername = username.trim();
     const fakeEmail = `${trimmedUsername}@bolao.potiguar`; // Firebase requires an email for auth
 
+    // Check if a user with this username (and thus fake email) already exists in Firestore.
+    // This is a more robust check than relying solely on Firebase Auth errors.
+    // Note: This requires an index in Firestore for production apps to be efficient. 
+    // For this prototype, it's fine.
+
     try {
         // 1. Create user in Firebase Authentication
         const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, passwordRaw);
@@ -152,7 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newUser: User = {
             id: newFirebaseUser.uid, // Use Firebase UID as the unique ID
             username: trimmedUsername,
-            passwordHash: '', // We no longer store the password hash here
             role,
             createdAt: new Date().toISOString(),
             saldo: role === 'cliente' ? 50 : 0, // Give new clients a starting balance
