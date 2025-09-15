@@ -15,7 +15,9 @@ import type { Ticket, LotteryConfig } from '@/types';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
 import { useAuth } from '@/context/auth-context';
-import { buyTicket } from '@/ai/flows/buy-ticket-flow';
+import { db } from '@/lib/firebase';
+import { runTransaction, doc, collection, serverTimestamp } from 'firebase/firestore';
+
 
 interface SellerTicketCreationFormProps {
   isLotteryPaused?: boolean;
@@ -105,37 +107,56 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const result = await buyTicket({
-        userId: currentUser.id,
-        numbers: [...currentPicks].sort((a,b) => a-b),
-        buyerName: buyerName.trim(),
-        buyerPhone: buyerPhone.trim(),
+      const ticketPrice = lotteryConfig.ticketPrice;
+      const userRef = doc(db, "users", currentUser.id);
+
+      const createdTicket = await runTransaction(db, async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists()) {
+          throw new Error("User not found.");
+        }
+
+        const currentBalance = userDoc.data().saldo || 0;
+        if (currentBalance < ticketPrice) {
+          throw new Error("Insufficient credits.");
+        }
+        
+        const newBalance = currentBalance - ticketPrice;
+
+        const newTicketRef = doc(collection(db, "tickets"));
+        const newTicketData: Ticket = {
+          id: newTicketRef.id,
+          numbers: [...currentPicks].sort((a,b) => a-b),
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          buyerName: buyerName.trim(),
+          buyerPhone: buyerPhone.trim() || undefined,
+          sellerId: currentUser.id,
+          sellerUsername: currentUser.username,
+        };
+
+        transaction.set(newTicketRef, newTicketData);
+        transaction.update(userRef, { saldo: newBalance });
+        
+        return newTicketData;
       });
 
-      if (result.success && result.ticket && result.newBalance !== undefined) {
-         updateCurrentUserCredits(result.newBalance);
+      updateCurrentUserCredits((currentUser.saldo || 0) - ticketPrice);
+      
+      setCurrentPicks([]);
+      setBuyerName('');
+      setBuyerPhone('');
+      setReceiptTicket(createdTicket);
 
-         // The onTicketCreated prop might not be needed anymore if the parent component
-         // is already listening to Firestore for real-time updates.
-         // onTicketCreated(result.ticket);
-
-         setCurrentPicks([]);
-         setBuyerName('');
-         setBuyerPhone('');
-         setReceiptTicket(result.ticket);
-
-         toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
-      } else {
-        if (result.error === 'Insufficient credits.') {
-          setIsCreditsDialogOpen(true);
-        } else {
-          toast({ title: "Erro ao Vender", description: result.error || "Não foi possível registrar a venda.", variant: "destructive" });
-        }
-      }
+      toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e: any) {
-      console.error("Error calling buyTicket flow: ", e);
-      toast({ title: "Erro Inesperado", description: "Ocorreu um erro de comunicação com o servidor.", variant: "destructive" });
+      console.error("Transaction failed: ", e);
+       if (e.message === 'Insufficient credits.') {
+          setIsCreditsDialogOpen(true);
+        } else {
+          toast({ title: "Erro ao Vender", description: e.message || "Não foi possível registrar a venda.", variant: "destructive" });
+        }
     } finally {
       setIsSubmitting(false);
     }
