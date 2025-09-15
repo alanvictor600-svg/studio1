@@ -6,6 +6,9 @@ import type { User } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Local storage keys
 const AUTH_USERS_STORAGE_KEY = 'bolaoPotiguarAuthUsers';
@@ -26,52 +29,53 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // This will now be primarily driven by Firebase's auth loading state
   const router = useRouter();
   const { toast } = useToast();
 
-  // Load users and current user from localStorage on initial mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUsers = localStorage.getItem(AUTH_USERS_STORAGE_KEY);
-        const storedCurrentUser = localStorage.getItem(AUTH_CURRENT_USER_STORAGE_KEY);
-        
-        let loadedUsers: User[] = storedUsers ? JSON.parse(storedUsers) : [];
-        
-        // Ensure the admin user exists
-        const adminUserExists = loadedUsers.some(u => u.username === 'russo.victor600');
-        if (!adminUserExists) {
-            const adminUser: User = {
-                id: uuidv4(),
-                username: 'russo.victor600',
-                passwordHash: 'Al@n2099', // Storing plain text for prototype simplicity
-                role: 'admin',
-                createdAt: new Date().toISOString(),
-                saldo: 999999,
-            };
-            loadedUsers.push(adminUser);
-            localStorage.setItem(AUTH_USERS_STORAGE_KEY, JSON.stringify(loadedUsers));
-        }
-        
-        setUsers(loadedUsers);
+  const [firebaseUser, authLoading, authError] = useAuthState(auth);
 
-        if (storedCurrentUser) {
-          const user: User = JSON.parse(storedCurrentUser);
-          // Re-validate that the stored current user still exists in the user list
-          if (loadedUsers.some(u => u.id === user.id)) {
-            setCurrentUser(user);
-          } else {
-            localStorage.removeItem(AUTH_CURRENT_USER_STORAGE_KEY);
-          }
-        }
-      } catch (error) {
-        console.error("Error accessing localStorage:", error);
-      } finally {
-        setIsLoading(false);
+  useEffect(() => {
+    const checkUser = async () => {
+      if (authLoading) {
+        setIsLoading(true);
+        return;
       }
-    }
-  }, []);
+      if (authError) {
+        console.error("Firebase Auth Error:", authError);
+        toast({ title: "Erro de Autenticação", description: "Ocorreu um problema ao verificar sua identidade.", variant: "destructive"});
+        setIsLoading(false);
+        setCurrentUser(null);
+        return;
+      }
+
+      if (firebaseUser) {
+        // User is signed in with Firebase. Now, fetch their profile from Firestore.
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          setCurrentUser(userDoc.data() as User);
+        } else {
+          // This case is unlikely if registration is handled correctly, but good to have.
+          // It means user exists in Firebase Auth but not in Firestore 'users' collection.
+          toast({ title: "Erro de Perfil", description: "Não foi possível encontrar os dados do seu perfil.", variant: "destructive" });
+          auth.signOut(); // Log out the user
+          setCurrentUser(null);
+        }
+      } else {
+        // No user is signed in with Firebase.
+        setCurrentUser(null);
+      }
+      setIsLoading(false);
+    };
+
+    checkUser();
+  }, [firebaseUser, authLoading, authError, toast]);
+
+
+  // The functions below are still using the OLD localStorage logic.
+  // We will migrate them in the next steps.
 
   const saveUsersToLocalStorage = (updatedUsers: User[]) => {
     setUsers(updatedUsers);
@@ -164,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const isAuthenticated = !isLoading && !!currentUser;
   
-  const value = { currentUser, login, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits, firebaseUser: null, loginWithGoogle };
+  const value = { currentUser, login, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
