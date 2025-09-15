@@ -28,7 +28,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, writeBatch, query, doc, updateDoc, deleteDoc, getDocs, setDoc, where, orderBy } from 'firebase/firestore';
 import { FinancialChart } from '@/components/financial-chart';
@@ -46,16 +46,8 @@ const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
     pixKey: '',
 };
 
-type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'relatorios';
+export type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'relatorios';
 
-const menuItems: { id: AdminSection; label: string; Icon: React.ElementType }[] = [
-  { id: 'configuracoes', label: 'Configurações', Icon: Settings },
-  { id: 'cadastrar-sorteio', label: 'Cadastrar Sorteio', Icon: PlusCircle },
-  { id: 'controles-loteria', label: 'Controles', Icon: ShieldCheck },
-  { id: 'relatorios', label: 'Relatórios', Icon: PieChart },
-  { id: 'historico-sorteios', label: 'Resultados', Icon: History },
-  { id: 'bilhetes-premiados', label: 'Bilhetes Premiados', Icon: Trophy },
-];
 
 export default function AdminPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
@@ -91,6 +83,15 @@ export default function AdminPage() {
   const [adminHistory, setAdminHistory] = useState<AdminHistoryEntry[]>([]);
   const { currentUser, isLoading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read section from URL on load
+  useEffect(() => {
+    const section = searchParams.get('section') as AdminSection;
+    if (section) {
+        setActiveSection(section);
+    }
+  }, [searchParams]);
 
   // Initial client-side mount
   useEffect(() => {
@@ -478,13 +479,6 @@ export default function AdminPage() {
     setIsDeleteConfirmOpen(false);
     setUserToDelete(null);
   };
-
-  const handleSectionChange = (sectionId: AdminSection) => {
-    setActiveSection(sectionId);
-    if (isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
-  };
   
   const getUserActiveTicketsCount = useCallback((user: User) => {
     const idField = user.role === 'cliente' ? 'buyerId' : 'sellerId';
@@ -625,24 +619,6 @@ export default function AdminPage() {
                         <ThemeToggleButton />
                     </CardContent>
                   </Card>
-
-                  <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm border-destructive/30">
-                    <CardHeader>
-                        <CardTitle className="text-xl text-center font-semibold flex items-center justify-center">
-                            <LogOut className="mr-2 h-5 w-5" />
-                            Encerrar Sessão
-                        </CardTitle>
-                        <CardDescription className="text-center text-muted-foreground">
-                            Sair da sua conta de administrador de forma segura.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex justify-center items-center py-6">
-                         <Button variant="destructive" onClick={logout}>
-                            <LogOut className="mr-2 h-4 w-4" /> Sair da Conta
-                        </Button>
-                    </CardContent>
-                  </Card>
-
                 </div>
               </TabsContent>
               <TabsContent value="contas" className="mt-6">
@@ -964,75 +940,9 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
-      <header className="mb-6">
-        <div className="flex justify-between items-center">
-          <Link href="/" passHref>
-            <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline-block sm:ml-2">Voltar para Home</span>
-            </Button>
-          </Link>
-          <div className="text-center flex-grow">
-             <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">
-                Área Administrativa
-             </h1>
-             <p className="text-lg text-muted-foreground mt-2">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
-          </div>
-          <div className="w-10 md:hidden flex items-center justify-center">
-             <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Abrir menu"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-          </div>
-          <div className="hidden md:block w-10"></div>
-        </div>
-      </header>
-
-      <div className="flex flex-col md:flex-row gap-x-8 gap-y-6 flex-grow mt-8">
-        <aside 
-          className={cn(
-            "bg-card/90 backdrop-blur-sm p-4 rounded-lg shadow-md md:sticky md:top-20 md:self-start max-h-[calc(100vh-10rem)] overflow-y-auto transition-transform duration-300 ease-in-out md:translate-x-0",
-            "md:w-64 lg:w-72 flex-shrink-0",
-            isMobileMenuOpen 
-              ? "fixed inset-0 z-40 w-full h-full flex flex-col md:relative md:inset-auto md:h-auto md:w-64 lg:w-72" 
-              : "hidden md:flex" 
-          )}
-        >
-          {isMobileMenuOpen && (
-            <div className="flex justify-end p-2 md:hidden">
-              <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} aria-label="Fechar menu">
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-          )}
-          <nav className="space-y-2 flex-grow md:flex-grow-0">
-            {menuItems.map(item => (
-              <Button
-                key={item.id}
-                variant={activeSection === item.id ? 'default' : 'ghost'}
-                className={cn(
-                  "w-full justify-start text-sm py-3 px-4 h-auto",
-                  activeSection === item.id 
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                    : "hover:bg-muted/50 hover:text-primary"
-                )}
-                onClick={() => handleSectionChange(item.id)}
-              >
-                <item.Icon className={cn("mr-3 h-5 w-5", activeSection === item.id ? "text-primary-foreground" : "text-primary")} />
-                {item.label}
-              </Button>
-            ))}
-          </nav>
-        </aside>
-
-        <main className={cn("flex-grow", isMobileMenuOpen && "md:ml-0")}>
-          {renderSectionContent()}
-        </main>
+    <>
+      <div className="space-y-6">
+        {renderSectionContent()}
       </div>
 
       {userToView && (
@@ -1078,17 +988,6 @@ export default function AdminPage() {
             </AlertDialogContent>
         </AlertDialog>
       )}
-
-      <footer className="mt-20 py-8 text-center border-t border-border/50">
-        <p className="text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Bolão Potiguar - Admin.
-        </p>
-      </footer>
-    </div>
+    </>
   );
 }
-
-    
-    
-
-    
