@@ -13,6 +13,7 @@ import { LogIn, UserPlus, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -29,22 +30,19 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginWithGoogle, currentUser, isLoading: authLoading } = useAuth();
+  const { login, currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isClient, setIsClient] = useState(false);
+  const { toast } = useToast();
   const [registrationHref, setRegistrationHref] = useState('/cadastrar');
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (isClient && !authLoading && currentUser) {
+    if (authLoading) return;
+    if (currentUser) {
       const redirectPath = searchParams.get('redirect');
       router.push(redirectPath || (currentUser.role === 'cliente' ? '/cliente' : '/vendedor'));
     }
-  }, [currentUser, authLoading, router, searchParams, isClient]);
+  }, [currentUser, authLoading, router, searchParams]);
 
   useEffect(() => {
       const redirectPath = searchParams.get('redirect');
@@ -68,7 +66,7 @@ export default function LoginPage() {
     await login(username, password, expectedRole);
   };
   
-  if (authLoading || (isClient && currentUser)) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando autenticação...</p>
@@ -100,7 +98,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <Button variant="outline" className="w-full h-12 text-base" onClick={loginWithGoogle} disabled={authLoading}>
+            <Button variant="outline" className="w-full h-12 text-base" onClick={() => toast({ title: 'Indisponível', description: 'Login com Google será ativado em breve.', variant: 'default' })} disabled>
               <GoogleIcon />
               <span className="ml-2">Entrar com Google</span>
             </Button>

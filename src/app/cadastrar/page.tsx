@@ -32,7 +32,7 @@ export default function CadastroPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<'cliente' | 'vendedor'>('cliente');
-  const { register, loginWithGoogle, currentUser, isLoading: authLoading } = useAuth();
+  const { register, currentUser, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -45,14 +45,6 @@ export default function CadastroPage() {
       setRole(roleFromQuery);
     }
   }, [searchParams]);
-  
-  useEffect(() => {
-    if (isClient && !authLoading && currentUser) {
-      const redirectPath = currentUser.role === 'cliente' ? '/cliente' : '/vendedor';
-      router.push(redirectPath);
-    }
-  }, [currentUser, authLoading, router, isClient]);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +67,7 @@ export default function CadastroPage() {
     await register(username.trim(), password, role);
   };
   
-  if (authLoading || (isClient && currentUser)) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando autenticação...</p>
@@ -107,7 +99,7 @@ export default function CadastroPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            <Button variant="outline" className="w-full h-12 text-base" onClick={loginWithGoogle}>
+            <Button variant="outline" className="w-full h-12 text-base" onClick={() => toast({ title: 'Indisponível', description: 'Login com Google será ativado em breve.', variant: 'default' })} disabled>
               <GoogleIcon />
               <span className="ml-2">Continuar com Google</span>
             </Button>
