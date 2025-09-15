@@ -12,8 +12,10 @@ import {z} from 'genkit';
 import {getLotteryConfig} from '@/services/lottery-service';
 import admin from 'firebase-admin';
 import {getApps, initializeApp, cert} from 'firebase-admin/app';
-import {getFirestore} from 'firebase-admin/firestore';
+import {getFirestore, Firestore} from 'firebase-admin/firestore';
 import type {Ticket} from '@/types';
+
+let db: Firestore;
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
@@ -26,16 +28,17 @@ if (!getApps().length) {
         initializeApp({
           credential: cert(serviceAccount),
         });
+        db = getFirestore();
       } catch(e) {
           console.error("Could not initialize Firebase Admin SDK. Make sure FIREBASE_SERVICE_ACCOUNT_KEY is set and is valid JSON.", e);
       }
   } else {
       console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is not set. Firebase Admin SDK not initialized.");
   }
+} else {
+    // If the app is already initialized, just get the firestore instance
+    db = getFirestore();
 }
-
-const db = getFirestore();
-
 
 const BuyTicketInputSchema = z.object({
   userId: z.string().describe('The ID of the user purchasing the ticket.'),
@@ -65,10 +68,10 @@ const buyTicketFlow = ai.defineFlow(
   },
   async (input) => {
     // Ensure admin is initialized before proceeding
-    if (!getApps().length) {
+    if (!getApps().length || !db) {
         return {
             success: false,
-            error: "Firebase Admin SDK is not initialized. Check server configuration.",
+            error: "Firebase Admin SDK is not initialized. Check server configuration and FIREBASE_SERVICE_ACCOUNT_KEY.",
         };
     }
       
