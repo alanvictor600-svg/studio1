@@ -27,7 +27,6 @@ const sanitizeUsernameForEmail = (username: string) => {
     return username.trim().toLowerCase();
 };
 
-// Exemplo de nome de cookie para o middleware
 const AUTH_COOKIE_NAME = '__session';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -48,20 +47,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [authError]);
 
   useEffect(() => {
-    // Gerenciamento de cookie para o middleware
     if (firebaseUser) {
-        // Define um cookie simples para indicar que há uma sessão ativa.
-        // Em um cenário de produção robusto, isso seria um cookie de sessão seguro gerado pelo backend.
-        document.cookie = `${AUTH_COOKIE_NAME}=true; path=/; max-age=2592000`; // 30 dias
+        // This is a simplified mechanism for the middleware.
+        // In a production app with server-side rendering, you'd use HttpOnly cookies set by a server.
+        document.cookie = `${AUTH_COOKIE_NAME}=true; path=/; max-age=2592000`; // 30 days
 
         setIsFirestoreLoading(true);
         const userDocRef = doc(db, "users", firebaseUser.uid);
         const unsubscribe = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
-            setCurrentUser({ id: doc.id, ...doc.data() } as User);
+              setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
-            console.error("User document not found for authenticated user:", firebaseUser.uid);
-            signOut(auth); // Desloga se o documento não for encontrado
+              console.error("User document not found for authenticated user:", firebaseUser.uid);
+              // If user is authenticated but has no DB record, something is wrong. Log them out.
+              signOut(auth);
             }
             setIsFirestoreLoading(false);
         }, (error) => {
@@ -72,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return () => unsubscribe();
     } else {
-        // Se não há usuário, remove o cookie e reseta o estado
+        // If there's no Firebase user, ensure the session cookie is removed and state is cleared.
         document.cookie = `${AUTH_COOKIE_NAME}=; path=/; max-age=0`;
         setCurrentUser(null);
         setIsFirestoreLoading(false);
@@ -94,13 +93,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = userDoc.data() as User;
           
           if (expectedRole && userData.role !== expectedRole) {
-              await signOut(auth);
+              await signOut(auth); // This will trigger the useEffect to clear cookies
               toast({ title: "Acesso Negado", description: `As credenciais são válidas, mas não para um perfil de ${expectedRole}.`, variant: "destructive" });
               return;
           }
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
            
            const redirectPath = searchParams.get('redirect');
+           // The useEffect hook will handle setting the cookie, then we redirect.
            if (redirectPath && redirectPath !== '/') {
              router.push(redirectPath);
            } else {
@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      // O useEffect que observa firebaseUser cuidará de limpar o cookie e o estado
+      // The useEffect observing firebaseUser will handle clearing the cookie and state.
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
       router.push('/');
     } catch (error) {
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(doc(db, "users", newFirebaseUser.uid), newUser);
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
-        await signOut(auth); 
+        await signOut(auth); // Log out the user immediately after registration so they have to log in.
         router.push('/login');
 
     } catch (error: any) {
@@ -190,3 +190,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
