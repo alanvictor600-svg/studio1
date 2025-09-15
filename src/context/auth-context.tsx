@@ -24,6 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const sanitizeUsernameForEmail = (username: string) => {
+    // Keeps it simple: just trim and lowercase. This is robust.
     return username.trim().toLowerCase();
 };
 
@@ -43,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userDocRef = doc(db, "users", firebaseUser.uid);
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
-          setCurrentUser(doc.data() as User);
+          setCurrentUser({ id: doc.id, ...doc.data() } as User);
         } else {
           setCurrentUser(null);
           signOut(auth);
@@ -110,26 +111,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = userDoc.data() as User;
           
           if (expectedRole && userData.role !== expectedRole) {
-              toast({ title: "Acesso Negado", description: `As credenciais são válidas, mas não para um perfil de ${expectedRole}.`, variant: "destructive" });
               await signOut(auth);
-              throw new Error("Role mismatch");
+              toast({ title: "Acesso Negado", description: `As credenciais são válidas, mas não para um perfil de ${expectedRole}.`, variant: "destructive" });
+              return; // Stop execution
           }
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
            // The useEffect hook will handle redirection.
         } else {
-          toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
           await signOut(auth);
-          throw new Error("User data not found in Firestore.");
+          toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
         }
      } catch (error: any) {
-        console.error("Firebase login error:", error);
+        console.error("Firebase login error:", error.code); // Log only the code for cleaner debugging
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
-        } else if (error.message !== "Role mismatch" && error.message !== "User data not found in Firestore.") {
-             toast({ title: "Erro de Login", description: error.message || "Ocorreu um erro inesperado.", variant: "destructive" });
+        } else {
+             toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
         }
-        // Re-throw the error so the calling component (login page) can catch it and update its state.
-        throw error;
+        // Do not re-throw the error. Let this function handle it completely.
      }
   }, [toast]);
 
@@ -147,22 +146,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => {
     const originalUsername = username.trim();
-    if (!/^[a-zA-Z0-9_.-]+$/.test(originalUsername)) {
-         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _", variant: "destructive" });
+     if (!/^[a-zA-Z0-9_.-]+$/.test(originalUsername)) {
+         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras (a-z, A-Z), números (0-9) e os caracteres . - _", variant: "destructive" });
          return;
     }
     const emailUsername = sanitizeUsernameForEmail(originalUsername);
-
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", originalUsername));
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-        toast({ title: "Erro de Cadastro", description: "Este nome de usuário já está em uso.", variant: "destructive" });
-        return;
-    }
-
     const fakeEmail = `${emailUsername}@bolao.potiguar`;
+
+    // It's better to rely on Firebase Auth's unique email constraint than to query the collection,
+    // as it's more direct and respects security rules.
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, passwordRaw);
@@ -170,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const newUser: User = {
             id: newFirebaseUser.uid,
-            username: originalUsername,
+            username: originalUsername, // Save the original username for display
             role,
             createdAt: new Date().toISOString(),
             saldo: role === 'cliente' ? 50 : 0,
@@ -179,17 +171,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(doc(db, "users", newFirebaseUser.uid), newUser);
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
-        await signOut(auth);
+        await signOut(auth); // Log out the user immediately after registration
         router.push('/login');
 
     } catch (error: any) {
         console.error("Firebase registration error:", error);
         if (error.code === 'auth/email-already-in-use') {
+            // This now correctly indicates that the username is taken
             toast({ title: "Erro de Cadastro", description: "Este nome de usuário já está em uso.", variant: "destructive" });
         } else if (error.code === 'auth/weak-password') {
             toast({ title: "Erro de Cadastro", description: "A senha é muito fraca. Use pelo menos 6 caracteres.", variant: "destructive" });
         } else {
-            toast({ title: "Erro de Cadastro", description: error.message || "Ocorreu um erro inesperado.", variant: "destructive" });
+            toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
         }
     }
   }, [router, toast]);
