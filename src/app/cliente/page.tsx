@@ -42,10 +42,18 @@ export default function ClientePage() {
   const [activeSection, setActiveSection] = useState<ClienteSection>('selecionar-bilhete');
   const router = useRouter();
 
-  // Auth check
   useEffect(() => {
     setIsClient(true);
-    if (!isLoading && (!isAuthenticated || currentUser?.role !== 'cliente')) {
+  }, []);
+
+  // Auth check
+  useEffect(() => {
+    // Wait until loading is finished
+    if (isLoading) {
+      return;
+    }
+    // If not authenticated or not a client, redirect
+    if (!isAuthenticated || currentUser?.role !== 'cliente') {
       router.push('/login?redirect=/cliente');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
@@ -89,7 +97,7 @@ export default function ClientePage() {
     return processedAllTickets.some(ticket => ticket.status === 'winning');
   }, [draws]);
 
-  if (!isClient || isLoading || !currentUser) {
+  if (!isClient || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Carregando área do cliente...</p>

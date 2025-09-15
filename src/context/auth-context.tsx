@@ -3,11 +3,11 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { User } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
@@ -28,6 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const isLoading = authLoading || isFirestoreLoading;
@@ -71,13 +72,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser, authLoading, authError, toast]);
 
 
-  // The functions below are still using the OLD localStorage logic.
-  // We will migrate them in the next steps.
-  
   const login = useCallback(async (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor' | 'admin'): Promise<boolean> => {
-     toast({ title: "Login em Migração", description: "A função de login ainda está sendo atualizada.", variant: "destructive" });
-     return false;
-  }, [router, toast]);
+     const trimmedUsername = username.trim();
+     const fakeEmail = `${trimmedUsername}@bolao.potiguar`;
+
+     try {
+        const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
+        const loggedInUser = userCredential.user;
+
+        // The useEffect will handle setting the currentUser based on the Firebase auth state change
+        // But we can check the role here for immediate redirection logic.
+        const userDocRef = doc(db, "users", loggedInUser.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            
+            // Role verification
+            if (expectedRole && userData.role !== expectedRole) {
+                toast({ title: "Acesso Negado", description: `Você não tem permissão para acessar a área de ${expectedRole}.`, variant: "destructive" });
+                await signOut(auth); // Sign out the user
+                return false;
+            }
+
+            toast({ title: "Login realizado com sucesso!", description: `Bem-vindo(a) de volta, ${userData.username}!`, className: "bg-primary text-primary-foreground", duration: 3000 });
+
+            const redirectPath = searchParams.get('redirect');
+            if (redirectPath) {
+                router.push(redirectPath);
+            } else {
+                // Default redirect based on role
+                switch(userData.role) {
+                    case 'admin': router.push('/admin'); break;
+                    case 'cliente': router.push('/cliente'); break;
+                    case 'vendedor': router.push('/vendedor'); break;
+                    default: router.push('/');
+                }
+            }
+            return true;
+        } else {
+            // Should not happen if data is consistent
+            toast({ title: "Erro de Login", description: "Dados do usuário não encontrados.", variant: "destructive" });
+            await signOut(auth);
+            return false;
+        }
+     } catch (error: any) {
+        console.error("Firebase login error:", error);
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+            toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
+        } else {
+            toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado.", variant: "destructive" });
+        }
+        return false;
+     }
+  }, [router, toast, searchParams]);
 
   const logout = useCallback(async () => {
     try {
@@ -151,5 +199,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

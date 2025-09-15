@@ -129,7 +129,12 @@ export default function AdminPage() {
 
   // Auth check
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || currentUser?.role !== 'admin')) {
+    // Wait until loading is finished
+    if (isLoading) {
+      return;
+    }
+    // If not authenticated or not an admin, redirect
+    if (!isAuthenticated || currentUser?.role !== 'admin') {
       router.push('/login?redirect=/admin');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
@@ -431,7 +436,7 @@ export default function AdminPage() {
     );
   }, [allUsers, userSearchTerm]);
 
-  if (!isClient || isLoading || !currentUser) {
+  if (!isClient || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Carregando Admin...</p>

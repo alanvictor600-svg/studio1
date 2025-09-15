@@ -50,10 +50,18 @@ export default function VendedorPage() {
   const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
   const router = useRouter();
 
-  // Auth check
   useEffect(() => {
     setIsClient(true);
-    if (!isLoading && (!isAuthenticated || currentUser?.role !== 'vendedor')) {
+  }, []);
+
+  // Auth check
+  useEffect(() => {
+    // Wait until loading is finished
+    if (isLoading) {
+      return;
+    }
+    // If not authenticated or not a seller, redirect
+    if (!isAuthenticated || currentUser?.role !== 'vendedor') {
       router.push('/login?redirect=/vendedor');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
@@ -116,7 +124,7 @@ export default function VendedorPage() {
     }
   };
 
-  if (!isClient || isLoading || !currentUser) {
+  if (!isClient || isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Carregando Área do Vendedor...</p>
