@@ -6,9 +6,45 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/context/auth-context'; // Import AuthProvider
 
+const APP_NAME = "Bolão Potiguar";
+const APP_DEFAULT_TITLE = "Bolão Potiguar";
+const APP_TITLE_TEMPLATE = "%s - Bolão Potiguar";
+const APP_DESCRIPTION = "Sua sorte começa aqui!";
+
 export const metadata: Metadata = {
-  title: 'Bolão Potiguar',
-  description: 'Sua sorte começa aqui!',
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_DEFAULT_TITLE,
+    // startUpImage: [],
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary",
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({
@@ -18,6 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+       <head />
       <body className={`${GeistSans.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
