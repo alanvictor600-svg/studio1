@@ -40,15 +40,15 @@ export default function LoginPage() {
   
   useEffect(() => {
     const redirectPath = searchParams.get('redirect');
-    // If user is already authenticated, redirect them.
-    if (isAuthenticated && currentUser) {
+    // If user is already authenticated, redirect them away from the login page.
+    if (!authLoading && isAuthenticated && currentUser) {
       if (redirectPath && redirectPath !== '/') {
-        router.push(redirectPath);
+        router.replace(redirectPath);
       } else {
-        router.push(currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`);
+        router.replace(currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`);
       }
     }
-  }, [isAuthenticated, currentUser, router, searchParams]);
+  }, [authLoading, isAuthenticated, currentUser, router, searchParams]);
 
   useEffect(() => {
       const redirectParam = searchParams.get('redirect');
@@ -75,24 +75,16 @@ export default function LoginPage() {
     
     await login(username, password, expectedRole);
     
-    // The auth-context now handles toasts and redirection on success.
-    // We just reset the submitting state.
+    // The auth-context now handles toasts and redirection on success is handled by the useEffect above.
     setIsSubmitting(false);
   };
   
-  if (authLoading) {
+  if (authLoading || (isAuthenticated && !authLoading)) {
+    // If auth state is loading OR if user is already authenticated and waiting for redirect, show a loading state.
+    // This prevents the login form from flashing for an already logged-in user.
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando autenticação...</p>
-      </div>
-    );
-  }
-
-  // If user is already logged in and we are just waiting for redirect, show loading
-  if (isAuthenticated) {
-     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Redirecionando...</p>
+        <p className="text-foreground text-xl">Verificando sessão...</p>
       </div>
     );
   }
