@@ -438,3 +438,5 @@ export default function VendedorPage() {
     </div>
   );
 }
+
+    
