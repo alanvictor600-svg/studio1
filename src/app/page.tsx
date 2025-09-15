@@ -20,10 +20,11 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Separator } from '@/components/ui/separator';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
-  const { currentUser, logout, login, isLoading: authLoading } = useAuth();
+  const { currentUser, logout, login } = useAuth();
   const router = useRouter();
   const [draws, setDraws] = useState<Draw[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
@@ -124,13 +125,11 @@ export default function LandingPage() {
                   <LayoutDashboard className="mr-2 h-5 w-5" /> Ir para o meu Painel
               </Button>
           ) : (
-             draws.length > 0 && (
-                <Link href="/login" passHref>
-                    <Button className="shadow-lg">
-                        <LogIn className="mr-2 h-5 w-5" /> Entrar ou Cadastrar
-                    </Button>
-                </Link>
-             )
+            <Link href="/login" passHref>
+                <Button className="shadow-lg">
+                    <LogIn className="mr-2 h-5 w-5" /> Entrar ou Cadastrar
+                </Button>
+            </Link>
           )}
        </div>
 
@@ -183,36 +182,46 @@ export default function LandingPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center">
-            <h2 className="text-2xl font-bold text-primary text-center mb-6">A loteria ainda não começou!</h2>
-            <p className="text-muted-foreground mb-8 text-center">Escolha um perfil abaixo para começar.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
-                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader className="items-center text-center">
-                    <Users className="w-12 h-12 text-primary mb-2" />
-                    <CardTitle className="text-2xl">Acessar como Cliente</CardTitle>
-                    <CardDescription>Compre e gerencie seus bilhetes.</CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Button onClick={handleClienteClick} className="w-full">
-                       {currentUser && currentUser.role === 'cliente' ? "Ir para o Painel" : "Entrar como Cliente"} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                   <CardHeader className="items-center text-center">
-                    <ShoppingCart className="w-12 h-12 text-secondary mb-2" />
-                    <CardTitle className="text-2xl">Acessar como Vendedor</CardTitle>
-                    <CardDescription>Venda bilhetes e acompanhe seu desempenho.</CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
-                      {currentUser && currentUser.role === 'vendedor' ? "Ir para o Painel" : "Entrar como Vendedor"} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-            </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-primary text-center mb-4">A loteria ainda não começou!</h2>
+            <p className="text-muted-foreground mb-8">Escolha um perfil abaixo para começar.</p>
           </div>
+        )}
+
+        {!currentUser && (
+          <>
+            <Separator className="my-12" />
+            <div className="text-center">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Acesse sua Conta</h3>
+              <p className="text-muted-foreground mb-8">Escolha seu perfil para comprar ou vender bilhetes.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl mx-auto">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader className="items-center text-center">
+                  <Users className="w-12 h-12 text-primary mb-2" />
+                  <CardTitle className="text-2xl">Acessar como Cliente</CardTitle>
+                  <CardDescription>Compre e gerencie seus bilhetes.</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button onClick={handleClienteClick} className="w-full">
+                      Entrar como Cliente <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="items-center text-center">
+                  <ShoppingCart className="w-12 h-12 text-secondary mb-2" />
+                  <CardTitle className="text-2xl">Acessar como Vendedor</CardTitle>
+                  <CardDescription>Venda bilhetes e acompanhe seu desempenho.</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button onClick={handleVendedorClick} variant="secondary" className="w-full">
+                    Entrar como Vendedor <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </>
         )}
       </main>
 
@@ -288,6 +297,5 @@ export default function LandingPage() {
       </footer>
     </div>
   );
-}
 
     
