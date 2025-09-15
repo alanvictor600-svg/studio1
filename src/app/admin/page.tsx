@@ -648,58 +648,78 @@ export default function AdminPage() {
                 </div>
               </TabsContent>
               <TabsContent value="contas" className="mt-6">
-                 <div className="space-y-4">
-                  <div className="mb-6 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Pesquisar por nome de usuário..."
-                      value={userSearchTerm}
-                      onChange={(e) => setUserSearchTerm(e.target.value)}
-                      className="pl-10 h-10"
-                    />
-                  </div>
-                  {filteredUsers.length > 0 ? filteredUsers.map(user => (
-                    <Card key={user.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-card/80 backdrop-blur-sm shadow-md">
-                      <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                        <Avatar>
-                            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-grow">
-                            <p className="font-semibold text-foreground">{user.username}</p>
-                            <div className="flex items-center gap-x-2 flex-wrap">
+                 <Card className="bg-card/80 backdrop-blur-sm shadow-md">
+                    <CardHeader>
+                        <div className="mb-4 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                            placeholder="Pesquisar por nome de usuário..."
+                            value={userSearchTerm}
+                            onChange={(e) => setUserSearchTerm(e.target.value)}
+                            className="pl-10 h-10 w-full"
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                    <ScrollArea className="h-96">
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Usuário</TableHead>
+                            <TableHead>Perfil</TableHead>
+                            <TableHead className="text-center">Saldo</TableHead>
+                            <TableHead className="text-center">Bilhetes Ativos</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                            <TableRow key={user.id}>
+                                <TableCell>
+                                <div className="flex items-center gap-3">
+                                    <Avatar>
+                                    <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-semibold text-foreground">{user.username}</span>
+                                </div>
+                                </TableCell>
+                                <TableCell>
                                 <Badge variant={user.role === 'vendedor' ? 'secondary' : (user.role === 'admin' ? 'destructive' : 'outline')}>
                                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                                 </Badge>
-                                <Badge variant="outline" className="flex items-center gap-1 border-yellow-500/50 text-yellow-600 dark:text-yellow-400">
-                                    <Coins className="h-3 w-3" />
-                                    Saldo: R$ {(user.saldo || 0).toFixed(2).replace('.', ',')}
-                                </Badge>
-                                <Badge variant="outline" className="flex items-center gap-1 border-primary/50 text-primary">
-                                    <TicketIcon className="h-3 w-3" />
-                                    Ativos: {getUserActiveTicketsCount(user)}
-                                </Badge>
-                            </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 self-end sm:self-center">
-                            <Button variant="outline" size="sm" onClick={() => handleOpenCreditDialog(user)}>
-                                <CreditCard className="mr-2 h-4 w-4" /> Saldo
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleOpenViewUser(user)}>
-                                <Eye className="mr-2 h-4 w-4"/> Detalhes
-                            </Button>
-                      </div>
-                    </Card>
-                  )) : (
-                    <div className="text-center py-10 bg-card/50 rounded-lg shadow">
-                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-lg text-muted-foreground">Nenhum usuário encontrado.</p>
-                      <p className="text-sm text-muted-foreground/80">
-                        {userSearchTerm ? 'Tente um termo de busca diferente.' : 'Nenhum usuário registrado ainda.'}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                                </TableCell>
+                                <TableCell className="text-center font-mono text-yellow-600 dark:text-yellow-400">
+                                R$ {(user.saldo || 0).toFixed(2).replace('.', ',')}
+                                </TableCell>
+                                <TableCell className="text-center font-medium">
+                                {getUserActiveTicketsCount(user)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                <div className="flex gap-2 justify-end">
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenCreditDialog(user)}>
+                                        <CreditCard className="mr-2 h-4 w-4" /> Saldo
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleOpenViewUser(user)}>
+                                        <Eye className="mr-2 h-4 w-4"/> Detalhes
+                                    </Button>
+                                </div>
+                                </TableCell>
+                            </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                         <p className="text-lg text-muted-foreground">Nenhum usuário encontrado.</p>
+                                         <p className="text-sm text-muted-foreground/80">
+                                            {userSearchTerm ? 'Tente um termo de busca diferente.' : 'Nenhum usuário registrado ainda.'}
+                                        </p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                        </Table>
+                    </ScrollArea>
+                    </CardContent>
+                 </Card>
               </TabsContent>
               <TabsContent value="contato" className="mt-6">
                 <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
