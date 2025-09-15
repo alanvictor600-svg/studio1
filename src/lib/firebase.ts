@@ -1,8 +1,7 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, memoryLocalCache } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,7 +16,17 @@ const firebaseConfig = {
 // Initialize Firebase
 // Avoid re-initializing on Next.js hot-reloads
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// Initialize Firestore with offline persistence, but only on the client-side.
+const db = typeof window !== 'undefined'
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: 'MEMORY' })
+    })
+  : initializeFirestore(app, {
+      localCache: memoryLocalCache()
+  });
+
 const auth = getAuth(app);
-const db = getFirestore(app);
+
 
 export { app, auth, db };
