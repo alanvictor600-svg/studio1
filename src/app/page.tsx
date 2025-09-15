@@ -44,7 +44,7 @@ export default function LandingPage() {
         setDraws(drawsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     }, (error) => {
         console.error("Error fetching draws: ", error);
-        toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
+        // Não mostre toast aqui, pois as regras de segurança podem bloquear inicialmente.
     });
 
     const ticketsQuery = query(collection(db, 'tickets'));
@@ -282,5 +282,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
