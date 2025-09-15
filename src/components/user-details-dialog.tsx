@@ -17,6 +17,7 @@ import { Trash2, Ticket as TicketIcon } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import { Label } from '@/components/ui/label';
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
