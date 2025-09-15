@@ -18,6 +18,7 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { getLotteryConfig } from '@/services/lottery-service';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -49,6 +50,7 @@ export default function ClientePage() {
 
   useEffect(() => {
     setIsClient(true);
+    setLotteryConfig(getLotteryConfig());
   }, []);
 
   // Auth check
@@ -70,17 +72,6 @@ export default function ClientePage() {
       }, (error) => {
           console.error("Error fetching draws: ", error);
           toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
-      });
-
-      // Listen for config
-      const configDocRef = doc(db, 'configs', 'global');
-      const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          if (data.lotteryConfig) {
-            setLotteryConfig(data.lotteryConfig);
-          }
-        }
       });
       
       // Listen for user-specific tickets if user is logged in
@@ -105,7 +96,6 @@ export default function ClientePage() {
       return () => {
         unsubscribeTickets();
         unsubscribeDraws();
-        unsubscribeConfig();
       };
     }
   }, [isClient, currentUser, toast]);
@@ -290,5 +280,7 @@ export default function ClientePage() {
     </div>
   );
 }
+
+    
 
     

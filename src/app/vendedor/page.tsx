@@ -23,6 +23,7 @@ import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { getLotteryConfig } from '@/services/lottery-service';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -57,6 +58,7 @@ export default function VendedorPage() {
 
   useEffect(() => {
     setIsClient(true);
+    setLotteryConfig(getLotteryConfig());
   }, []);
 
   // Auth check
@@ -78,17 +80,6 @@ export default function VendedorPage() {
       }, (error) => {
         console.error("Error fetching draws: ", error);
         toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
-      });
-      
-      // Listen for config
-      const configDocRef = doc(db, 'configs', 'global');
-      const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          if (data.lotteryConfig) {
-            setLotteryConfig(data.lotteryConfig);
-          }
-        }
       });
       
       let unsubscribeTickets = () => {};
@@ -118,7 +109,6 @@ export default function VendedorPage() {
       return () => {
           unsubscribeTickets();
           unsubscribeDraws();
-          unsubscribeConfig();
       };
     }
   }, [isClient, currentUser, toast]);
@@ -438,5 +428,7 @@ export default function VendedorPage() {
     </div>
   );
 }
+
+    
 
     

@@ -94,9 +94,26 @@ export default function AdminPage() {
   // Load static data from localStorage and listen for realtime data from Firestore
   useEffect(() => {
     setIsClient(true);
-    // Static data from localStorage for history
+    // Static data from localStorage
     if (typeof window !== 'undefined') {
+        const storedConfig = localStorage.getItem('lotteryConfig');
+        const storedCreditConfig = localStorage.getItem('creditRequestConfig');
         const storedAdminHistory = localStorage.getItem('adminHistory');
+
+        if (storedConfig) {
+            const config = JSON.parse(storedConfig);
+            setLotteryConfig(config);
+            setTicketPriceInput(config.ticketPrice.toString());
+            setCommissionInput(config.sellerCommissionPercentage.toString());
+            setOwnerCommissionInput((config.ownerCommissionPercentage || 0).toString());
+            setClientSalesCommissionInput((config.clientSalesCommissionToOwnerPercentage || 0).toString());
+        }
+        if (storedCreditConfig) {
+            const creditConfig = JSON.parse(storedCreditConfig);
+            setCreditRequestConfig(creditConfig);
+            setWhatsappInput(creditConfig.whatsappNumber);
+            setPixKeyInput(creditConfig.pixKey);
+        }
         if (storedAdminHistory) setAdminHistory(JSON.parse(storedAdminHistory));
     }
   }, [isClient]);
@@ -118,7 +135,6 @@ export default function AdminPage() {
     const ticketsQuery = query(collection(db, 'tickets'));
     const drawsQuery = query(collection(db, 'draws'));
     const usersQuery = query(collection(db, 'users'));
-    const configDocRef = doc(db, 'configs', 'global');
 
     const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
         const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
@@ -144,37 +160,11 @@ export default function AdminPage() {
         toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível carregar os dados dos usuários.", variant: "destructive" });
     });
     
-    const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
-        if (doc.exists()) {
-            const data = doc.data();
-            const lotteryConf = data.lotteryConfig || DEFAULT_LOTTERY_CONFIG;
-            const creditConf = data.creditRequestConfig || DEFAULT_CREDIT_CONFIG;
-            
-            setLotteryConfig(lotteryConf);
-            setCreditRequestConfig(creditConf);
-
-            setTicketPriceInput(lotteryConf.ticketPrice.toString());
-            setCommissionInput(lotteryConf.sellerCommissionPercentage.toString());
-            setOwnerCommissionInput((lotteryConf.ownerCommissionPercentage || 0).toString());
-            setClientSalesCommissionInput((lotteryConf.clientSalesCommissionToOwnerPercentage || 0).toString());
-            setWhatsappInput(creditConf.whatsappNumber);
-            setPixKeyInput(creditConf.pixKey);
-        } else {
-            // If config doc doesn't exist, set UI to defaults
-            setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
-            setCreditRequestConfig(DEFAULT_CREDIT_CONFIG);
-        }
-    }, (error) => {
-        console.error("Error fetching config: ", error);
-        toast({ title: "Erro ao Carregar Configurações", description: "Não foi possível carregar as configurações do sistema.", variant: "destructive" });
-    });
-
     // Cleanup subscription on unmount
     return () => {
         unsubscribeTickets();
         unsubscribeDraws();
         unsubscribeUsers();
-        unsubscribeConfig();
     };
   }, [currentUser, toast]);
 
@@ -345,7 +335,7 @@ export default function AdminPage() {
     setIsConfirmDialogOpen(false); 
   };
 
-  const handleSaveLotteryConfig = async () => {
+  const handleSaveLotteryConfig = () => {
     const price = parseFloat(ticketPriceInput);
     const commission = parseInt(commissionInput, 10);
     const ownerCommission = parseInt(ownerCommissionInput, 10);
@@ -374,30 +364,19 @@ export default function AdminPage() {
       ownerCommissionPercentage: ownerCommission,
       clientSalesCommissionToOwnerPercentage: clientSalesCommission
     };
-
-    try {
-        const configDocRef = doc(db, 'configs', 'global');
-        await setDoc(configDocRef, { lotteryConfig: newConfig }, { merge: true });
-        toast({ title: "Configurações Salvas!", description: "Configurações da loteria atualizadas no Firestore.", className: "bg-primary text-primary-foreground", duration: 3000 });
-    } catch (e) {
-        console.error("Error saving lottery config: ", e);
-        toast({ title: "Erro ao Salvar", description: "Não foi possível salvar as configurações.", variant: "destructive" });
-    }
+    setLotteryConfig(newConfig);
+    localStorage.setItem('lotteryConfig', JSON.stringify(newConfig));
+    toast({ title: "Configurações Salvas!", description: "As novas configurações da loteria foram salvas localmente.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
   
-  const handleSaveCreditRequestConfig = async () => {
+  const handleSaveCreditRequestConfig = () => {
     const newConfig: CreditRequestConfig = {
       whatsappNumber: whatsappInput.trim(),
       pixKey: pixKeyInput.trim(),
     };
-    try {
-        const configDocRef = doc(db, 'configs', 'global');
-        await setDoc(configDocRef, { creditRequestConfig: newConfig }, { merge: true });
-        toast({ title: "Configurações Salvas!", description: "Informações de contato atualizadas no Firestore.", className: "bg-primary text-primary-foreground", duration: 3000 });
-    } catch (e) {
-        console.error("Error saving credit request config: ", e);
-        toast({ title: "Erro ao Salvar", description: "Não foi possível salvar as informações de contato.", variant: "destructive" });
-    }
+    setCreditRequestConfig(newConfig);
+    localStorage.setItem('creditRequestConfig', JSON.stringify(newConfig));
+    toast({ title: "Configurações Salvas!", description: "As informações de contato foram salvas localmente.", className: "bg-primary text-primary-foreground", duration: 3000 });
   };
 
   const handleOpenViewUser = (user: User) => {
@@ -1069,5 +1048,7 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    
 
     

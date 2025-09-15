@@ -13,6 +13,12 @@ import Link from 'next/link';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
+const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
+    whatsappNumber: '',
+    pixKey: '',
+};
+
+
 export default function SolicitarSaldoPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -21,22 +27,13 @@ export default function SolicitarSaldoPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const configDocRef = doc(db, 'configs', 'global');
-
-    const unsubscribe = onSnapshot(configDocRef, (doc) => {
-        if (doc.exists()) {
-            const data = doc.data();
-            if (data.creditRequestConfig) {
-                setConfig(data.creditRequestConfig);
-            }
-        }
-    }, (error) => {
-        console.error("Error fetching credit config: ", error);
-        toast({ title: "Erro de Carregamento", description: "Não foi possível carregar as informações de contato.", variant: "destructive" });
-    });
-
-    return () => unsubscribe();
-  }, [toast]);
+    const storedConfig = localStorage.getItem('creditRequestConfig');
+    if(storedConfig){
+        setConfig(JSON.parse(storedConfig));
+    } else {
+        setConfig(DEFAULT_CREDIT_CONFIG);
+    }
+  }, []);
 
   const handleCopy = (text: string, label: string) => {
     if (!text) {
@@ -173,3 +170,6 @@ export default function SolicitarSaldoPage() {
     </div>
   );
 }
+
+
+    
