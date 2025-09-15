@@ -52,7 +52,7 @@ export default function VendedorPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<VendedorSection>('nova-venda');
   const router = useRouter();
-  const [isLotteryPaused, setIsLotteryPaused] = useState(false);
+  const isLotteryPaused = useMemo(() => draws.length > 0, [draws]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -92,17 +92,6 @@ export default function VendedorPage() {
         console.error("Error fetching draws: ", error);
         toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
       });
-
-      // Listen for all tickets to determine if lottery is paused
-      const allTicketsQuery = query(collection(db, 'tickets'));
-      const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
-          const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-          setDraws(currentDraws => {
-            const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, currentDraws);
-            setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
-            return currentDraws;
-          });
-      });
       
       // Load static data from localStorage
       const configData = localStorage.getItem('lotteryConfig');
@@ -118,10 +107,9 @@ export default function VendedorPage() {
       return () => {
           unsubscribeTickets();
           unsubscribeDraws();
-          unsubscribeAllTickets();
       };
     }
-  }, [isClient, currentUser]);
+  }, [isClient, currentUser, toast]);
 
 
   const processedVendedorTickets = useMemo(() => updateTicketStatusesBasedOnDraws(vendedorManagedTickets, draws), [vendedorManagedTickets, draws]);

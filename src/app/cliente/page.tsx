@@ -44,7 +44,7 @@ export default function ClientePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<ClienteSection>('selecionar-bilhete');
   const router = useRouter();
-  const [isLotteryPaused, setIsLotteryPaused] = useState(false);
+  const isLotteryPaused = useMemo(() => draws.length > 0, [draws]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,20 +86,6 @@ export default function ClientePage() {
           toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os resultados.", variant: "destructive" });
       });
 
-      // Listen for all tickets to determine if lottery is paused
-      const allTicketsQuery = query(collection(db, 'tickets'));
-      const unsubscribeAllTickets = onSnapshot(allTicketsQuery, (querySnapshot) => {
-          const allTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-          // We need draws to be available to correctly process ticket statuses.
-          // This snapshot might run before the draws snapshot. We can pass draws state.
-          // Since this runs on every tickets change, we'll re-evaluate with the latest draws.
-          setDraws(currentDraws => {
-              const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, currentDraws);
-              setIsLotteryPaused(processedTickets.some(ticket => ticket.status === 'winning'));
-              return currentDraws; // Don't change draws, just use it.
-          });
-      });
-
       // Load static config from localStorage
       const configData = localStorage.getItem('lotteryConfig');
       if (configData) setLotteryConfig(JSON.parse(configData));
@@ -108,10 +94,9 @@ export default function ClientePage() {
       return () => {
         unsubscribeTickets();
         unsubscribeDraws();
-        unsubscribeAllTickets();
       };
     }
-  }, [isClient, currentUser]);
+  }, [isClient, currentUser, toast]);
 
   const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(myTickets, draws), [myTickets, draws]);
 
