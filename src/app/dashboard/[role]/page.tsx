@@ -8,6 +8,7 @@ import type { User, LotteryConfig, Ticket } from '@/types';
 
 import { TicketSelectionForm } from '@/components/ticket-selection-form';
 import { SellerDashboard } from '@/components/seller-dashboard'; // Import the new seller dashboard
+import { TicketList } from '@/components/ticket-list';
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
