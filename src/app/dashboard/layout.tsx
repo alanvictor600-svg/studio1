@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import type { User, LotteryConfig } from '@/types';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Coins, Ticket, Home, User as UserIcon } from 'lucide-react';
+import { LogOut, Coins, Ticket, Home, User as UserIcon, FileText, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +33,7 @@ export default function DashboardLayout({
 }) {
   const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -48,6 +49,8 @@ export default function DashboardLayout({
       </div>
     );
   }
+
+  const isSeller = currentUser.role === 'vendedor';
 
   return (
     <SidebarProvider>
@@ -88,6 +91,24 @@ export default function DashboardLayout({
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isSeller && (
+                    <>
+                        <SidebarMenuItem>
+                             <SidebarMenuButton asChild isActive={pathname === '/dashboard/vendedor'}>
+                                <Link href="/dashboard/vendedor">
+                                    <ShoppingBag /> Vender Bilhetes
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/vendedor/relatorios')}>
+                                <Link href="/dashboard/vendedor/relatorios">
+                                    <FileText /> Meus Relatórios
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </>
+                )}
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
