@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import type { User, LotteryConfig } from '@/types';
@@ -34,19 +34,19 @@ export default function DashboardLayout({
   const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+
+  if (isLoading || !isAuthenticated || !currentUser) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando sessão...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated || !currentUser) {
-    // Redirect to login if not authenticated
-    // This could also be handled in middleware or the page itself
-    router.replace('/login');
-    return null; // or a loading spinner
   }
 
   return (
@@ -118,4 +118,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-
