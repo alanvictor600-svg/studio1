@@ -31,6 +31,7 @@ export default function LandingPage() {
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isAdminLoginLoading, setIsAdminLoginLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function LandingPage() {
         unsubscribeDraws();
         unsubscribeTickets();
     };
-  }, []);
+  }, [toast]);
 
   const handleClienteClick = () => {
     if (currentUser && currentUser.role === 'cliente') {
@@ -80,8 +81,10 @@ export default function LandingPage() {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
       e.preventDefault();
-      // Pass 'admin' as the expected role
+      setIsAdminLoginLoading(true);
       const success = await login(adminUsername, adminPassword, 'admin');
+      setIsAdminLoginLoading(false);
+
       if (success) {
           setIsPopoverOpen(false);
           setAdminUsername('');
@@ -245,6 +248,7 @@ export default function LandingPage() {
                         onChange={(e) => setAdminUsername(e.target.value)}
                         className="col-span-2 h-8"
                         required
+                        disabled={isAdminLoginLoading}
                       />
                     </div>
                     <div className="grid grid-cols-3 items-center gap-4">
@@ -257,6 +261,7 @@ export default function LandingPage() {
                             onChange={(e) => setAdminPassword(e.target.value)}
                             className="h-8 pr-10"
                             required
+                            disabled={isAdminLoginLoading}
                           />
                           <Button
                               type="button"
@@ -264,14 +269,15 @@ export default function LandingPage() {
                               size="icon"
                               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
                               onClick={() => setShowPassword(!showPassword)}
+                              disabled={isAdminLoginLoading}
                           >
                               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                           </Button>
                       </div>
                     </div>
                   </div>
-                  <Button type="submit" variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={authLoading}>
-                    <ShieldCheck className="mr-2 h-4 w-4" /> {authLoading ? "Verificando..." : "Entrar"}
+                  <Button type="submit" variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isAdminLoginLoading}>
+                    <ShieldCheck className="mr-2 h-4 w-4" /> {isAdminLoginLoading ? "Verificando..." : "Entrar"}
                   </Button>
                 </div>
             </form>
@@ -290,3 +296,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
