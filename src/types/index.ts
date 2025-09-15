@@ -1,4 +1,5 @@
 
+
 export interface Ticket {
   id: string;
   numbers: number[];
@@ -7,6 +8,8 @@ export interface Ticket {
   buyerName?: string; // For client tickets, this is the client's username. For seller tickets, the customer's name.
   buyerPhone?: string;
   sellerUsername?: string | null; // The username of the seller who created the ticket. Null for client tickets.
+  buyerId?: string; // Firestore document ID of the user who bought it (if they are a registered client)
+  sellerId?: string; // Firestore document ID of the user who sold it
 }
 
 export interface Draw {
@@ -55,3 +58,5 @@ export interface AdminHistoryEntry {
   clientTicketCount: number;
   sellerTicketCount: number;
 }
+
+    

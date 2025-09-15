@@ -14,6 +14,8 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Ticket, User, LotteryConfig } from '@/types';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
+import { collection, addDoc } from "firebase/firestore"; 
+import { db } from '@/lib/firebase';
 
 interface TicketSelectionFormProps {
   isLotteryPaused?: boolean;
@@ -85,7 +87,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
     toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
-  const handleSubmitTicket = () => {
+  const handleSubmitTicket = async () => {
     if (!currentUser) {
         toast({ title: "Erro", description: "Você precisa estar logado para comprar.", variant: "destructive" });
         return;
@@ -104,28 +106,37 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
 
     setIsSubmitting(true);
 
-    const newTicket: Ticket = {
-      id: uuidv4(),
-      numbers: [...currentPicks].sort((a,b) => a-b),
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      buyerName: currentUser.username,
-      sellerUsername: null, // Explicitly null for client tickets
-    };
-    
-    const allTickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-    localStorage.setItem('tickets', JSON.stringify([...allTickets, newTicket]));
+    try {
+        const newTicketData = {
+            numbers: [...currentPicks].sort((a,b) => a-b),
+            status: 'active' as const,
+            createdAt: new Date().toISOString(),
+            buyerName: currentUser.username,
+            buyerId: currentUser.id, // Associate ticket with user ID
+            sellerUsername: null, // Explicitly null for client tickets
+        };
 
-    // Deduct credits
-    updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
+        const docRef = await addDoc(collection(db, "tickets"), newTicketData);
 
-    setCurrentPicks([]);
-    setReceiptTicket(newTicket); // Set ticket to show receipt
-    
-    toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu comprovante foi gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
-    
-    // Simulate server processing time
-    setTimeout(() => setIsSubmitting(false), 500);
+        const finalTicket: Ticket = {
+          id: docRef.id,
+          ...newTicketData,
+        }
+
+        // Deduct credits
+        await updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
+
+        setCurrentPicks([]);
+        setReceiptTicket(finalTicket); // Set ticket to show receipt
+        
+        toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu comprovante foi gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+
+    } catch (e) {
+        console.error("Error adding document: ", e);
+        toast({ title: "Erro ao Salvar", description: "Não foi possível salvar seu bilhete. Tente novamente.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -212,3 +223,5 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
     </>
   );
 };
+
+    

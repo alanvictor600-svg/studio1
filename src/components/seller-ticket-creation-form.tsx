@@ -12,11 +12,12 @@ import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib
 import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, TicketPlus, User, Phone, PauseCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { v4 as uuidv4 } from 'uuid';
 import type { Ticket, LotteryConfig } from '@/types';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
 import { useAuth } from '@/context/auth-context';
+import { collection, addDoc } from "firebase/firestore";
+import { db } from '@/lib/firebase';
 
 interface SellerTicketCreationFormProps {
   isLotteryPaused?: boolean;
@@ -89,7 +90,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
-  const handleSubmitTicket = () => {
+  const handleSubmitTicket = async () => {
     if (!currentUser) {
       toast({ title: "Erro", description: "Vendedor não autenticado.", variant: "destructive" });
       return;
@@ -111,32 +112,41 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
 
     setIsSubmitting(true);
     
-    const newTicket: Ticket = {
-      id: uuidv4(),
-      numbers: [...currentPicks].sort((a,b) => a-b),
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      buyerName: buyerName.trim(),
-      buyerPhone: buyerPhone.trim(),
-      sellerUsername: currentUser.username,
-    };
+    try {
+      const newTicketData = {
+        numbers: [...currentPicks].sort((a,b) => a-b),
+        status: 'active' as const,
+        createdAt: new Date().toISOString(),
+        buyerName: buyerName.trim(),
+        buyerPhone: buyerPhone.trim(),
+        sellerUsername: currentUser.username,
+        sellerId: currentUser.id, // Associate with seller ID
+      };
 
-    const allTickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-    localStorage.setItem('tickets', JSON.stringify([...allTickets, newTicket]));
+      const docRef = await addDoc(collection(db, "tickets"), newTicketData);
+      
+      const finalTicket: Ticket = {
+        id: docRef.id,
+        ...newTicketData,
+      };
 
-    // Deduct credits
-    updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
+      // Deduct credits from seller
+      await updateCurrentUserCredits((currentUser.saldo || 0) - ticketCost);
 
-    onTicketCreated(newTicket);
-    setCurrentPicks([]);
-    setBuyerName('');
-    setBuyerPhone('');
-    setReceiptTicket(newTicket);
+      onTicketCreated(finalTicket);
+      setCurrentPicks([]);
+      setBuyerName('');
+      setBuyerPhone('');
+      setReceiptTicket(finalTicket);
 
-    toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+      toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
-    // Simulate server processing time
-    setTimeout(() => setIsSubmitting(false), 500);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      toast({ title: "Erro ao Salvar", description: "Não foi possível registrar a venda. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -253,3 +263,5 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     </>
   );
 };
+
+    
