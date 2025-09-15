@@ -7,8 +7,7 @@ import { useAuth } from '@/context/auth-context';
 import type { User, LotteryConfig, Ticket } from '@/types';
 
 import { TicketSelectionForm } from '@/components/ticket-selection-form';
-import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
-import { TicketList } from '@/components/ticket-list';
+import { SellerDashboard } from '@/components/seller-dashboard'; // Import the new seller dashboard
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -70,6 +69,7 @@ export default function DashboardPage() {
     const unsubscribeDraws = onSnapshot(drawsQuery, async (drawsSnapshot) => {
       const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
       
+      // We need all tickets to determine if there are winners globally
       const allTicketsSnapshot = await getDocs(query(collection(db, 'tickets')));
       const allTicketsData = allTicketsSnapshot.docs.map(t => ({ id: t.id, ...t.data() } as Ticket));
       const processedTickets = updateTicketStatusesBasedOnDraws(allTicketsData, drawsData);
@@ -80,9 +80,9 @@ export default function DashboardPage() {
       // After determining lottery status, fetch and process user tickets
       const idField = role === 'cliente' ? 'buyerId' : 'sellerId';
       const ticketsQuery = query(collection(db, 'tickets'), where(idField, '==', currentUser.id));
+      
       const unsubscribeTickets = onSnapshot(ticketsQuery, (ticketSnapshot) => {
         const userTicketsData = ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-        // Sort tickets client-side to avoid composite index requirement
         const sortedTickets = userTicketsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const updatedUserTickets = updateTicketStatusesBasedOnDraws(sortedTickets, drawsData);
         setUserTickets(updatedUserTickets);
@@ -93,7 +93,12 @@ export default function DashboardPage() {
         setIsDataLoading(false);
       });
 
-      return () => unsubscribeTickets();
+      return () => {
+        // This inner unsubscribe is crucial to prevent leaks when draws update
+        if (unsubscribeTickets) {
+          unsubscribeTickets();
+        }
+      };
     }, (error) => {
       console.error("Error fetching draws for pause check: ", error);
       setIsDataLoading(false);
@@ -102,6 +107,7 @@ export default function DashboardPage() {
     return () => {
       unsubscribeConfig();
       unsubscribeDraws();
+      // The tickets subscription is handled inside the draws subscription
     };
 
   }, [currentUser, role, toast]);
@@ -127,28 +133,31 @@ export default function DashboardPage() {
   return (
     <div className="space-y-12">
       {role === 'cliente' && (
-        <TicketSelectionForm
-          isLotteryPaused={isLotteryPaused}
-          currentUser={currentUser}
-          updateCurrentUserCredits={updateCurrentUserCredits}
-          lotteryConfig={lotteryConfig}
-        />
+        <>
+          <TicketSelectionForm
+            isLotteryPaused={isLotteryPaused}
+            currentUser={currentUser}
+            updateCurrentUserCredits={updateCurrentUserCredits}
+            lotteryConfig={lotteryConfig}
+          />
+          <section>
+            <h2 className="text-2xl font-bold text-center text-primary mb-6">
+              Meus Bilhetes
+            </h2>
+            <TicketList tickets={userTickets} />
+          </section>
+        </>
       )}
 
       {role === 'vendedor' && (
-        <SellerTicketCreationForm
-          isLotteryPaused={isLotteryPaused}
-          onTicketCreated={handleTicketCreated}
-          lotteryConfig={lotteryConfig}
-        />
+         <SellerDashboard 
+            isLotteryPaused={isLotteryPaused}
+            lotteryConfig={lotteryConfig}
+            onTicketCreated={handleTicketCreated}
+            userTickets={userTickets}
+            currentUser={currentUser}
+         />
       )}
-
-      <section>
-        <h2 className="text-2xl font-bold text-center text-primary mb-6">
-          {role === 'cliente' ? 'Meus Bilhetes' : 'Meus Bilhetes Vendidos'}
-        </h2>
-        <TicketList tickets={userTickets} />
-      </section>
     </div>
   );
 }
