@@ -18,7 +18,6 @@ import { AdminDrawList } from '@/components/admin-draw-list';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { getLotteryConfig } from '@/services/lottery-service';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -50,9 +49,8 @@ export default function ClientePage() {
 
   useEffect(() => {
     setIsClient(true);
-    setLotteryConfig(getLotteryConfig());
   }, []);
-
+  
   // Auth check
   useEffect(() => {
     if (isLoading) return;
@@ -61,9 +59,22 @@ export default function ClientePage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Load data from localStorage and listen for realtime data from Firestore
+  // Load data and listen for realtime updates
   useEffect(() => {
     if (isClient) {
+      // Listen for global lottery config
+      const configDocRef = doc(db, 'configs', 'global');
+      const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
+          if (doc.exists()) {
+              setLotteryConfig(doc.data() as LotteryConfig);
+          } else {
+              setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+          }
+      }, (error) => {
+          console.error("Error fetching config: ", error);
+          toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da loteria.", variant: "destructive" });
+      });
+
       // Listen for all draws
       const drawsQuery = query(collection(db, 'draws'));
       const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
@@ -91,9 +102,9 @@ export default function ClientePage() {
           });
       }
 
-
       // Cleanup subscriptions on unmount
       return () => {
+        unsubscribeConfig();
         unsubscribeTickets();
         unsubscribeDraws();
       };
@@ -280,7 +291,3 @@ export default function ClientePage() {
     </div>
   );
 }
-
-    
-
-    

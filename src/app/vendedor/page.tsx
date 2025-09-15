@@ -23,7 +23,6 @@ import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
-import { getLotteryConfig } from '@/services/lottery-service';
 
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
@@ -58,7 +57,6 @@ export default function VendedorPage() {
 
   useEffect(() => {
     setIsClient(true);
-    setLotteryConfig(getLotteryConfig());
   }, []);
 
   // Auth check
@@ -69,9 +67,22 @@ export default function VendedorPage() {
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Load data from localStorage and listen for realtime data from Firestore
+  // Load data and listen for realtime updates
   useEffect(() => {
     if (isClient) {
+      // Listen for global lottery config
+      const configDocRef = doc(db, 'configs', 'global');
+      const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
+          if (doc.exists()) {
+              setLotteryConfig(doc.data() as LotteryConfig);
+          } else {
+              setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+          }
+      }, (error) => {
+          console.error("Error fetching config: ", error);
+          toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da loteria.", variant: "destructive" });
+      });
+
       // Listen for all draws
       const drawsQuery = query(collection(db, 'draws'));
       const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
@@ -97,7 +108,7 @@ export default function VendedorPage() {
             toast({ title: "Erro ao Carregar Bilhetes", description: "Não foi possível carregar os bilhetes que você vendeu.", variant: "destructive" });
           });
           
-          // Load static data from localStorage
+          // Load static data from localStorage for seller history
           const historyData = localStorage.getItem('sellerHistory');
           if(historyData) {
               const allHistory: SellerHistoryEntry[] = JSON.parse(historyData);
@@ -107,6 +118,7 @@ export default function VendedorPage() {
 
       // Cleanup subscriptions
       return () => {
+          unsubscribeConfig();
           unsubscribeTickets();
           unsubscribeDraws();
       };
@@ -428,7 +440,3 @@ export default function VendedorPage() {
     </div>
   );
 }
-
-    
-
-    
