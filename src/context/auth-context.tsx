@@ -40,15 +40,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   
   const isLoading = authLoading || isFirestoreLoading;
+  
+  const fetchUserDocument = useCallback(async (user: import('firebase/auth').User) => {
+    const userDocRef = doc(db, "users", user.uid);
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            return userDoc.data() as User;
+        }
+    } catch (e) {
+        console.error("Error fetching user document: ", e);
+    }
+    return null;
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
-      // The authLoading check is important to wait for Firebase to initialize.
       if (authLoading) {
         setIsFirestoreLoading(true);
         return;
       }
-
       if (authError) {
         console.error("Firebase Auth Error:", authError);
         toast({ title: "Erro de Autenticação", description: "Ocorreu um problema ao verificar sua identidade.", variant: "destructive"});
@@ -56,19 +67,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsFirestoreLoading(false);
         return;
       }
-
       if (firebaseUser) {
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
+        const userData = await fetchUserDocument(firebaseUser);
+        if (userData) {
           setCurrentUser(userData);
-
-          // On initial load or after login, redirect if necessary
           const redirectPath = searchParams.get('redirect');
           if (redirectPath) {
-            // Check role before redirecting
              if ((redirectPath.includes('admin') && userData.role !== 'admin') ||
                 (redirectPath.includes('cliente') && userData.role !== 'cliente') ||
                 (redirectPath.includes('vendedor') && userData.role !== 'vendedor')) 
@@ -79,12 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 router.push(redirectPath);
              }
           }
-          // No redirect param, maybe redirect based on role, but only if they are on the login page?
-          // This logic can be tricky, for now we rely on the page's own security checks.
-
         } else {
           toast({ title: "Erro de Perfil", description: "Não foi possível encontrar os dados do seu perfil.", variant: "destructive" });
-          await signOut(auth); // Sign out if profile is missing
+          await signOut(auth);
           setCurrentUser(null);
         }
       } else {
@@ -92,9 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       setIsFirestoreLoading(false);
     };
-
     checkUser();
-  }, [firebaseUser, authLoading, authError, toast, router, searchParams]);
+  }, [firebaseUser, authLoading, authError, toast, router, searchParams, fetchUserDocument]);
 
 
   const login = useCallback(async (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor' | 'admin'): Promise<boolean> => {
@@ -102,9 +102,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      const fakeEmail = `${sanitizedUsername}@bolao.potiguar`;
 
      try {
-        await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
-        // The useEffect above will now handle setting the user and redirecting.
-        // We just need to signal success.
+        const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
+        const fbUser = userCredential.user;
+        const userData = await fetchUserDocument(fbUser);
+        
+        if (userData && expectedRole && userData.role !== expectedRole) {
+            toast({ title: "Acesso Negado", description: `As credenciais são válidas, mas não para um perfil de ${expectedRole}.`, variant: "destructive" });
+            await signOut(auth); // Sign out the user
+            return false;
+        }
+
+        // The useEffect will now handle setting the user and redirecting.
         return true;
      } catch (error: any) {
         console.error("Firebase login error:", error);
@@ -115,7 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return false;
      }
-  }, [toast]);
+  }, [toast, fetchUserDocument]);
 
   const logout = useCallback(async () => {
     try {

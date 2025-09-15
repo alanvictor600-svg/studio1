@@ -84,7 +84,6 @@ export default function LandingPage() {
       setIsAdminLoginLoading(true);
       await login(adminUsername, adminPassword, 'admin');
       setIsAdminLoginLoading(false);
-      // O Popover se fechará sozinho ao clicar fora. Resetamos os campos para a próxima vez.
       setAdminUsername('');
       setAdminPassword('');
   };
@@ -268,5 +267,4 @@ export default function LandingPage() {
       </footer>
     </div>
   );
-
     
