@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Coins, Ticket, Home, User as UserIcon, FileText, ShoppingBag } from 'lucide-react';
+import { LogOut, Coins, Ticket, Home, User as UserIcon, FileText, ShoppingBag, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
@@ -96,6 +96,13 @@ export default function DashboardLayout({
             </div>
 
             <SidebarMenu>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/dashboard/${currentUser.role}`)}>
+                        <Link href={`/dashboard/${currentUser.role}`}>
+                            <LayoutDashboard /> Meu Painel
+                        </Link>
+                    </SidebarMenuButton>
+                 </SidebarMenuItem>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild variant="secondary" className="bg-green-500/80 text-white hover:bg-green-600/90 font-semibold text-base h-12">
                          <Link href="/solicitar-saldo">
@@ -103,24 +110,6 @@ export default function DashboardLayout({
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                {isSeller && (
-                    <>
-                        <SidebarMenuItem>
-                             <SidebarMenuButton asChild isActive={pathname === '/dashboard/vendedor'}>
-                                <Link href="/dashboard/vendedor">
-                                    <ShoppingBag /> Vender Bilhetes
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={pathname.startsWith('/dashboard/vendedor/relatorios')}>
-                                <Link href="/dashboard/vendedor/relatorios">
-                                    <FileText /> Meus Relatórios
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </>
-                )}
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
