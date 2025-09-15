@@ -39,12 +39,15 @@ export default function LoginPage() {
   const [registrationHref, setRegistrationHref] = useState('/cadastrar');
   
   useEffect(() => {
-    const redirectPath = searchParams.get('redirect');
-    // If user is already authenticated, redirect them away from the login page.
+    // Este efeito lida com o redirecionamento de usuários já autenticados.
+    // Se o estado de autenticação não está mais carregando E o usuário está autenticado,
+    // ele deve ser redirecionado para longe da página de login.
     if (!authLoading && isAuthenticated && currentUser) {
+      const redirectPath = searchParams.get('redirect');
       if (redirectPath && redirectPath !== '/') {
         router.replace(redirectPath);
       } else {
+        // Redirecionamento padrão baseado no perfil do usuário
         router.replace(currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`);
       }
     }
@@ -73,22 +76,26 @@ export default function LoginPage() {
     const redirectPath = searchParams.get('redirect');
     const expectedRole = redirectPath?.includes('admin') ? 'admin' : redirectPath?.includes('cliente') ? 'cliente' : redirectPath?.includes('vendedor') ? 'vendedor' : undefined;
     
+    // A função login agora lida com o redirecionamento em caso de sucesso.
     await login(username, password, expectedRole);
     
-    // The auth-context now handles toasts and redirection on success is handled by the useEffect above.
+    // Se o login falhar, o estado de envio é resetado para permitir nova tentativa.
+    // O toast de erro é tratado dentro da função de login.
     setIsSubmitting(false);
   };
   
-  if (authLoading || (isAuthenticated && !authLoading)) {
-    // If auth state is loading OR if user is already authenticated and waiting for redirect, show a loading state.
-    // This prevents the login form from flashing for an already logged-in user.
+  // Se o estado de autenticação está sendo verificado, ou se o usuário já está logado e
+  // esperando o redirecionamento do useEffect, mostramos um estado de carregamento.
+  // Isso evita que o formulário de login pisque na tela para um usuário já autenticado.
+  if (authLoading || (!authLoading && isAuthenticated)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando sessão...</p>
       </div>
     );
   }
-
+  
+  // A partir daqui, temos certeza que o usuário não está logado.
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
        <div className="absolute top-6 left-6 z-50">

@@ -35,14 +35,13 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // A verificação de segurança agora é primariamente tratada pelo middleware.
-  // Este useEffect lida com a verificação do lado do cliente para o caso de o usuário
-  // fazer logout em outra aba, ou se o estado de autenticação mudar dinamicamente.
   useEffect(() => {
+    // Se o carregamento terminou e o usuário não está autenticado,
+    // redireciona para a página de login.
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
+      router.replace('/login?redirect=' + pathname);
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, pathname]);
 
 
   if (isLoading || !isAuthenticated || !currentUser) {
@@ -51,6 +50,16 @@ export default function DashboardLayout({
         <p className="text-foreground text-xl">Verificando sessão...</p>
       </div>
     );
+  }
+  
+  // Se, após o carregamento, o usuário não tiver o perfil esperado (cliente/vendedor),
+  // não renderiza nada. O useEffect acima já terá iniciado o redirecionamento.
+  if (currentUser.role !== 'cliente' && currentUser.role !== 'vendedor') {
+      return (
+         <div className="flex justify-center items-center min-h-screen bg-background">
+            <p className="text-foreground text-xl">Acesso negado. Redirecionando...</p>
+        </div>
+      );
   }
 
   const isSeller = currentUser.role === 'vendedor';

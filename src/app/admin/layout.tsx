@@ -47,10 +47,9 @@ export default function AdminLayout({
   
   const activeSection = searchParams.get('section') || 'configuracoes';
 
-  // A verificação de segurança agora é primariamente tratada pelo middleware.
-  // Este useEffect lida com a verificação do lado do cliente para o caso de o usuário
-  // fazer logout em outra aba, ou se o estado de autenticação mudar dinamicamente.
   useEffect(() => {
+    // Se o carregamento terminou e o usuário não está autenticado como admin,
+    // redireciona para a página de login.
     if (!isLoading && (!isAuthenticated || currentUser?.role !== 'admin')) {
       router.replace('/login?redirect=/admin');
     }
@@ -63,6 +62,12 @@ export default function AdminLayout({
         <p className="text-foreground text-xl">Verificando sessão de Admin...</p>
       </div>
     );
+  }
+
+  // Se, após o carregamento, o papel do usuário não for admin, não renderiza nada.
+  // O useEffect acima já terá iniciado o redirecionamento.
+  if (currentUser.role !== 'admin') {
+    return null;
   }
 
   return (
