@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, onSnapshot, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
 
 interface AuthContextType {
@@ -23,8 +23,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// This sanitization is ONLY for creating a valid email string for Firebase Auth.
-// The actual username stored in the database should retain its original casing.
 const sanitizeUsernameForEmail = (username: string) => {
     return username.trim().toLowerCase();
 };
@@ -37,8 +35,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  const isLoading = authLoading || isFirestoreLoading;
   const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
+  const isLoading = authLoading || isFirestoreLoading;
 
   useEffect(() => {
     if (firebaseUser) {
@@ -47,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (doc.exists()) {
           setCurrentUser(doc.data() as User);
         } else {
-          // This case can happen if a user is deleted from Firestore but not from Auth
           setCurrentUser(null);
           signOut(auth);
         }
@@ -80,7 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           router.push(redirectPath);
         }
     } else {
-        // Default redirection logic after login if no redirect param is present
         switch(currentUser.role) {
             case 'admin':
                 router.push('/admin');
@@ -96,11 +92,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading, currentUser, router, searchParams]);
+  }, [isAuthenticated, isLoading, currentUser]);
 
 
   const login = useCallback(async (username: string, passwordAttempt: string, expectedRole?: 'cliente' | 'vendedor' | 'admin') => {
-     // Sanitize username to create the email, but keep original username for checks if needed.
      const emailUsername = sanitizeUsernameForEmail(username);
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
 
@@ -108,8 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
         const fbUser = userCredential.user;
         
-        // Directly get user data from Firestore using the authenticated user's UID.
-        // This is the most reliable way.
         const userDocRef = doc(db, "users", fbUser.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -119,22 +112,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (expectedRole && userData.role !== expectedRole) {
               toast({ title: "Acesso Negado", description: `As credenciais são válidas, mas não para um perfil de ${expectedRole}.`, variant: "destructive" });
               await signOut(auth);
-              return;
+              throw new Error("Role mismatch");
           }
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
-           // The useEffect above will handle redirection.
+           // The useEffect hook will handle redirection.
         } else {
-          // This is a failsafe, should not happen in normal flow.
           toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
           await signOut(auth);
+          throw new Error("User data not found in Firestore.");
         }
      } catch (error: any) {
         console.error("Firebase login error:", error);
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
-        } else {
-            toast({ title: "Erro de Login", description: error.message || "Ocorreu um erro inesperado.", variant: "destructive" });
+        } else if (error.message !== "Role mismatch" && error.message !== "User data not found in Firestore.") {
+             toast({ title: "Erro de Login", description: error.message || "Ocorreu um erro inesperado.", variant: "destructive" });
         }
+        // Re-throw the error so the calling component (login page) can catch it and update its state.
+        throw error;
      }
   }, [toast]);
 
@@ -152,14 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => {
     const originalUsername = username.trim();
+    if (!/^[a-zA-Z0-9_.-]+$/.test(originalUsername)) {
+         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras, números e os caracteres: . - _", variant: "destructive" });
+         return;
+    }
     const emailUsername = sanitizeUsernameForEmail(originalUsername);
 
-    if (!emailUsername) {
-        toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido.", variant: "destructive" });
-        return;
-    }
-
-    // Check if username already exists in Firestore (case-insensitive)
     const usersRef = collection(db, "users");
     const q = query(usersRef, where("username", "==", originalUsername));
     const querySnapshot = await getDocs(q);
@@ -177,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const newUser: User = {
             id: newFirebaseUser.uid,
-            username: originalUsername, // Store the original username
+            username: originalUsername,
             role,
             createdAt: new Date().toISOString(),
             saldo: role === 'cliente' ? 50 : 0,
@@ -186,18 +179,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(doc(db, "users", newFirebaseUser.uid), newUser);
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
-        await signOut(auth); // Force user to log in after registering
+        await signOut(auth);
         router.push('/login');
 
     } catch (error: any) {
         console.error("Firebase registration error:", error);
-        // The username check above handles this, but this is a fallback.
         if (error.code === 'auth/email-already-in-use') {
             toast({ title: "Erro de Cadastro", description: "Este nome de usuário já está em uso.", variant: "destructive" });
         } else if (error.code === 'auth/weak-password') {
             toast({ title: "Erro de Cadastro", description: "A senha é muito fraca. Use pelo menos 6 caracteres.", variant: "destructive" });
         } else {
-            toast({ title: "Erro de Cadastro", description: error.message || "Ocorreu um erro inesperado ao se registrar.", variant: "destructive" });
+            toast({ title: "Erro de Cadastro", description: error.message || "Ocorreu um erro inesperado.", variant: "destructive" });
         }
     }
   }, [router, toast]);

@@ -55,13 +55,19 @@ export default function LoginPage() {
     }
     
     setIsSubmitting(true);
-    const redirectPath = searchParams.get('redirect');
-    const expectedRole = redirectPath?.includes('admin') ? 'admin' : redirectPath?.includes('cliente') ? 'cliente' : redirectPath?.includes('vendedor') ? 'vendedor' : undefined;
+    try {
+        const redirectPath = searchParams.get('redirect');
+        const expectedRole = redirectPath?.includes('admin') ? 'admin' : redirectPath?.includes('cliente') ? 'cliente' : redirectPath?.includes('vendedor') ? 'vendedor' : undefined;
 
-    await login(username, password, expectedRole);
-    // The AuthProvider's useEffect will handle redirection.
-    // We just need to handle the loading state of the button.
-    setIsSubmitting(false);
+        await login(username, password, expectedRole);
+        // The AuthProvider's useEffect will handle redirection.
+    } catch (error: any) {
+        // The login function in auth-context already shows a toast.
+        // This catch block is to stop the loading spinner.
+        console.error("Login page caught error:", error); // Optional: for debugging
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   if (authLoading) {
