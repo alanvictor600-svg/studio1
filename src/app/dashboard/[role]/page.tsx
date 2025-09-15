@@ -44,6 +44,7 @@ export default function DashboardPage() {
   // Main data fetching and real-time listeners effect
   useEffect(() => {
     if (!currentUser || currentUser.role !== role) {
+      if(!isLoading) setIsDataLoading(false);
       return;
     }
     
@@ -71,28 +72,30 @@ export default function DashboardPage() {
       setAllDraws(drawsData);
       
       const allTicketsQuery = query(collection(db, 'tickets'));
-      onSnapshot(allTicketsQuery, (allTicketsSnapshot) => {
+      const unsubscribePauseCheck = onSnapshot(allTicketsQuery, (allTicketsSnapshot) => {
         const allTicketsData = allTicketsSnapshot.docs.map(t => ({ id: t.id, ...t.data() } as Ticket));
         const processedTickets = updateTicketStatusesBasedOnDraws(allTicketsData, drawsData);
         const hasWinningTickets = processedTickets.some(t => t.status === 'winning');
         setIsLotteryPaused(hasWinningTickets);
       });
+      
+      return () => unsubscribePauseCheck();
 
     }, (error) => {
       console.error("Error fetching draws for pause check: ", error);
     });
 
+    // OPTIMIZED QUERY: Fetch only tickets relevant to the user.
     const idField = role === 'cliente' ? 'buyerId' : 'sellerId';
     const ticketsQuery = query(
         collection(db, 'tickets'), 
-        where(idField, '==', currentUser.id)
+        where(idField, '==', currentUser.id),
+        orderBy('createdAt', 'desc')
     );
       
     const unsubscribeTickets = onSnapshot(ticketsQuery, (ticketSnapshot) => {
         const userTicketsData = ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-        const sortedTickets = userTicketsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        // We will update the status on the client side based on the latest draws
-        setUserTickets(sortedTickets);
+        setUserTickets(userTicketsData);
         setIsDataLoading(false);
     }, (error) => {
         console.error("Error fetching user tickets: ", error);
@@ -106,7 +109,7 @@ export default function DashboardPage() {
       unsubscribeTickets();
     };
 
-  }, [currentUser, role, toast]);
+  }, [currentUser, role, toast, isLoading]);
 
   const processedUserTickets = updateTicketStatusesBasedOnDraws(userTickets, allDraws);
 
@@ -123,7 +126,8 @@ export default function DashboardPage() {
   }
 
   const handleTicketCreated = (newTicket: Ticket) => {
-    setUserTickets(prevTickets => [newTicket, ...prevTickets]);
+    // The onSnapshot listener will handle the update automatically.
+    // This function can be kept for optimistic updates in the future if needed.
   };
   
   return (
