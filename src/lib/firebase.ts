@@ -5,12 +5,12 @@ import { getFirestore, initializeFirestore, persistentLocalCache, memoryLocalCac
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDNNVPGCjX-0PJathtQF1mRBZQzDpv1KVk",
-  authDomain: "studio-19544357-e5b7b.firebaseapp.com",
-  projectId: "studio-19544357-e5b7b",
-  storageBucket: "studio-19544357-e5b7b.firebasestorage.app",
-  messagingSenderId: "253320578749",
-  appId: "1:253320578749:web:f5dbbe818c2e92d9f319d4"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
