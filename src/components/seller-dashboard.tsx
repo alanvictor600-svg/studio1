@@ -1,18 +1,19 @@
 
 "use client";
 
-import { useState, type FC, useEffect } from 'react';
+import { useState, type FC, useEffect, useCallback } from 'react';
 import type { Ticket, LotteryConfig, User, Draw, SellerHistoryEntry } from '@/types';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import { TicketList } from '@/components/ticket-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingBag, FileText } from 'lucide-react';
+import { ShoppingBag, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
+import { Button } from './ui/button';
 
 interface SellerDashboardProps {
     isLotteryPaused?: boolean;
@@ -22,6 +23,8 @@ interface SellerDashboardProps {
     currentUser: User | null;
     allDraws: Draw[];
 }
+
+const REPORTS_PER_PAGE = 9;
 
 export const SellerDashboard: FC<SellerDashboardProps> = ({ 
     isLotteryPaused,
@@ -34,32 +37,62 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     const { toast } = useToast();
     const [sellerHistory, setSellerHistory] = useState<SellerHistoryEntry[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+    const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-    useEffect(() => {
+    const fetchHistory = useCallback(async (loadMore = false) => {
         if (!currentUser || currentUser.role !== 'vendedor') {
-             setIsLoadingHistory(false);
-             return;
-        };
-
-        setIsLoadingHistory(true);
-        const historyQuery = query(
-            collection(db, 'sellerHistory'), 
-            where("sellerId", "==", currentUser.id),
-            orderBy("endDate", "desc")
-        );
-
-        const unsubscribe = onSnapshot(historyQuery, (snapshot) => {
-            const historyData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SellerHistoryEntry));
-            setSellerHistory(historyData);
             setIsLoadingHistory(false);
-        }, (error) => {
+            return;
+        }
+
+        if (loadMore) {
+            setIsFetchingMore(true);
+        } else {
+            setIsLoadingHistory(true);
+        }
+        
+        try {
+            const historyQueryConstraints = [
+                where("sellerId", "==", currentUser.id),
+                orderBy("endDate", "desc"),
+                limit(REPORTS_PER_PAGE)
+            ];
+
+            if (loadMore && lastVisible) {
+                historyQueryConstraints.push(startAfter(lastVisible));
+            }
+            
+            const q = query(collection(db, 'sellerHistory'), ...historyQueryConstraints);
+            const documentSnapshots = await getDocs(q);
+
+            const newHistoryData = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as SellerHistoryEntry));
+            
+            setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1] || null);
+            setHasMore(newHistoryData.length === REPORTS_PER_PAGE);
+
+            if (loadMore) {
+                setSellerHistory(prev => [...prev, ...newHistoryData]);
+            } else {
+                setSellerHistory(newHistoryData);
+            }
+
+        } catch (error) {
             console.error("Error fetching seller history: ", error);
             toast({ title: "Erro ao Carregar Histórico", description: "Não foi possível buscar seu histórico de vendas.", variant: "destructive" });
+        } finally {
             setIsLoadingHistory(false);
-        });
+            setIsFetchingMore(false);
+        }
+    }, [currentUser, toast, lastVisible]);
 
-        return () => unsubscribe();
-    }, [currentUser, toast]);
+    useEffect(() => {
+        if (currentUser) {
+            fetchHistory(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser]);
 
     return (
         <Tabs defaultValue="vendas" className="w-full">
@@ -103,6 +136,23 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                                     <SellerHistoryCard key={entry.id} historyEntry={entry} />
                                 ))}
                             </div>
+                             {hasMore && (
+                                <div className="flex justify-center mt-6">
+                                    <Button
+                                        onClick={() => fetchHistory(true)}
+                                        disabled={isFetchingMore}
+                                    >
+                                        {isFetchingMore ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Carregando...
+                                            </>
+                                        ) : (
+                                            'Carregar Mais Relatórios'
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                         </ScrollArea>
                     ) : (
                         <div className="text-center text-muted-foreground bg-card/80 p-10 rounded-lg shadow-inner max-w-2xl mx-auto">
