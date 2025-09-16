@@ -101,20 +101,12 @@ export default function DashboardLayout({
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === dashboardPath}>
                         <Link href={dashboardPath}>
-                            {isSeller ? <ShoppingBag /> : <Ticket />}
-                            {isSeller ? 'Vendas' : 'Fazer Aposta'}
+                            {isSeller ? <LayoutDashboard /> : <Ticket />}
+                            {isSeller ? 'Meu Painel' : 'Fazer Aposta'}
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
-                 {isSeller && (
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.includes('/relatorios')}>
-                             <Link href={`${dashboardPath}/relatorios`}>
-                                <FileText /> Relatórios
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                 )}
+                 
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild variant="secondary" className="bg-green-500/80 text-white hover:bg-green-600/90 font-semibold text-base h-12">
                          <Link href="/solicitar-saldo">
