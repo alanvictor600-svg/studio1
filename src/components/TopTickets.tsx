@@ -47,10 +47,7 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const ticketsQuery = query(
-        collection(db, 'tickets'),
-        where('status', 'in', ['active', 'winning'])
-    );
+    const ticketsQuery = query(collection(db, 'tickets'));
     const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
         const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
         setAllTickets(ticketsData);
@@ -71,6 +68,7 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
     }
     
     const relevantTicketsWithMatches = allTickets
+      .filter(ticket => ticket.status === 'active' || ticket.status === 'winning')
       .map(ticket => ({
         ...ticket,
         matches: calculateTicketMatches(ticket, draws),
