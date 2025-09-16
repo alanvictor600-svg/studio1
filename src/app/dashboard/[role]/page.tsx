@@ -9,7 +9,7 @@ import type { User, LotteryConfig, Ticket, Draw } from '@/types';
 import { TicketSelectionForm } from '@/components/ticket-selection-form';
 import { SellerDashboard } from '@/components/seller-dashboard';
 import { TicketList } from '@/components/ticket-list';
-import { doc, onSnapshot, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
@@ -136,6 +136,15 @@ export default function DashboardPage() {
   
   return (
     <div className="space-y-12">
+      <header>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight text-center">
+            {role === 'cliente' ? 'Bem-vindo, Apostador!' : 'Painel do Vendedor'}
+          </h1>
+          <p className="text-lg text-muted-foreground mt-2 text-center">
+             {role === 'cliente' ? 'Sua sorte começa aqui. Escolha seus números e boa sorte!' : 'Gerencie suas vendas e acompanhe seus resultados.'}
+          </p>
+      </header>
+      
       {role === 'cliente' && (
         <>
           <TicketSelectionForm

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Coins, Ticket, Home, User as UserIcon, FileText, ShoppingBag, LayoutDashboard } from 'lucide-react';
+import { LogOut, Coins, Ticket, Home, User as UserIcon, FileText, ShoppingBag } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
@@ -97,9 +97,10 @@ export default function DashboardLayout({
 
             <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.startsWith(`/dashboard/${currentUser.role}`)}>
+                    <SidebarMenuButton asChild isActive={pathname === `/dashboard/${currentUser.role}`}>
                         <Link href={`/dashboard/${currentUser.role}`}>
-                            <LayoutDashboard /> Meu Painel
+                            {isSeller ? <ShoppingBag /> : <Ticket />}
+                            {isSeller ? ' Vendas' : ' Fazer Aposta'}
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
