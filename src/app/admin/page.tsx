@@ -247,12 +247,26 @@ export default function AdminPage() {
   const handleCreditChange = async (user: User, amount: number) => {
     try {
         const newBalance = await updateUserCredits(user.id, amount);
+        
+        // --- Optimistic UI Update ---
+        // Update the user in the local `allUsers` state for immediate feedback.
+        setAllUsers(prevUsers => 
+            prevUsers.map(u => 
+                u.id === user.id ? { ...u, saldo: newBalance } : u
+            )
+        );
+        // Also update the user in the dialog if it's open
+        if (userToManageCredits && userToManageCredits.id === user.id) {
+            setUserToManageCredits(prev => prev ? { ...prev, saldo: newBalance } : null);
+        }
+
         toast({
             title: "Saldo Atualizado!",
             description: `O saldo de ${user.username} agora é R$ ${newBalance.toFixed(2).replace('.', ',')}.`,
             className: "bg-primary text-primary-foreground",
             duration: 3000
         });
+        
     } catch(e) {
         console.error("Error updating credits: ", e);
         toast({ title: "Erro", description: "Não foi possível atualizar o saldo do usuário.", variant: "destructive" });

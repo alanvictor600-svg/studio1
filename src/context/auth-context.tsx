@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -13,7 +14,7 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, passwordAttempt: string) => Promise<void>;
+  login: (username: string, passwordAttempt: string, loginAs?: 'admin') => Promise<void>;
   logout: () => void;
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [firebaseUser, toast]);
 
-  const login = useCallback(async (username: string, passwordAttempt: string) => {
+  const login = useCallback(async (username: string, passwordAttempt: string, loginAs?: 'admin') => {
      const emailUsername = sanitizeUsernameForEmail(username);
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
 
@@ -85,19 +86,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           
+          if(loginAs === 'admin' && userData.role !== 'admin') {
+            await signOut(auth);
+            toast({ title: "Acesso Negado", description: "Este usuário não tem permissões de administrador.", variant: "destructive" });
+            return;
+          }
+
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
            
-           // Centralized redirection logic
            const redirectPath = searchParams.get('redirect');
            
            if (redirectPath && redirectPath !== '/') {
              router.replace(redirectPath);
            } else {
-             // Default redirection based on user role
              router.replace(userData.role === 'admin' ? '/admin' : `/dashboard/${userData.role}`);
            }
         } else {
-          // This is a failsafe, but the onSnapshot listener should also handle this.
           await signOut(auth);
           toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
         }
@@ -114,9 +118,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      setCurrentUser(null); // Explicitly clear local user state
+      setCurrentUser(null); 
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
-      router.push('/'); // Navigate to home page on logout
+      router.push('/'); 
     } catch (error) {
       console.error("Error signing out: ", error);
       toast({ title: "Erro ao Sair", description: "Não foi possível fazer o logout. Tente novamente.", variant: "destructive" });
@@ -164,9 +168,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const updateCurrentUserCredits = (newCredits: number) => {
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, saldo: newCredits });
-    }
+    // Directly update the state to ensure UI is always in sync.
+    setCurrentUser(prevUser => {
+        if (!prevUser) return null;
+        return { ...prevUser, saldo: newCredits };
+    });
   };
   
   const value = { currentUser, login, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
