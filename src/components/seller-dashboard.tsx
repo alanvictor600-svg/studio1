@@ -116,6 +116,21 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
             </TabsList>
             <TabsContent value="vendas">
                 <div className="space-y-12">
+                    <SellerTicketCreationForm
+                        isLotteryPaused={isLotteryPaused}
+                        onTicketCreated={onTicketCreated}
+                        lotteryConfig={lotteryConfig}
+                    />
+                    <section>
+                        <h2 className="text-2xl font-bold text-center text-primary mb-6">
+                            Meus Bilhetes Vendidos (Ciclo Atual)
+                        </h2>
+                        <TicketList tickets={userTickets} draws={allDraws} />
+                    </section>
+                </div>
+            </TabsContent>
+            <TabsContent value="relatorios">
+                 <section className="space-y-12">
                     <Card className="shadow-lg bg-card/90 backdrop-blur-sm">
                         <CardHeader>
                             <CardTitle className="text-xl text-primary flex items-center gap-2">
@@ -151,62 +166,49 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                         </CardContent>
                     </Card>
 
-                    <SellerTicketCreationForm
-                        isLotteryPaused={isLotteryPaused}
-                        onTicketCreated={onTicketCreated}
-                        lotteryConfig={lotteryConfig}
-                    />
-                    <section>
-                        <h2 className="text-2xl font-bold text-center text-primary mb-6">
-                            Meus Bilhetes Vendidos (Ciclo Atual)
+                    <div>
+                        <h2 className="text-3xl font-bold text-center text-primary mb-8 flex items-center justify-center">
+                            Histórico de Ciclos Anteriores
                         </h2>
-                        <TicketList tickets={userTickets} draws={allDraws} />
-                    </section>
-                </div>
-            </TabsContent>
-            <TabsContent value="relatorios">
-                 <section>
-                    <h2 className="text-3xl font-bold text-center text-primary mb-8 flex items-center justify-center">
-                        Meus Relatórios de Vendas
-                    </h2>
-                    <p className="text-center text-muted-foreground -mt-6 mb-8">
-                        Acompanhe seu desempenho e comissões de ciclos de loteria anteriores.
-                    </p>
-                    {isLoadingHistory ? (
-                        <p className="text-center text-muted-foreground py-10">Carregando histórico...</p>
-                    ) : sellerHistory.length > 0 ? (
-                        <ScrollArea className="h-[70vh]">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-                                {sellerHistory.map(entry => (
-                                    <SellerHistoryCard key={entry.id} historyEntry={entry} />
-                                ))}
-                            </div>
-                             {hasMore && (
-                                <div className="flex justify-center mt-6">
-                                    <Button
-                                        onClick={() => fetchHistory(true)}
-                                        disabled={isFetchingMore}
-                                    >
-                                        {isFetchingMore ? (
-                                            <>
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                Carregando...
-                                            </>
-                                        ) : (
-                                            'Carregar Mais Relatórios'
-                                        )}
-                                    </Button>
+                        <p className="text-center text-muted-foreground -mt-6 mb-8">
+                            Acompanhe seu desempenho e comissões de ciclos de loteria encerrados.
+                        </p>
+                        {isLoadingHistory ? (
+                            <p className="text-center text-muted-foreground py-10">Carregando histórico...</p>
+                        ) : sellerHistory.length > 0 ? (
+                            <ScrollArea className="h-[70vh]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
+                                    {sellerHistory.map(entry => (
+                                        <SellerHistoryCard key={entry.id} historyEntry={entry} />
+                                    ))}
                                 </div>
-                            )}
-                        </ScrollArea>
-                    ) : (
-                        <div className="text-center text-muted-foreground bg-card/80 p-10 rounded-lg shadow-inner max-w-2xl mx-auto">
-                            <h3 className="text-lg font-semibold text-foreground">Nenhum Relatório Encontrado</h3>
-                            <p className="mt-2">
-                                Seu primeiro relatório de ciclo aparecerá aqui após o administrador encerrar a loteria atual.
-                            </p>
-                        </div>
-                    )}
+                                {hasMore && (
+                                    <div className="flex justify-center mt-6">
+                                        <Button
+                                            onClick={() => fetchHistory(true)}
+                                            disabled={isFetchingMore}
+                                        >
+                                            {isFetchingMore ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Carregando...
+                                                </>
+                                            ) : (
+                                                'Carregar Mais Relatórios'
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        ) : (
+                            <div className="text-center text-muted-foreground bg-card/80 p-10 rounded-lg shadow-inner max-w-2xl mx-auto">
+                                <h3 className="text-lg font-semibold text-foreground">Nenhum Relatório Encontrado</h3>
+                                <p className="mt-2">
+                                    Seu primeiro relatório de ciclo aparecerá aqui após o administrador encerrar a loteria atual.
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </section>
             </TabsContent>
         </Tabs>
