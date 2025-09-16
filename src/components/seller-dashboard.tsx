@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, type FC, useEffect, useCallback } from 'react';
+import { useState, type FC, useEffect, useCallback, useMemo } from 'react';
 import type { Ticket, LotteryConfig, User, Draw, SellerHistoryEntry } from '@/types';
 import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-form';
 import { TicketList } from '@/components/ticket-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingBag, FileText, Loader2 } from 'lucide-react';
+import { ShoppingBag, FileText, Loader2, BarChart3, Percent, DollarSign, Ticket as TicketIcon } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
@@ -14,6 +14,7 @@ import { db } from '@/lib/firebase';
 import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 interface SellerDashboardProps {
     isLotteryPaused?: boolean;
@@ -94,6 +95,15 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser]);
 
+    const currentCycleSummary = useMemo(() => {
+        const activeTickets = userTickets.filter(t => t.status === 'active' || t.status === 'winning');
+        const ticketCount = activeTickets.length;
+        const totalRevenue = ticketCount * lotteryConfig.ticketPrice;
+        const estimatedCommission = totalRevenue * (lotteryConfig.sellerCommissionPercentage / 100);
+
+        return { ticketCount, totalRevenue, estimatedCommission };
+    }, [userTickets, lotteryConfig]);
+
     return (
         <Tabs defaultValue="vendas" className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-auto mb-8">
@@ -106,6 +116,41 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
             </TabsList>
             <TabsContent value="vendas">
                 <div className="space-y-12">
+                    <Card className="shadow-lg bg-card/90 backdrop-blur-sm">
+                        <CardHeader>
+                            <CardTitle className="text-xl text-primary flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5" />
+                                Resumo do Ciclo Atual
+                            </CardTitle>
+                             <CardDescription>
+                               Seu desempenho de vendas em tempo real.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div className="p-4 rounded-lg bg-background/70 shadow-inner">
+                                <p className="text-sm font-medium text-muted-foreground">Bilhetes Vendidos</p>
+                                <p className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
+                                    <TicketIcon className="h-7 w-7 text-blue-500" />
+                                    {currentCycleSummary.ticketCount}
+                                </p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-background/70 shadow-inner">
+                                <p className="text-sm font-medium text-muted-foreground">Receita Gerada</p>
+                                <p className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
+                                     <DollarSign className="h-7 w-7 text-green-500" />
+                                    {currentCycleSummary.totalRevenue.toFixed(2).replace('.', ',')}
+                                </p>
+                            </div>
+                             <div className="p-4 rounded-lg bg-background/70 shadow-inner">
+                                <p className="text-sm font-medium text-muted-foreground">Comissão Estimada</p>
+                                <p className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
+                                     <Percent className="h-7 w-7 text-yellow-500" />
+                                    {currentCycleSummary.estimatedCommission.toFixed(2).replace('.', ',')}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     <SellerTicketCreationForm
                         isLotteryPaused={isLotteryPaused}
                         onTicketCreated={onTicketCreated}
