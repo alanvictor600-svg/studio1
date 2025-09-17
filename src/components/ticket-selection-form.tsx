@@ -70,7 +70,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
 
   const handleAutoFill = () => {
     setCurrentPicks(generateAutoFilledTicket());
-    toast({ title: "Surpresinha Gerada!", description: "Os números foram preenchidos para você. Adicione-os ao carrinho para comprar.", duration: 3000 });
+    toast({ title: "Surpresinha Gerada!", description: "Confira os números e adicione ao carrinho para comprar.", duration: 3000 });
   };
   
   const handleAddTicketToCart = () => {
@@ -130,7 +130,7 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
         </div>
 
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">Escolha os Bichos (1-25):</h3>
+          <h3 className="text-lg font-bold text-primary mb-4 text-center">Escolha os Bichos (1-25)</h3>
           <div className="grid grid-cols-5 md:grid-cols-7 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
             {animalMapping.map(animal => (
               <NumberButton
