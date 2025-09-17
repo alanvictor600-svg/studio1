@@ -25,6 +25,7 @@ export const AdminDrawCard: FC<AdminDrawCardProps> = ({ draw }) => {
             <CardDescription className="text-3xl font-bold text-primary-foreground flex items-center justify-center text-center drop-shadow-lg">
                 <Clover size={28} className="mr-3 shrink-0 text-green-300" />
                 <span>{draw.name}</span>
+                <Clover size={28} className="ml-3 shrink-0 text-green-300" />
             </CardDescription>
         ) : (
             <CardTitle className="text-3xl flex items-center font-bold justify-center drop-shadow-lg">
