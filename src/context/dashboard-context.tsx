@@ -6,7 +6,7 @@ import type { LotteryConfig, User } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { doc, writeBatch, runTransaction, collection } from 'firebase/firestore';
+import { doc, writeBatch, runTransaction, collection, getDoc } from 'firebase/firestore';
 
 interface DashboardContextType {
     cart: number[][];
@@ -49,9 +49,17 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         setIsSubmitting(true);
         const totalCost = cart.length * lotteryConfig.ticketPrice;
+        const userRef = doc(db, "users", currentUser.id);
+
+        // First, check user balance BEFORE starting the transaction
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists() || (userDoc.data().saldo || 0) < totalCost) {
+            setIsCreditsDialogOpen(true);
+            setIsSubmitting(false);
+            return;
+        }
 
         try {
-            const userRef = doc(db, "users", currentUser.id);
             const batch = writeBatch(db);
 
             cart.forEach(ticketNumbers => {
@@ -66,13 +74,15 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 };
                 batch.set(newTicketRef, newTicketData);
             });
-
+            
+            // Now, run the transaction only to update the balance
             await runTransaction(db, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) throw new Error("Usuário não encontrado.");
+                const freshUserDoc = await transaction.get(userRef);
+                if (!freshUserDoc.exists()) throw new Error("Usuário não encontrado.");
                 
-                const currentBalance = userDoc.data().saldo || 0;
-                if (currentBalance < totalCost) throw new Error("Insufficient credits.");
+                const currentBalance = freshUserDoc.data().saldo || 0;
+                // Double-check balance inside transaction in case of race conditions
+                if (currentBalance < totalCost) throw new Error("Saldo insuficiente. A transação foi cancelada.");
 
                 const newBalance = currentBalance - totalCost;
                 transaction.update(userRef, { saldo: newBalance });
@@ -93,11 +103,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         } catch (e: any) {
             console.error("Transaction failed: ", e);
-            if (e.message === 'Insufficient credits.') {
-                setIsCreditsDialogOpen(true);
-            } else {
-                toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
-            }
+            toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
