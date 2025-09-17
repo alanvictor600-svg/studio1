@@ -9,13 +9,14 @@ import { List, PlayCircle, Trophy, Clock, Ban, TimerOff } from 'lucide-react';
 
 interface TicketListProps {
   tickets: Ticket[];
-  draws?: Draw[]; // Added to receive draw information
+  draws?: Draw[];
+  onRebet?: (numbers: number[]) => void;
 }
 
 type TabValue = 'all' | 'active' | 'winning' | 'expired' | 'unpaid';
 
 
-export const TicketList: FC<TicketListProps> = ({ tickets, draws }) => {
+export const TicketList: FC<TicketListProps> = ({ tickets, draws, onRebet }) => {
   const [activeTab, setActiveTab] = useState<TabValue>('all');
 
   const filteredTickets = tickets.filter(ticket => {
@@ -68,7 +69,8 @@ export const TicketList: FC<TicketListProps> = ({ tickets, draws }) => {
             <TicketCard
               key={ticket.id}
               ticket={ticket}
-              draws={draws} // Pass draws to TicketCard
+              draws={draws}
+              onRebet={onRebet}
             />
           ))}
         </div>

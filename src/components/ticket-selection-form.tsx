@@ -1,28 +1,31 @@
 
 "use client";
 
-import { useState, type FC } from 'react';
+import { useState, type FC, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib/lottery-utils';
 import { NumberButton } from '@/components/number-button';
-import { X, Sparkles, Trash2, TicketPlus, PauseCircle } from 'lucide-react';
+import { X, Sparkles, Trash2, ShoppingCart, PauseCircle, PlusCircle, ArrowRight } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { Ticket, User, LotteryConfig } from '@/types';
 import { TicketReceiptDialog } from '@/components/ticket-receipt-dialog';
 import { InsufficientCreditsDialog } from '@/components/insufficient-credits-dialog';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { runTransaction, doc, collection } from 'firebase/firestore';
-
+import { runTransaction, doc, collection, writeBatch } from 'firebase/firestore';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 
 interface TicketSelectionFormProps {
   isLotteryPaused?: boolean;
   currentUser: User | null;
   updateCurrentUserCredits: (newCredits: number) => void;
   lotteryConfig: LotteryConfig;
+  initialCart?: number[][];
+  onPurchaseComplete?: () => void;
 }
 
 const MAX_PICKS = 10;
@@ -32,13 +35,25 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
   isLotteryPaused = false,
   currentUser,
   updateCurrentUserCredits,
-  lotteryConfig
+  lotteryConfig,
+  initialCart,
+  onPurchaseComplete,
 }) => {
   const [currentPicks, setCurrentPicks] = useState<number[]>([]);
+  const [cart, setCart] = useState<number[][]>([]);
   const { toast } = useToast();
   const [receiptTicket, setReceiptTicket] = useState<Ticket | null>(null);
   const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialCart && initialCart.length > 0) {
+      setCart(prevCart => [...prevCart, ...initialCart]);
+      onPurchaseComplete?.(); // Clear the trigger state in parent
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCart]);
+
 
   const numberCounts = countOccurrences(currentPicks);
 
@@ -79,8 +94,23 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
   };
 
   const handleAutoFill = () => {
-    setCurrentPicks(generateAutoFilledTicket());
-     toast({ title: "Números Gerados!", description: "Seu bilhete foi preenchido automaticamente.", duration: 3000 });
+    const newTicket = generateAutoFilledTicket();
+    setCart(prevCart => [...prevCart, newTicket]);
+    toast({ title: "Surpresinha Adicionada!", description: "Um bilhete com números aleatórios foi adicionado ao seu carrinho.", duration: 3000 });
+  };
+  
+  const handleAddTicketToCart = () => {
+    if (currentPicks.length !== MAX_PICKS) {
+      toast({ title: "Seleção Incompleta", description: `Por favor, selecione ${MAX_PICKS} números para adicionar ao carrinho.`, variant: "destructive" });
+      return;
+    }
+    setCart(prevCart => [...prevCart, currentPicks]);
+    setCurrentPicks([]);
+    toast({ title: "Bilhete Adicionado ao Carrinho", description: "Sua seleção está pronta para ser comprada.", duration: 3000 });
+  };
+
+  const handleRemoveFromCart = (indexToRemove: number) => {
+    setCart(cart.filter((_, index) => index !== indexToRemove));
   };
 
   const handleClearSelection = () => {
@@ -88,71 +118,82 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
     toast({ title: "Seleção Limpa", description: "Todos os números foram removidos.", duration: 3000 });
   };
 
-  const handleSubmitTicket = async () => {
+  const handlePurchaseCart = async () => {
     if (!currentUser) {
         toast({ title: "Erro", description: "Você precisa estar logado para comprar.", variant: "destructive" });
         return;
     }
-    
-    if (currentPicks.length !== MAX_PICKS) {
-      toast({ title: "Seleção Incompleta", description: `Por favor, selecione ${MAX_PICKS} números.`, variant: "destructive" });
+    if (cart.length === 0) {
+      toast({ title: "Carrinho Vazio", description: "Adicione pelo menos um bilhete ao carrinho para comprar.", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
+    
+    const totalCost = cart.length * lotteryConfig.ticketPrice;
 
     try {
-      const ticketPrice = lotteryConfig.ticketPrice;
       const userRef = doc(db, "users", currentUser.id);
 
-      const createdTicket = await runTransaction(db, async (transaction) => {
+      await runTransaction(db, async (transaction) => {
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists()) {
           throw new Error("User not found.");
         }
 
         const currentBalance = userDoc.data().saldo || 0;
-        if (currentBalance < ticketPrice) {
-          // This will be caught by the catch block and trigger the dialog
+        if (currentBalance < totalCost) {
           throw new Error("Insufficient credits.");
         }
         
-        const newBalance = currentBalance - ticketPrice;
+        const newBalance = currentBalance - totalCost;
         
-        const newTicketRef = doc(collection(db, "tickets"));
-        const newTicketData: Ticket = {
-          id: newTicketRef.id,
-          numbers: [...currentPicks].sort((a,b) => a-b),
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          buyerName: currentUser.username,
-          buyerId: currentUser.id,
-        };
+        const batch = writeBatch(db);
+        cart.forEach(ticketNumbers => {
+            const newTicketRef = doc(collection(db, "tickets"));
+            const newTicketData: Ticket = {
+            id: newTicketRef.id,
+            numbers: ticketNumbers.sort((a,b) => a-b),
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            buyerName: currentUser.username,
+            buyerId: currentUser.id,
+            };
+            batch.set(newTicketRef, newTicketData);
+        });
 
-        transaction.set(newTicketRef, newTicketData);
+        // This is a bit of a hack as we can't commit batch inside a transaction.
+        // We'll commit it after. The transaction is just for the balance check.
         transaction.update(userRef, { saldo: newBalance });
-
-        return newTicketData;
+        await batch.commit();
       });
       
       // Update local state for immediate feedback
-      updateCurrentUserCredits((currentUser.saldo || 0) - ticketPrice);
-      setCurrentPicks([]);
-      setReceiptTicket(createdTicket);
+      updateCurrentUserCredits((currentUser.saldo || 0) - totalCost);
+      
+      toast({ 
+          title: `Compra Realizada! (${cart.length} bilhete${cart.length > 1 ? 's' : ''})`, 
+          description: `Boa sorte! Seus bilhetes estão em "Meus Bilhetes".`, 
+          className: "bg-primary text-primary-foreground", 
+          duration: 4000 
+      });
 
-      toast({ title: "Bilhete Adicionado!", description: "Boa sorte! Seu comprovante foi gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+      setCart([]);
+      onPurchaseComplete?.();
 
     } catch (e: any) {
       console.error("Transaction failed: ", e);
       if (e.message === 'Insufficient credits.') {
         setIsCreditsDialogOpen(true);
       } else {
-        toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seu bilhete.", variant: "destructive" });
+        toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
       }
     } finally {
         setIsSubmitting(false);
     }
   };
+
+  const totalCost = cart.length * lotteryConfig.ticketPrice;
 
   return (
     <>
@@ -181,6 +222,14 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
                 </Badge>
               ))}
             </div>
+             <div className="flex gap-2 mt-2">
+                <Button variant="destructive" size="sm" onClick={handleClearSelection} className="flex-1 shadow-sm" disabled={isSubmitting || currentPicks.length === 0}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Limpar Seleção
+                </Button>
+                <Button onClick={handleAddTicketToCart} size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm" disabled={isSubmitting || currentPicks.length !== MAX_PICKS}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar ao Carrinho
+                </Button>
+            </div>
           </div>
 
           <div>
@@ -200,38 +249,59 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
               ))}
             </div>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 pt-6">
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
-              <Sparkles className="mr-2 h-4 w-4" /> Surpresinha
-            </Button>
-            <Button variant="destructive" onClick={handleClearSelection} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
-              <Trash2 className="mr-2 h-4 w-4" /> Limpar
-            </Button>
+
+          <Separator />
+
+          <div>
+             <h3 className="text-lg font-bold text-muted-foreground mb-4 text-center flex items-center justify-center gap-2">
+                <ShoppingCart /> Carrinho de Apostas ({cart.length})
+             </h3>
+             {cart.length > 0 ? (
+                <ScrollArea className="h-48 border rounded-lg bg-background/50 p-4">
+                    <div className="space-y-3">
+                        {cart.map((ticketNumbers, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                <p className="text-sm font-semibold">Bilhete {index + 1}:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {ticketNumbers.map((num, i) => (
+                                        <Badge key={i} variant="outline" className="font-mono text-xs">{num}</Badge>
+                                    ))}
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => handleRemoveFromCart(index)}>
+                                    <Trash2 size={16} />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </ScrollArea>
+             ) : (
+                <div className="text-center text-sm text-muted-foreground p-6 border-2 border-dashed rounded-lg">
+                    <p>Seu carrinho está vazio.</p>
+                    <p>Adicione bilhetes manuais ou surpresinhas para comprar.</p>
+                </div>
+             )}
           </div>
-          <Button 
-            onClick={handleSubmitTicket} 
-            disabled={currentPicks.length !== MAX_PICKS || isSubmitting}
-            className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
-          >
-            <TicketPlus className="mr-2 h-5 w-5" /> {isSubmitting ? 'Registrando...' : 'Adicionar Bilhete'}
-          </Button>
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6">
+            <div className="flex gap-2 w-full sm:w-auto">
+                <Button variant="outline" onClick={handleAutoFill} className="flex-1 sm:flex-none shadow-md hover:shadow-lg" disabled={isSubmitting}>
+                    <Sparkles className="mr-2 h-4 w-4" /> Add Surpresinha
+                </Button>
+            </div>
+            <div className="text-center">
+                <p className="text-sm font-semibold">Total:</p>
+                <p className="text-2xl font-bold text-primary">R$ {totalCost.toFixed(2).replace('.', ',')}</p>
+            </div>
+            <Button 
+                onClick={handlePurchaseCart} 
+                disabled={cart.length === 0 || isSubmitting}
+                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-lg h-12"
+            >
+                {isSubmitting ? 'Comprando...' : 'Comprar Carrinho'}
+                <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
         </CardFooter>
       </Card>
-
-      {receiptTicket && (
-        <TicketReceiptDialog
-          isOpen={!!receiptTicket}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              setReceiptTicket(null);
-            }
-          }}
-          ticket={receiptTicket}
-          lotteryConfig={lotteryConfig}
-        />
-      )}
       
       <InsufficientCreditsDialog
         isOpen={isCreditsDialogOpen}

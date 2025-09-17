@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Ticket as TicketIcon, ShoppingBag } from 'lucide-react';
+import { Ticket as TicketIcon, ShoppingBag, Repeat } from 'lucide-react';
 
 const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   ticketPrice: 2,
@@ -36,6 +36,8 @@ export default function DashboardPage() {
   const [isLotteryPaused, setIsLotteryPaused] = useState(false);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [allDraws, setAllDraws] = useState<Draw[]>([]);
+  const [activeTab, setActiveTab] = useState('aposta');
+  const [ticketToRebet, setTicketToRebet] = useState<number[] | null>(null);
 
   // Validate the role from the URL
   useEffect(() => {
@@ -128,6 +130,16 @@ export default function DashboardPage() {
     // The onSnapshot listener will handle the update automatically.
     // This function can be kept for optimistic updates in the future if needed.
   };
+
+  const handleRebet = (numbers: number[]) => {
+    setTicketToRebet(numbers);
+    setActiveTab('aposta');
+    toast({
+        title: "Números Prontos para Re-aposta!",
+        description: "Os números do bilhete selecionado foram adicionados ao seu carrinho de apostas.",
+        duration: 4000
+    });
+  };
   
   return (
     <div className="space-y-12">
@@ -141,7 +153,7 @@ export default function DashboardPage() {
       </header>
       
       {role === 'cliente' && (
-        <Tabs defaultValue="aposta" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-auto mb-8">
                 <TabsTrigger value="aposta" className="py-3 text-base">
                     <TicketIcon className="mr-2 h-5 w-5" /> Fazer Aposta
@@ -156,6 +168,8 @@ export default function DashboardPage() {
                     currentUser={currentUser}
                     updateCurrentUserCredits={updateCurrentUserCredits}
                     lotteryConfig={lotteryConfig}
+                    initialCart={ticketToRebet ? [ticketToRebet] : []}
+                    onPurchaseComplete={() => setTicketToRebet(null)}
                 />
             </TabsContent>
             <TabsContent value="bilhetes">
@@ -163,7 +177,7 @@ export default function DashboardPage() {
                     <h2 className="text-2xl font-bold text-center text-primary mb-6">
                         Meus Bilhetes
                     </h2>
-                    <TicketList tickets={processedUserTickets} draws={allDraws} />
+                    <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />
                 </section>
             </TabsContent>
         </Tabs>

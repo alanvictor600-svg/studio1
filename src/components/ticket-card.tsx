@@ -8,16 +8,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Award, CircleDot, TimerOff, CalendarDays, User, Clock, Ban, CheckCircle, Ticket as TicketIcon } from 'lucide-react';
+import { Award, CircleDot, TimerOff, CalendarDays, User, Clock, Ban, CheckCircle, Ticket as TicketIcon, Repeat } from 'lucide-react';
 import { calculateTicketMatches } from '@/lib/lottery-utils';
+import { Button } from './ui/button';
 
 
 interface TicketCardProps {
   ticket: Ticket;
   draws?: Draw[];
+  onRebet?: (numbers: number[]) => void;
 }
 
-export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
+export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
   
   const matches = useMemo(() => calculateTicketMatches(ticket, draws || []), [ticket, draws]);
   
@@ -99,6 +101,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
     });
   }, [ticket.numbers, ticket.status, drawnNumbersFrequency]);
 
+  const canRebet = onRebet && (ticket.status === 'expired' || ticket.status === 'unpaid');
 
   return (
      <Card className={cn(
@@ -168,11 +171,18 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
                         </span>
                     </div>
                 )}
-                <div className="flex items-center">
-                    <CalendarDays size={14} className="mr-1.5" />
-                    <span>
-                        Comprado em: {format(parseISO(ticket.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                      <CalendarDays size={14} className="mr-1.5" />
+                      <span>
+                          {format(parseISO(ticket.createdAt), "dd/MM/yy HH:mm", { locale: ptBR })}
+                      </span>
+                  </div>
+                   {canRebet && (
+                    <Button size="sm" variant="ghost" onClick={() => onRebet(ticket.numbers)} className="h-8 -mr-2">
+                      <Repeat className="mr-2 h-4 w-4" /> Reapostar
+                    </Button>
+                  )}
                 </div>
             </div>
         </div>
