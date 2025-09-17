@@ -2,11 +2,11 @@
 "use client";
 
 import type { FC } from 'react';
-import { useMemo, useState, useEffect } from 'react';
-import type { Ticket, Draw } from '@/types';
+import { useMemo } from 'react';
+import type { Draw } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { calculateTicketMatches, countOccurrences } from '@/lib/lottery-utils';
-import { Trophy, Star, TrendingUp } from 'lucide-react';
+import { countOccurrences } from '@/lib/lottery-utils';
+import { Star, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
@@ -32,8 +32,8 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
       <Card className="h-full">
         <CardContent className="flex flex-col items-center justify-center h-full p-6 text-center">
            <Star className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Ainda não há dados de sorteios.</p>
-          <p className="text-sm text-muted-foreground/80">Os números mais sorteados aparecerão aqui.</p>
+          <p className="text-muted-foreground">Aguardando dados dos sorteios.</p>
+          <p className="text-sm text-muted-foreground/80">Faça login como admin para ver estatísticas.</p>
         </CardContent>
       </Card>
     );
@@ -76,3 +76,5 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
     </Card>
   );
 };
+
+    

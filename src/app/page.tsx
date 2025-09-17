@@ -19,14 +19,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const { currentUser, logout, login } = useAuth();
   const router = useRouter();
-  const [draws, setDraws] = useState<Draw[]>([]);
+  const [lastDraw, setLastDraw] = useState<Draw | null>(null);
+  const [isLoadingDraw, setIsLoadingDraw] = useState(true);
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,20 +37,30 @@ export default function LandingPage() {
   useEffect(() => {
     setIsClient(true);
     
-    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
+    // Only fetch draws if user is authenticated as admin, otherwise the rules will block it.
+    if (!currentUser || currentUser.role !== 'admin') {
+      setIsLoadingDraw(false);
+      return;
+    }
+
+    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'), limit(1));
     const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
-        const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
-        setDraws(drawsData);
+        if (!querySnapshot.empty) {
+          setLastDraw({ id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Draw);
+        } else {
+          setLastDraw(null);
+        }
+        setIsLoadingDraw(false);
     }, (error) => {
-        console.error("Error fetching draws: ", error);
-        // This is a public page, so we don't necessarily need to toast the user
-        // unless it's a critical, persistent error.
+        console.error("Error fetching last draw: ", error.message);
+        setLastDraw(null);
+        setIsLoadingDraw(false);
     });
 
     return () => {
         unsubscribeDraws();
     };
-  }, []);
+  }, [currentUser]); // Re-run when user auth state changes
 
   const handlePainelClick = () => {
     if (!currentUser) {
@@ -168,11 +179,16 @@ export default function LandingPage() {
              <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
                 <History className="mr-3 h-6 w-6" /> Último Sorteio
              </h2>
-             {draws.length > 0 ? (
-                <AdminDrawCard draw={draws[0]} />
+             {isLoadingDraw ? (
+                <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
+                    <p className="text-muted-foreground animate-pulse">Carregando...</p>
+                </div>
+             ) : lastDraw ? (
+                <AdminDrawCard draw={lastDraw} />
              ) : (
                 <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
-                    <p className="text-muted-foreground">Nenhum sorteio realizado ainda.</p>
+                    <p className="text-muted-foreground">Nenhum sorteio recente.</p>
+                     <p className="text-sm text-muted-foreground/80 mt-1">Apenas admins podem ver o último sorteio aqui.</p>
                 </div>
              )}
           </div>
@@ -180,7 +196,7 @@ export default function LandingPage() {
             <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
                 <Award className="mr-3 h-6 w-6" /> Acertos
             </h2>
-            <TopTickets draws={draws} />
+            <TopTickets draws={lastDraw ? [lastDraw] : []} />
           </div>
         </div>
         
@@ -267,3 +283,6 @@ export default function LandingPage() {
 
 
 
+
+
+    
