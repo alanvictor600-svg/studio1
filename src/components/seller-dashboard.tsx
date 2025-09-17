@@ -106,29 +106,35 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
 
     return (
         <Tabs defaultValue="vendas" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto mb-8">
+            <TabsList className="grid w-full grid-cols-3 h-auto mb-8">
                 <TabsTrigger value="vendas" className="py-3 text-base">
                     <ShoppingBag className="mr-2 h-5 w-5" /> Vendas
+                </TabsTrigger>
+                 <TabsTrigger value="bilhetes" className="py-3 text-base">
+                    <TicketIcon className="mr-2 h-5 w-5" /> Bilhetes
                 </TabsTrigger>
                 <TabsTrigger value="relatorios" className="py-3 text-base">
                     <FileText className="mr-2 h-5 w-5" /> Relatórios
                 </TabsTrigger>
             </TabsList>
+            
             <TabsContent value="vendas">
-                <div className="space-y-12">
-                    <SellerTicketCreationForm
-                        isLotteryPaused={isLotteryPaused}
-                        onTicketCreated={onTicketCreated}
-                        lotteryConfig={lotteryConfig}
-                    />
-                    <section>
-                        <h2 className="text-2xl font-bold text-center text-primary mb-6">
-                            Meus Bilhetes Vendidos (Ciclo Atual)
-                        </h2>
-                        <TicketList tickets={userTickets} draws={allDraws} />
-                    </section>
-                </div>
+                <SellerTicketCreationForm
+                    isLotteryPaused={isLotteryPaused}
+                    onTicketCreated={onTicketCreated}
+                    lotteryConfig={lotteryConfig}
+                />
             </TabsContent>
+
+             <TabsContent value="bilhetes">
+                 <section>
+                    <h2 className="text-2xl font-bold text-center text-primary mb-6">
+                        Meus Bilhetes Vendidos (Ciclo Atual)
+                    </h2>
+                    <TicketList tickets={userTickets} draws={allDraws} />
+                </section>
+            </TabsContent>
+
             <TabsContent value="relatorios">
                  <section className="space-y-12">
                     <Card className="shadow-lg bg-card/90 backdrop-blur-sm">
