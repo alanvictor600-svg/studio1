@@ -22,12 +22,12 @@ export const AdminDrawCard: FC<AdminDrawCardProps> = ({ draw }) => {
 
       <CardHeader className="pb-4 relative z-10">
         {draw.name ? (
-            <CardDescription className="text-xl font-bold text-primary-foreground flex items-center justify-center text-center">
-                <Clover size={20} className="mr-2 shrink-0 text-green-300" />
+            <CardDescription className="text-3xl font-bold text-primary-foreground flex items-center justify-center text-center drop-shadow-lg">
+                <Clover size={28} className="mr-3 shrink-0 text-green-300" />
                 <span>{draw.name}</span>
             </CardDescription>
         ) : (
-            <CardTitle className="text-xl flex items-center font-bold justify-center">
+            <CardTitle className="text-3xl flex items-center font-bold justify-center drop-shadow-lg">
                 Sorteio Realizado
             </CardTitle>
         )}
