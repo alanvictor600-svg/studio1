@@ -225,5 +225,3 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
     </Card>
   );
 };
-
-    
