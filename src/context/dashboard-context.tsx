@@ -54,52 +54,50 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         const totalCost = cart.length * lotteryConfig.ticketPrice;
         const userRef = doc(db, "users", currentUser.id);
 
-        const userDoc = await getDoc(userRef);
-        if (!userDoc.exists() || (userDoc.data().saldo || 0) < totalCost) {
-            setIsCreditsDialogOpen(true);
-            setIsSubmitting(false);
-            return;
-        }
-
         try {
-            const batch = writeBatch(db);
             const createdTickets: Ticket[] = [];
-
-            cart.forEach(ticketNumbers => {
-                const newTicketRef = doc(collection(db, "tickets"));
-                const newTicketData: Ticket = {
-                    id: newTicketRef.id,
-                    numbers: ticketNumbers.sort((a, b) => a - b),
-                    status: 'active' as const,
-                    createdAt: new Date().toISOString(),
-                    buyerName: currentUser.username,
-                    buyerId: currentUser.id,
-                };
-                batch.set(newTicketRef, newTicketData);
-                createdTickets.push(newTicketData);
-            });
             
             await runTransaction(db, async (transaction) => {
                 const freshUserDoc = await transaction.get(userRef);
                 if (!freshUserDoc.exists()) throw new Error("Usuário não encontrado.");
                 
                 const currentBalance = freshUserDoc.data().saldo || 0;
-                if (currentBalance < totalCost) throw new Error("Saldo insuficiente. A transação foi cancelada.");
+                if (currentBalance < totalCost) {
+                    // This specific error message will be caught to trigger the dialog
+                    throw new Error("Saldo insuficiente.");
+                }
 
                 const newBalance = currentBalance - totalCost;
                 transaction.update(userRef, { saldo: newBalance });
+
+                // Create tickets within the same transaction
+                cart.forEach(ticketNumbers => {
+                    const newTicketRef = doc(collection(db, "tickets"));
+                    const newTicketData: Ticket = {
+                        id: newTicketRef.id,
+                        numbers: ticketNumbers.sort((a, b) => a - b),
+                        status: 'active' as const,
+                        createdAt: new Date().toISOString(),
+                        buyerName: currentUser.username,
+                        buyerId: currentUser.id,
+                    };
+                    transaction.set(newTicketRef, newTicketData);
+                    createdTickets.push(newTicketData);
+                });
             });
 
-            await batch.commit();
-
+            // If transaction is successful, update local state
             updateCurrentUserCredits((currentUser.saldo || 0) - totalCost);
-            
             setCart([]);
             setReceiptTickets(createdTickets); // Set tickets for receipt dialog
 
         } catch (e: any) {
             console.error("Transaction failed: ", e);
-            toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
+            if (e.message === "Saldo insuficiente.") {
+                setIsCreditsDialogOpen(true);
+            } else {
+                toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
+            }
         } finally {
             setIsSubmitting(false);
         }
