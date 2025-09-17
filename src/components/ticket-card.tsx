@@ -159,12 +159,12 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
             
             {/* Footer */}
             <div className="mt-auto p-4 border-t border-dashed text-xs text-muted-foreground space-y-2">
-                 {(ticket.buyerName || ticket.sellerUsername) && (
+                 {(ticket.buyerName) && (
                     <div className="flex items-center">
                         <User size={14} className="mr-1.5" />
                         <span>
                             {ticket.sellerUsername 
-                                ? `Vendido por: ${ticket.sellerUsername} para ` 
+                                ? <>Vendido por: <span className="font-semibold text-foreground">{ticket.sellerUsername}</span> para </>
                                 : 'Comprador: '
                             }
                             <span className="font-semibold text-foreground">{ticket.buyerName}</span>
