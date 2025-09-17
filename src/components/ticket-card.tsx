@@ -113,7 +113,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws }) => {
           <span>Bilhete <span className="font-mono text-sm opacity-80">#{ticket.id.substring(0, 6)}</span></span>
           <div className="flex items-center gap-2">
             {ticket.status === 'active' && draws && draws.length > 0 && (
-                <Badge variant="outline" className={cn("text-sm", statusProps.textColor, `border-${statusProps.borderColor}`, `bg-${statusProps.bgColor}/50`)}>
+                <Badge variant="secondary" className="text-base font-bold py-1 px-3 shadow-md bg-background/70 text-primary border-primary/50">
                     <CheckCircle className="mr-1.5 h-4 w-4" />
                     {matches} Acerto{matches !== 1 ? 's' : ''}
                 </Badge>
