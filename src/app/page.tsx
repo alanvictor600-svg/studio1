@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export default function LandingPage() {
@@ -36,12 +36,14 @@ export default function LandingPage() {
   useEffect(() => {
     setIsClient(true);
     
-    const drawsQuery = query(collection(db, 'draws'));
+    const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
     const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
         const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
-        setDraws(drawsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        setDraws(drawsData);
     }, (error) => {
         console.error("Error fetching draws: ", error);
+        // This is a public page, so we don't necessarily need to toast the user
+        // unless it's a critical, persistent error.
     });
 
     return () => {
@@ -258,6 +260,7 @@ export default function LandingPage() {
     </div>
   );
     
+
 
 
 
