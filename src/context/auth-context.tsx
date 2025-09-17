@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -241,5 +240,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
