@@ -1,6 +1,7 @@
+
 // src/lib/services/lotteryService.ts
 import { db } from '@/lib/firebase';
-import { collection, addDoc, writeBatch, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry } from '@/types';
 import type { FinancialReport } from '@/lib/reports';
 
@@ -58,8 +59,8 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
                 totalRevenue: totalRevenueFromActiveTickets,
                 totalCommission: commissionEarned,
             };
-            const historyRef = collection(db, 'sellerHistory');
-            batch.set(addDoc(historyRef, newEntry).withConverter(null), newEntry); // Simplified for batch
+            const newHistoryDocRef = doc(collection(db, 'sellerHistory'));
+            batch.set(newHistoryDocRef, newEntry);
         }
     }
 
@@ -73,8 +74,8 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
         clientTicketCount: financialReport.clientTicketCount,
         sellerTicketCount: financialReport.sellerTicketCount,
     };
-    const adminHistoryRef = collection(db, 'adminHistory');
-    batch.set(addDoc(adminHistoryRef, newHistoryEntry).withConverter(null), newHistoryEntry); // Simplified for batch
+    const newAdminHistoryDocRef = doc(collection(db, 'adminHistory'));
+    batch.set(newAdminHistoryDocRef, newHistoryEntry);
 
     // 3. Reset Draws
     const drawsSnapshot = await getDocs(query(collection(db, 'draws')));
@@ -91,5 +92,3 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     // Commit all operations at once
     await batch.commit();
 };
-
-    
