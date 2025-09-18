@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -187,7 +186,7 @@ export default function LandingPage() {
         </div>
       </header>
       
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col">
         <section className="w-full py-20 md:py-28 lg:py-32 xl:py-40 text-center">
              <div className="container px-4 md:px-6">
                  <div className="flex flex-col items-center space-y-6">
@@ -302,7 +301,7 @@ export default function LandingPage() {
 
       </main>
 
-      <footer className="py-8 text-center border-t border-border/50 w-full bg-background">
+      <footer className="py-8 text-center border-t border-border/50 w-full bg-background mt-auto">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
              <p className="text-sm text-muted-foreground">
                 &copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.
