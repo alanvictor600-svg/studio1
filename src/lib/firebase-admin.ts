@@ -1,13 +1,13 @@
 // src/lib/firebase-admin.ts
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // Import the service account key directly
-const serviceAccount = require('./firebase-service-account.json');
+import serviceAccount from './firebase-service-account.json';
 
 // Verifica se o app já foi inicializado para evitar reinicializações
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
   });
 }
 
