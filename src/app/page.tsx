@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award, Eye, EyeOff, LayoutDashboard } from 'lucide-react';
+import { Users, ShoppingCart, ShieldCheck, ArrowRight, Settings, LogIn, UserPlus, LogOut, History, Award, Eye, EyeOff, LayoutDashboard, Rocket, Star } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -37,12 +37,8 @@ export default function LandingPage() {
   useEffect(() => {
     setIsClient(true);
     
-    // Only fetch draws if user is authenticated as admin, otherwise the rules will block it.
-    if (!currentUser || currentUser.role !== 'admin') {
-      setIsLoadingDraw(false);
-      return;
-    }
-
+    // The query for the last draw is now universal, not restricted to admin.
+    // Firestore rules should be set to allow public read access to the 'draws' collection.
     const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'), limit(1));
     const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
         if (!querySnapshot.empty) {
@@ -53,6 +49,7 @@ export default function LandingPage() {
         setIsLoadingDraw(false);
     }, (error) => {
         console.error("Error fetching last draw: ", error.message);
+        toast({ title: "Erro de Conexão", description: "Não foi possível carregar os dados do sorteio.", variant: "destructive" });
         setLastDraw(null);
         setIsLoadingDraw(false);
     });
@@ -60,7 +57,7 @@ export default function LandingPage() {
     return () => {
         unsubscribeDraws();
     };
-  }, [currentUser]); // Re-run when user auth state changes
+  }, [toast]);
 
   const handlePainelClick = () => {
     if (!currentUser) {
@@ -173,32 +170,55 @@ export default function LandingPage() {
       </header>
 
       <main className="w-full max-w-5xl space-y-12 flex-grow">
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-             <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
-                <History className="mr-3 h-6 w-6" /> Último Sorteio
-             </h2>
-             {isLoadingDraw ? (
-                <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
-                    <p className="text-muted-foreground animate-pulse">Carregando...</p>
-                </div>
-             ) : lastDraw ? (
-                <AdminDrawCard draw={lastDraw} />
-             ) : (
-                <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
-                    <p className="text-muted-foreground">Nenhum sorteio recente.</p>
-                     <p className="text-sm text-muted-foreground/80 mt-1">Apenas admins podem ver o último sorteio aqui.</p>
-                </div>
-             )}
+        {isLoadingDraw ? (
+          <div className="text-center py-10 bg-card/80 backdrop-blur-sm rounded-lg shadow-inner h-full flex flex-col justify-center items-center">
+              <p className="text-muted-foreground animate-pulse text-lg">Carregando informações do sorteio...</p>
           </div>
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
-                <Award className="mr-3 h-6 w-6" /> Acertos
-            </h2>
-            <TopTickets draws={lastDraw ? [lastDraw] : []} />
-          </div>
-        </div>
+        ) : lastDraw ? (
+          <>
+            <h2 className="text-3xl font-bold text-primary text-center">Último Sorteio Realizado</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                 <h3 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
+                    <History className="mr-3 h-6 w-6" /> Resultados
+                 </h3>
+                 <AdminDrawCard draw={lastDraw} />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-primary text-center flex items-center justify-center">
+                    <Award className="mr-3 h-6 w-6" /> Números da Sorte
+                </h3>
+                <TopTickets draws={lastDraw ? [lastDraw] : []} />
+              </div>
+            </div>
+          </>
+        ) : (
+          <Card className="w-full max-w-2xl mx-auto shadow-xl bg-card/90 backdrop-blur-sm text-center">
+            <CardHeader>
+              <Rocket className="h-16 w-16 text-primary mx-auto mb-4" />
+              <CardTitle className="text-3xl font-bold">Bem-vindo ao Bolão Potiguar!</CardTitle>
+              <CardDescription className="text-lg text-muted-foreground mt-2">
+                A sorte está se preparando. Nenhum sorteio ativo no momento.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-base">
+              <p>Fique de olho! O próximo ciclo de sorteios começará em breve.</p>
+              <p>Enquanto isso, você já pode criar sua conta para não perder a chance de apostar assim que a loteria for aberta.</p>
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+                <Button asChild size="lg" className="shadow-lg">
+                    <Link href="/cadastrar?role=cliente">
+                        <UserPlus className="mr-2 h-5 w-5" /> Criar Conta de Cliente
+                    </Link>
+                </Button>
+                 <Button asChild size="lg" variant="secondary" className="shadow-lg">
+                    <Link href="/cadastrar?role=vendedor">
+                        <ShoppingCart className="mr-2 h-5 w-5" /> Virar um Vendedor
+                    </Link>
+                </Button>
+            </CardFooter>
+          </Card>
+        )}
         
       </main>
 
@@ -275,16 +295,4 @@ export default function LandingPage() {
       </footer>
     </div>
   );
-    
-
-
-
-
-
-
-
-
-
-    
-
-    
+}

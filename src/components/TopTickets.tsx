@@ -4,7 +4,7 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
 import type { Draw } from '@/types';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { countOccurrences } from '@/lib/lottery-utils';
 import { Star, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -32,8 +32,8 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
       <Card className="h-full">
         <CardContent className="flex flex-col items-center justify-center h-full p-6 text-center">
            <Star className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Aguardando dados dos sorteios.</p>
-          <p className="text-sm text-muted-foreground/80">Faça login como admin para ver estatísticas.</p>
+          <p className="text-muted-foreground">Aguardando o primeiro sorteio do ciclo.</p>
+          <p className="text-sm text-muted-foreground/80">As estatísticas aparecerão aqui.</p>
         </CardContent>
       </Card>
     );
@@ -41,12 +41,6 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="p-4 border-b text-center">
-         <h3 className="text-lg font-bold text-primary flex items-center justify-center">
-            <TrendingUp className="mr-2 h-5 w-5" />
-            Números Mais Frequentes
-         </h3>
-      </CardHeader>
       <CardContent className="p-4 flex-grow flex items-center justify-center">
         <div className="flex flex-wrap gap-4 justify-center">
             {drawnNumbersFrequency.map(({ number, count }, index) => (
@@ -76,7 +70,3 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
     </Card>
   );
 };
-
-    
-
-    
