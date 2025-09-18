@@ -147,16 +147,16 @@ export default function LandingPage() {
             </PopoverContent>
           </Popover>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {currentUser ? (
               <div className="flex items-center gap-2">
                  <Button onClick={handlePainelClick}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" /> Meu Painel
+                    <LayoutDashboard className="mr-0 sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Meu Painel</span>
                 </Button>
                 <TooltipProvider>
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={logout} className="shadow-none">
+                        <Button variant="ghost" size="icon" onClick={logout} className="shadow-none h-9 w-9">
                             <LogOut className="h-4 w-4" />
                             <span className="sr-only">Sair</span>
                         </Button>
@@ -171,12 +171,12 @@ export default function LandingPage() {
                 <div className="flex items-center gap-2">
                     <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
                         <Link href="/login">
-                            <LogIn className="mr-2 h-4 w-4" /> Entrar
+                            <LogIn className="mr-0 sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Entrar</span>
                         </Link>
                     </Button>
                     <Button asChild>
                         <Link href="/cadastrar">
-                            <UserPlus className="mr-2 h-4 w-4" /> Cadastrar
+                            <UserPlus className="mr-0 sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Cadastrar</span>
                         </Link>
                     </Button>
                 </div>
@@ -314,3 +314,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
