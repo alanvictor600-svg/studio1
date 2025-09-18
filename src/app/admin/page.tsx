@@ -81,15 +81,14 @@ export default function AdminPage() {
 
   // Auth check
   useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated || currentUser?.role !== 'admin') {
+    if (!isLoading && (!isAuthenticated || currentUser?.role !== 'admin')) {
       router.push('/login?redirect=/admin');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
   // Realtime data from Firestore
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin') return;
+    if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated) return;
 
     // Global Configs
     const configDocRef = doc(db, 'configs', 'global');
@@ -165,7 +164,7 @@ export default function AdminPage() {
         unsubscribeUsers();
         unsubscribeAdminHistory();
     };
-  }, [currentUser, toast]);
+  }, [currentUser, isAuthenticated, toast]);
 
 
   const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(allTickets, draws), [allTickets, draws]);
@@ -309,7 +308,7 @@ export default function AdminPage() {
     setUserToDelete(null);
   };
   
-  if (!isClient || isLoading) {
+  if (!isClient || isLoading || !isAuthenticated || !currentUser || currentUser.role !== 'admin') {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Carregando Admin...</p>

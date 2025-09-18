@@ -1,54 +1,52 @@
 
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if a user is an admin
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
-    // Default deny all reads and writes
+    // Default to deny all reads and writes for security
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow public read access to draws collection
+    // Allow public read access to draws
     match /draws/{drawId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.role == 'admin';
-    }
-
-    // Allow public read access to global configuration
-    match /configs/global {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.role == 'admin';
-    }
-
-    // Users can read/update their own data. Admins can read/write any user data.
-    match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
-      allow list, delete: if request.auth != null && request.auth.token.role == 'admin';
-    }
-
-    // Tickets can be created by authenticated users.
-    // Reading is restricted to the buyer, seller, or an admin.
-    match /tickets/{ticketId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null && 
-                     (request.resource.data.buyerId == request.auth.uid || 
-                      request.resource.data.sellerId == request.auth.uid ||
-                      request.auth.token.role == 'admin');
-      allow update: if request.auth != null && request.auth.token.role == 'admin'; // Only admin can update ticket status after creation
-    }
-
-    // History collections are read-only for their respective users/admins.
-    match /sellerHistory/{historyId} {
-        allow read: if request.auth != null && 
-                     (request.resource.data.sellerId == request.auth.uid || 
-                      request.auth.token.role == 'admin');
-        allow write: if request.auth != null && request.auth.token.role == 'admin';
     }
     
+    // Configs are publicly readable by anyone
+    match /configs/global {
+      allow read: if true;
+    }
+
+    // Allow users to read and write their own documents if they are authenticated
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Admins can read any user's document
+      allow read: if isAdmin();
+    }
+
+    // Allow authenticated users to create tickets
+    // Allow users to read their own tickets (as buyer or seller)
+    // Allow admins to read all tickets
+    match /tickets/{ticketId} {
+      allow create: if request.auth != null;
+      allow read: if (request.auth != null && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid)) || isAdmin();
+    }
+
+    // Allow sellers to read their own history entries
+    // Allow admins to read all seller history
+    match /sellerHistory/{historyId} {
+      allow read: if (request.auth != null && resource.data.sellerId == request.auth.uid) || isAdmin();
+    }
+    
+    // Only admins can read the admin history
     match /adminHistory/{historyId} {
-        allow read, write: if request.auth != null && request.auth.token.role == 'admin';
+      allow read: if isAdmin();
     }
   }
 }
