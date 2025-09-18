@@ -2,18 +2,26 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
+import { useToast } from "@/hooks/use-toast";
+import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/context/auth-context';
-import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff, User as UserIcon, ShoppingCart as SellerIcon } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
-import Image from 'next/image';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -31,7 +39,7 @@ export default function CadastroPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState<'cliente' | 'vendedor'>('cliente');
+  const [role, setRole] = useState<'cliente' | 'vendedor' | null>(null);
   const { register, signInWithGoogle, isLoading: authLoading, currentUser, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,6 +61,10 @@ export default function CadastroPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role) {
+      toast({ title: "Erro de Cadastro", description: "O tipo de conta não foi definido.", variant: "destructive" });
+      return;
+    }
     if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
          toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras (a-z, A-Z), números (0-9) e os caracteres: . - _", variant: "destructive" });
          return;
@@ -61,7 +73,7 @@ export default function CadastroPage() {
       toast({ title: "Erro de Cadastro", description: "As senhas não coincidem.", variant: "destructive" });
       return;
     }
-    if (!username || !password || !role) {
+    if (!username || !password) {
        toast({ title: "Erro de Cadastro", description: "Todos os campos são obrigatórios.", variant: "destructive" });
       return;
     }
@@ -79,6 +91,41 @@ export default function CadastroPage() {
         <p className="text-foreground text-xl">Verificando autenticação...</p>
       </div>
     );
+  }
+
+  const handleSelectRole = (selectedRole: 'cliente' | 'vendedor') => {
+    setRole(selectedRole);
+    router.push(`/cadastrar?role=${selectedRole}`, { scroll: false });
+  }
+
+  if (!role) {
+    return (
+      <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center">
+        <Dialog open={true} onOpenChange={() => router.push('/')}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-center text-2xl">Escolha seu Perfil</DialogTitle>
+                    <DialogDescription className="text-center">
+                        Você quer apostar e concorrer a prêmios ou quer vender bilhetes e ganhar comissões?
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                    <Button variant="outline" className="h-28 flex flex-col gap-2" onClick={() => handleSelectRole('cliente')}>
+                        <UserIcon className="h-8 w-8 text-primary" />
+                        <span className="font-semibold">Sou um Cliente</span>
+                    </Button>
+                    <Button variant="outline" className="h-28 flex flex-col gap-2" onClick={() => handleSelectRole('vendedor')}>
+                        <SellerIcon className="h-8 w-8 text-secondary" />
+                        <span className="font-semibold">Sou um Vendedor</span>
+                    </Button>
+                </div>
+                <DialogFooter className="justify-center">
+                    <p className="text-sm text-muted-foreground">Já tem uma conta? <Link href="/login" className="text-primary hover:underline">Faça login</Link></p>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      </div>
+    )
   }
 
   return (
@@ -193,8 +240,7 @@ export default function CadastroPage() {
         </CardFooter>
       </Card>
       <p className="mt-8 text-xs text-center text-muted-foreground max-w-md">
-        Atenção: Este sistema de cadastro é simplificado para fins de prototipagem e armazena dados localmente.
-        Não utilize senhas reais ou informações sensíveis.
+        Ao se registrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
       </p>
     </div>
   );

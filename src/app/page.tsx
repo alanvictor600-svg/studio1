@@ -87,10 +87,66 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-            <span className="font-bold hidden sm:inline-block">Bolão Potiguar</span>
-          </Link>
+          <Popover>
+            <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 cursor-pointer">
+                    <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
+                    <span className="font-bold hidden sm:inline-block">Bolão Potiguar</span>
+                </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+                <form onSubmit={handleAdminLogin}>
+                    <div className="grid gap-4">
+                    <div className="space-y-2">
+                        <h4 className="font-medium leading-none">Acesso Restrito</h4>
+                        <p className="text-sm text-muted-foreground">
+                        Insira as credenciais de administrador.
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="admin-username">Usuário</Label>
+                        <Input
+                            id="admin-username"
+                            value={adminUsername}
+                            onChange={(e) => setAdminUsername(e.target.value)}
+                            className="col-span-2 h-8"
+                            required
+                            disabled={isAdminLoginLoading}
+                        />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="admin-password">Senha</Label>
+                        <div className="col-span-2 h-8 relative">
+                            <Input
+                                id="admin-password"
+                                type={showPassword ? 'text' : 'password'}
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                className="h-8 pr-10"
+                                required
+                                disabled={isAdminLoginLoading}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
+                                onClick={() => setShowPassword(!showPassword)}
+                                disabled={isAdminLoginLoading}
+                            >
+                                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </Button>
+                        </div>
+                        </div>
+                    </div>
+                    <Button type="submit" variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isAdminLoginLoading}>
+                        <ShieldCheck className="mr-2 h-4 w-4" /> {isAdminLoginLoading ? "Verificando..." : "Entrar"}
+                    </Button>
+                    </div>
+                </form>
+            </PopoverContent>
+          </Popover>
           
           <div className="flex items-center gap-4">
             {currentUser ? (
@@ -251,68 +307,6 @@ export default function LandingPage() {
              <p className="text-sm text-muted-foreground">
                 &copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.
              </p>
-            <div className="fixed bottom-6 left-6 z-50">
-                <Popover>
-                <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 bg-card/80 backdrop-blur-sm shadow-lg border-border/50">
-                        <Settings className="h-6 w-6 text-muted-foreground" />
-                        <span className="sr-only">Configurações de Administrador</span>
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                    <form onSubmit={handleAdminLogin}>
-                        <div className="grid gap-4">
-                        <div className="space-y-2">
-                            <h4 className="font-medium leading-none">Acesso Restrito</h4>
-                            <p className="text-sm text-muted-foreground">
-                            Insira as credenciais de administrador.
-                            </p>
-                        </div>
-                        <div className="grid gap-2">
-                            <div className="grid grid-cols-3 items-center gap-4">
-                            <Label htmlFor="admin-username">Usuário</Label>
-                            <Input
-                                id="admin-username"
-                                value={adminUsername}
-                                onChange={(e) => setAdminUsername(e.target.value)}
-                                className="col-span-2 h-8"
-                                required
-                                disabled={isAdminLoginLoading}
-                            />
-                            </div>
-                            <div className="grid grid-cols-3 items-center gap-4">
-                            <Label htmlFor="admin-password">Senha</Label>
-                            <div className="col-span-2 h-8 relative">
-                                <Input
-                                    id="admin-password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={adminPassword}
-                                    onChange={(e) => setAdminPassword(e.target.value)}
-                                    className="h-8 pr-10"
-                                    required
-                                    disabled={isAdminLoginLoading}
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    disabled={isAdminLoginLoading}
-                                >
-                                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                                </Button>
-                            </div>
-                            </div>
-                        </div>
-                        <Button type="submit" variant="destructive" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={isAdminLoginLoading}>
-                            <ShieldCheck className="mr-2 h-4 w-4" /> {isAdminLoginLoading ? "Verificando..." : "Entrar"}
-                        </Button>
-                        </div>
-                    </form>
-                </PopoverContent>
-                </Popover>
-            </div>
              <p className="text-xs text-muted-foreground/70">
                 Jogue com responsabilidade. Para maiores de 18 anos.
             </p>
