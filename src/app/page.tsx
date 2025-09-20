@@ -218,7 +218,16 @@ const ResultsSection: FC<{ lastDraw: Draw | null; isLoading: boolean }> = ({ las
     }
 
     if (!lastDraw) {
-        return null;
+        return (
+            <section id="results" className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
+              <div className="container px-4 md:px-6 text-center">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-primary">Aguardando Próximo Sorteio</h2>
+                <p className="max-w-[900px] mx-auto text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed mt-4">
+                  Nenhum sorteio ativo no momento. Volte em breve para conferir os resultados!
+                </p>
+              </div>
+            </section>
+        );
     }
 
     return (
@@ -330,7 +339,7 @@ export default function LandingPage() {
     return (
         <div className="flex flex-col flex-1">
             <LandingHeader />
-            <main>
+            <main className="flex-1">
                 <HeroSection />
                 <ResultsSection lastDraw={lastDraw} isLoading={isLoadingDraw} />
                 <HowItWorksSection />
