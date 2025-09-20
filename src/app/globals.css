@@ -8,29 +8,29 @@ body {
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 224 71% 4%;
+    --background: 142 76% 97%;
+    --foreground: 142 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 142 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    --primary: 45 95% 55%;
-    --primary-foreground: 45 95% 10%;
-    --secondary: 45 95% 55%;
-    --secondary-foreground: 45 95% 10%;
-    --accent: 84 93% 54%;
-    --accent-foreground: 84 93% 14%;
+    --popover-foreground: 142 10% 10%;
+    --primary: 48 96% 50%;
+    --primary-foreground: 300 5% 5%;
+    --secondary: 210 40% 98%;
+    --secondary-foreground: 224 71% 4%;
+    --accent: 170 80% 45%;
+    --accent-foreground: 170 90% 95%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 217 91% 60%;
+    --border: 142 10% 80%;
+    --input: 142 10% 85%;
+    --ring: 142 71% 45%;
     
     --chart-1: 142 71% 45%;
-    --chart-2: 45 95% 55%;
+    --chart-2: 48 96% 50%;
     --chart-3: 170 75% 45%;
     --chart-4: 142 61% 65%;
-    --chart-5: 45 85% 70%;
+    --chart-5: 48 86% 65%;
 
     --radius: 0.5rem;
 
@@ -91,6 +91,6 @@ body {
   }
 
   :not(.dark) body {
-    background: linear-gradient(to bottom, hsl(142, 71%, 35%), hsl(142, 81%, 25%));
+    background: linear-gradient(to bottom, hsl(142, 71%, 25%), hsl(142, 81%, 15%));
   }
 }
