@@ -1,7 +1,7 @@
 
 
 // src/lib/services/ticketService.ts
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { doc, runTransaction, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
 import type { Ticket, LotteryConfig, User } from '@/types';
 
@@ -130,3 +130,5 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
 
     return { createdTickets, newBalance };
 };
+
+    

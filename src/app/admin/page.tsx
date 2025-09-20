@@ -10,7 +10,7 @@ import { CreditManagementDialog } from '@/components/credit-management-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, query, orderBy } from 'firebase/firestore';
 
 // Import Services
@@ -412,5 +412,7 @@ export default function AdminPage() {
     </>
   );
 }
+
+    
 
     

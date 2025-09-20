@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2 } from 'lucide-react';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 const USERS_PER_PAGE = 15;
@@ -406,3 +406,5 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
     </section>
   );
 };
+
+    

@@ -11,7 +11,7 @@ import { ShoppingBag, FileText, Loader2, BarChart3, Percent, DollarSign, Ticket 
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
@@ -221,3 +221,5 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
         </Tabs>
     );
 };
+
+    

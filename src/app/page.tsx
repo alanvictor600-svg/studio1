@@ -9,7 +9,7 @@ import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import type { Draw } from '@/types';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
@@ -214,3 +214,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    

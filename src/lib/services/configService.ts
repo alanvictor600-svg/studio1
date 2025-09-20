@@ -1,6 +1,6 @@
 // src/lib/services/configService.ts
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import type { LotteryConfig, CreditRequestConfig } from '@/types';
 
 /**
@@ -20,5 +20,7 @@ export const saveCreditRequestConfig = async (newConfig: CreditRequestConfig): P
     const configDocRef = doc(db, 'configs', 'global');
     await setDoc(configDocRef, newConfig, { merge: true });
 };
+
+    
 
     

@@ -11,7 +11,7 @@ import { ArrowLeft, MessageSquare, Smartphone, Copy, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CreditRequestConfig } from '@/types';
 import Link from 'next/link';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
@@ -186,3 +186,5 @@ export default function SolicitarSaldoPage() {
     </div>
   );
 }
+
+    

@@ -1,6 +1,6 @@
 // src/lib/services/userService.ts
 import { doc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { deleteUserAction } from '@/app/actions/user';
 
 
@@ -40,3 +40,5 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
     // const userDocRef = doc(db, 'users', userId);
     // await deleteDoc(userDocRef);
 };
+
+    

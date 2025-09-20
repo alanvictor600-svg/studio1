@@ -1,7 +1,7 @@
 
 
 // src/lib/services/lotteryService.ts
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 import { collection, addDoc, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry } from '@/types';
 import type { FinancialReport } from '@/lib/reports';
@@ -93,3 +93,5 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     // Commit all operations at once
     await batch.commit();
 };
+
+    

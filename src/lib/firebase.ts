@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -13,9 +14,25 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app: FirebaseApp;
+let db: Firestore;
+
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
+try {
+  db = getFirestore(app);
+} catch (e) {
+  console.error("Firestore could not be initialized (likely server-side):", e);
+  // Assign a dummy object or handle as needed for server-side rendering
+}
+
+
 const auth = getAuth(app);
 
-// Firestore is initialized in firebase-client.ts or firebase-admin.ts to prevent bundling issues.
+export { app, auth, db };
 
-export { app, auth };
+    

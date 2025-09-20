@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { createClientTickets } from '@/lib/services/ticketService';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase';
 
 interface DashboardContextType {
     cart: number[][];
@@ -84,7 +84,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         // 2. Draws Listener
         const drawsQuery = query(collection(db, 'draws'));
-        unsubscribes.push(onSnapshot(drawsQuery, (drawsSnapshot) => {
+        unsubscribes.push(onSnapshot(drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
             setAllDraws(drawsData);
             setIsLotteryPaused(drawsData.length > 0);
@@ -196,3 +196,5 @@ export const useDashboard = (): DashboardContextType => {
     }
     return context;
 };
+
+    
