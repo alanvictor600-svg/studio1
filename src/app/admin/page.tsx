@@ -53,7 +53,7 @@ export default function AdminPage() {
 
   const [activeSection, setActiveSection] = useState<AdminSection>('configuracoes');
   
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]); // This will be managed inside SettingsSection now
   const [userToView, setUserToView] = useState<User | null>(null);
   const [isUserViewDialogOpen, setIsUserViewDialogOpen] = useState(false);
   const [userToManageCredits, setUserToManageCredits] = useState<User | null>(null);
@@ -137,11 +137,12 @@ export default function AdminPage() {
         toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
     });
 
-    // Users
+    // Users - This listener fetches ALL users, which will be changed for pagination.
+    // For now, we keep it to provide the data to other parts that might need it, like the credit dialog.
     const usersQuery = query(collection(db, 'users'));
     const unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
         const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setAllUsers(usersData);
+        setAllUsers(usersData); // This state will be used for credit dialog updates.
     }, (error) => {
         console.error("Error fetching users: ", error);
         toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível carregar os dados dos usuários.", variant: "destructive" });
@@ -247,14 +248,9 @@ export default function AdminPage() {
     try {
         const newBalance = await updateUserCredits(user.id, amount);
         
-        // --- Optimistic UI Update ---
-        // Update the user in the local `allUsers` state for immediate feedback.
-        setAllUsers(prevUsers => 
-            prevUsers.map(u => 
-                u.id === user.id ? { ...u, saldo: newBalance } : u
-            )
-        );
-        // Also update the user in the dialog if it's open
+        // --- The onSnapshot for allUsers will handle this update automatically ---
+        
+        // Update the user in the dialog if it's open for immediate feedback
         if (userToManageCredits && userToManageCredits.id === user.id) {
             setUserToManageCredits(prev => prev ? { ...prev, saldo: newBalance } : null);
         }
@@ -323,7 +319,6 @@ export default function AdminPage() {
           <SettingsSection 
             lotteryConfig={lotteryConfig}
             creditRequestConfig={creditRequestConfig}
-            allUsers={allUsers}
             allTickets={allTickets}
             onSaveLotteryConfig={handleSaveLotteryConfig}
             onSaveCreditRequestConfig={handleSaveCreditRequestConfig}

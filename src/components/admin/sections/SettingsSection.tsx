@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback, useMemo, type FC } from 'react';
+import { useState, useCallback, useMemo, type FC, useEffect } from 'react';
 import type { User, Ticket, LotteryConfig, CreditRequestConfig } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -14,12 +14,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye } from 'lucide-react';
+import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2 } from 'lucide-react';
+import { db } from '@/lib/firebase-client';
+import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+
+const USERS_PER_PAGE = 15;
 
 interface SettingsSectionProps {
   lotteryConfig: LotteryConfig;
   creditRequestConfig: CreditRequestConfig;
-  allUsers: User[];
   allTickets: Ticket[];
   onSaveLotteryConfig: (newConfig: Partial<LotteryConfig>) => Promise<void>;
   onSaveCreditRequestConfig: (newConfig: CreditRequestConfig) => Promise<void>;
@@ -30,7 +33,6 @@ interface SettingsSectionProps {
 export const SettingsSection: FC<SettingsSectionProps> = ({
   lotteryConfig,
   creditRequestConfig,
-  allUsers,
   allTickets,
   onSaveLotteryConfig,
   onSaveCreditRequestConfig,
@@ -45,6 +47,58 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   const [whatsappInput, setWhatsappInput] = useState(creditRequestConfig.whatsappNumber);
   const [pixKeyInput, setPixKeyInput] = useState(creditRequestConfig.pixKey);
   const [userSearchTerm, setUserSearchTerm] = useState('');
+
+  // Pagination state
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
+  const fetchUsers = useCallback(async (loadMore = false) => {
+    if (loadMore) {
+        setIsFetchingMore(true);
+    } else {
+        setIsLoadingUsers(true);
+    }
+    
+    try {
+        const userQueryConstraints = [
+            orderBy("username"),
+            limit(USERS_PER_PAGE)
+        ];
+
+        if (loadMore && lastVisible) {
+            userQueryConstraints.push(startAfter(lastVisible));
+        }
+        
+        const q = query(collection(db, 'users'), ...userQueryConstraints);
+        const documentSnapshots = await getDocs(q);
+
+        const newUsers = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        
+        setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1] || null);
+        setHasMore(newUsers.length === USERS_PER_PAGE);
+
+        if (loadMore) {
+            setUsers(prev => [...prev, ...newUsers]);
+        } else {
+            setUsers(newUsers);
+        }
+
+    } catch (error) {
+        console.error("Error fetching users: ", error);
+        toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível buscar a lista de usuários.", variant: "destructive" });
+    } finally {
+        setIsLoadingUsers(false);
+        setIsFetchingMore(false);
+    }
+  }, [toast, lastVisible]);
+
+  useEffect(() => {
+    fetchUsers(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveLottery = () => {
     const price = parseFloat(ticketPriceInput);
@@ -91,12 +145,12 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
 
   const filteredUsers = useMemo(() => {
     if (!userSearchTerm) {
-      return allUsers;
+      return users;
     }
-    return allUsers.filter(user =>
+    return users.filter(user =>
       user.username.toLowerCase().includes(userSearchTerm.toLowerCase())
     );
-  }, [allUsers, userSearchTerm]);
+  }, [users, userSearchTerm]);
 
   return (
     <section aria-labelledby="lottery-settings-heading">
@@ -220,7 +274,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
                   <div className="mb-4 relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                      placeholder="Pesquisar por nome de usuário..."
+                      placeholder="Pesquisar por nome de usuário (na lista carregada)..."
                       value={userSearchTerm}
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       className="pl-10 h-10 w-full"
@@ -229,63 +283,84 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
               </CardHeader>
               <CardContent>
               <ScrollArea className="h-96">
+                {isLoadingUsers ? (
+                  <p className="text-center text-muted-foreground py-10">Carregando usuários...</p>
+                ) : (
                   <Table>
-                  <TableHeader>
-                      <TableRow>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Perfil</TableHead>
-                      <TableHead className="text-center">Saldo</TableHead>
-                      <TableHead className="text-center">Bilhetes Ativos</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {filteredUsers.length > 0 ? filteredUsers.map(user => (
-                      <TableRow key={user.id}>
-                          <TableCell>
-                          <div className="flex items-center gap-3">
-                              <Avatar>
-                              <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <span className="font-semibold text-foreground">{user.username}</span>
-                          </div>
-                          </TableCell>
-                          <TableCell>
-                          <Badge variant={user.role === 'vendedor' ? 'secondary' : (user.role === 'admin' ? 'destructive' : 'outline')}>
-                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                          </Badge>
-                          </TableCell>
-                          <TableCell className="text-center font-mono text-yellow-600 dark:text-yellow-400">
-                          R$ {(user.saldo || 0).toFixed(2).replace('.', ',')}
-                          </TableCell>
-                          <TableCell className="text-center font-medium">
-                          {getUserActiveTicketsCount(user)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                              <Button variant="outline" size="sm" onClick={() => onOpenCreditDialog(user)}>
-                                  <CreditCard className="mr-2 h-4 w-4" /> Saldo
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => onOpenViewUser(user)}>
-                                  <Eye className="mr-2 h-4 w-4"/> Detalhes
-                              </Button>
-                          </div>
-                          </TableCell>
-                      </TableRow>
-                      )) : (
-                          <TableRow>
-                              <TableCell colSpan={5} className="h-24 text-center">
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Usuário</TableHead>
+                        <TableHead>Perfil</TableHead>
+                        <TableHead className="text-center">Saldo</TableHead>
+                        <TableHead className="text-center">Bilhetes Ativos</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredUsers.length > 0 ? filteredUsers.map(user => (
+                        <TableRow key={user.id}>
+                            <TableCell>
+                            <div className="flex items-center gap-3">
+                                <Avatar>
+                                <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-semibold text-foreground">{user.username}</span>
+                            </div>
+                            </TableCell>
+                            <TableCell>
+                            <Badge variant={user.role === 'vendedor' ? 'secondary' : (user.role === 'admin' ? 'destructive' : 'outline')}>
+                                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                            </Badge>
+                            </TableCell>
+                            <TableCell className="text-center font-mono text-yellow-600 dark:text-yellow-400">
+                            R$ {(user.saldo || 0).toFixed(2).replace('.', ',')}
+                            </TableCell>
+                            <TableCell className="text-center font-medium">
+                            {getUserActiveTicketsCount(user)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                                <Button variant="outline" size="sm" onClick={() => onOpenCreditDialog(user)}>
+                                    <CreditCard className="mr-2 h-4 w-4" /> Saldo
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => onOpenViewUser(user)}>
+                                    <Eye className="mr-2 h-4 w-4"/> Detalhes
+                                </Button>
+                            </div>
+                            </TableCell>
+                        </TableRow>
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
                                     <p className="text-lg text-muted-foreground">Nenhum usuário encontrado.</p>
                                     <p className="text-sm text-muted-foreground/80">
                                       {userSearchTerm ? 'Tente um termo de busca diferente.' : 'Nenhum usuário registrado ainda.'}
                                   </p>
-                              </TableCell>
-                          </TableRow>
-                      )}
-                  </TableBody>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
                   </Table>
+                )}
               </ScrollArea>
               </CardContent>
+              {hasMore && !userSearchTerm && (
+                  <CardFooter className="pt-4 justify-center">
+                      <Button
+                          onClick={() => fetchUsers(true)}
+                          disabled={isFetchingMore}
+                      >
+                          {isFetchingMore ? (
+                              <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Carregando...
+                              </>
+                          ) : (
+                              'Carregar Mais Usuários'
+                          )}
+                      </Button>
+                  </CardFooter>
+              )}
             </Card>
         </TabsContent>
         <TabsContent value="contato" className="mt-6">
