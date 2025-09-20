@@ -164,11 +164,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
-        <header className="flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 sticky top-0 z-10">
+        <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:px-6 sticky top-0 z-10">
             <div className="md:hidden">
                 <SidebarTrigger />
             </div>
-            <span className="font-semibold text-white hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
+            <span className="font-semibold text-primary hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
             <div className="flex items-center gap-4 ml-auto">
                 {currentUser.role === 'cliente' && (
                     <ShoppingCart 

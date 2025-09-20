@@ -133,7 +133,7 @@ export default function AdminLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
-        <header className="flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-sm px-4 md:hidden sticky top-0 z-10">
+        <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
             <SidebarTrigger />
             <span className="font-semibold text-primary">Painel do Admin</span>
             <div/>
