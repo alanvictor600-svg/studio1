@@ -211,7 +211,7 @@ const HeroSection: FC = () => {
 const ResultsSection: FC<{ lastDraw: Draw | null; isLoading: boolean }> = ({ lastDraw, isLoading }) => {
     if (isLoading) {
         return (
-            <div className="w-full text-center py-20">
+            <div className="w-full text-center py-20 container px-4 md:px-6">
                 <p className="text-muted-foreground animate-pulse text-lg">Carregando informações do sorteio...</p>
             </div>
         );
@@ -299,7 +299,7 @@ const HowItWorksSection: FC = () => (
 // Sub-componente para o rodapé
 const LandingFooter: FC = () => (
     <footer className="w-full py-8 text-center border-t border-border/50 bg-background">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container flex flex-col md:flex-row items-center justify-between gap-4 px-4 md:px-6">
             <p className="text-sm text-muted-foreground">
                 &copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.
             </p>
@@ -347,5 +347,3 @@ export default function LandingPage() {
         </div>
     );
 }
-
-    
