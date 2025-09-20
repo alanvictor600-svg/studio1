@@ -129,7 +129,7 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
 
              <TabsContent value="bilhetes">
                  <section>
-                    <h2 className="text-2xl font-bold text-center text-primary mb-6">
+                    <h2 className="text-2xl font-bold text-center text-white mb-6">
                         Meus Bilhetes Vendidos (Ciclo Atual)
                     </h2>
                     <TicketList tickets={userTickets} draws={allDraws} />
@@ -174,10 +174,10 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                     </Card>
 
                     <div>
-                        <h2 className="text-3xl font-bold text-center text-primary mb-8 flex items-center justify-center">
+                        <h2 className="text-3xl font-bold text-center text-white mb-8 flex items-center justify-center">
                             Histórico de Ciclos Anteriores
                         </h2>
-                        <p className="text-center text-muted-foreground -mt-6 mb-8">
+                        <p className="text-center text-white/80 -mt-6 mb-8">
                             Acompanhe seu desempenho e comissões de ciclos de loteria encerrados.
                         </p>
                         {isLoadingHistory ? (

@@ -75,7 +75,7 @@ export default function SolicitarSaldoPage() {
   if (!isClient) {
     return (
         <div className="flex justify-center items-center min-h-screen bg-background">
-            <p className="text-foreground text-xl">Carregando...</p>
+            <p className="text-white text-xl">Carregando...</p>
         </div>
     );
   }
@@ -89,11 +89,11 @@ export default function SolicitarSaldoPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Voltar</span>
             </Button>
-            <h1 className="text-3xl md:text-4xl font-bold text-primary">
+            <h1 className="text-3xl md:text-4xl font-bold text-white">
               A Sorte te Espera!
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg mt-2 max-w-xl mx-auto">
+          <p className="text-white/80 text-lg mt-2 max-w-xl mx-auto">
             Recarregue seu saldo para não perder a chance de ganhar. É rápido e fácil!
           </p>
         </header>
@@ -177,7 +177,7 @@ export default function SolicitarSaldoPage() {
                 </Card>
             </div>
           
-            <div className="text-center mt-8 p-4 bg-primary/10 text-primary rounded-lg shadow-inner">
+            <div className="text-center mt-8 p-4 bg-primary/10 text-white rounded-lg shadow-inner">
                 <p className="font-bold text-lg">Não deixe a sorte escapar.</p>
                 <p>Recarregue agora e boa sorte! 🍀</p>
             </div>

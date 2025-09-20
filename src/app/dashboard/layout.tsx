@@ -77,7 +77,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   if (isAuthLoading || !isAuthenticated || !currentUser) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando sessão...</p>
+        <p className="text-white text-xl">Verificando sessão...</p>
       </div>
     );
   }
@@ -85,7 +85,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   if (currentUser.role !== role) {
       return (
          <div className="flex justify-center items-center min-h-screen bg-background">
-            <p className="text-foreground text-xl">Acesso negado. Redirecionando...</p>
+            <p className="text-white text-xl">Acesso negado. Redirecionando...</p>
         </div>
       );
   }
@@ -168,7 +168,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="md:hidden">
                 <SidebarTrigger />
             </div>
-            <span className="font-semibold text-primary hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
+            <span className="font-semibold text-white hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
             <div className="flex items-center gap-4 ml-auto">
                 {currentUser.role === 'cliente' && (
                     <ShoppingCart 
@@ -185,7 +185,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </header>
         <main className="p-4 md:p-8 flex-1">
             {isDataLoading && !children ? (
-                <div className="text-center p-10">Carregando dados...</div>
+                <div className="text-center p-10 text-white">Carregando dados...</div>
             ) : children}
         </main>
         <InsufficientCreditsDialog

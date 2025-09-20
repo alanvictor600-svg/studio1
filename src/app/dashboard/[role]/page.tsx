@@ -63,18 +63,18 @@ export default function DashboardPage() {
   const processedUserTickets = useMemo(() => updateTicketStatusesBasedOnDraws(userTickets, allDraws), [userTickets, allDraws]);
 
   if (isAuthLoading || isDataLoading) {
-    return <div className="text-center p-10">Carregando dados do painel...</div>;
+    return <div className="text-center p-10 text-white">Carregando dados do painel...</div>;
   }
 
   if (!isAuthenticated || !currentUser) {
     router.replace('/login?redirect=/dashboard/' + role);
-    return <div className="text-center p-10">Você precisa estar logado para ver esta página. Redirecionando...</div>;
+    return <div className="text-center p-10 text-white">Você precisa estar logado para ver esta página. Redirecionando...</div>;
   }
   
   if (currentUser.role !== role) {
     // This can happen briefly if a user's role changes.
     // The layout's useEffect will handle redirection, so we can just show a loading state.
-    return <div className="text-center p-10">Verificando permissões...</div>;
+    return <div className="text-center p-10 text-white">Verificando permissões...</div>;
   }
 
   const handleTicketCreated = (newTicket: Ticket) => {
@@ -91,10 +91,10 @@ export default function DashboardPage() {
     <>
     <div className="space-y-12">
       <header>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight text-center">
             {role === 'cliente' ? 'Bem-vindo, Apostador!' : 'Painel do Vendedor'}
           </h1>
-          <p className="text-lg text-muted-foreground mt-2 text-center">
+          <p className="text-lg text-white/80 mt-2 text-center">
              {role === 'cliente' ? 'Sua sorte começa aqui. Escolha seus números e boa sorte!' : 'Gerencie suas vendas e acompanhe seus resultados.'}
           </p>
       </header>
@@ -119,7 +119,7 @@ export default function DashboardPage() {
             </TabsContent>
             <TabsContent value="bilhetes">
                  <section>
-                    <h2 className="text-2xl font-bold text-center text-primary mb-6">
+                    <h2 className="text-2xl font-bold text-center text-white mb-6">
                         Meus Bilhetes
                     </h2>
                     <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />

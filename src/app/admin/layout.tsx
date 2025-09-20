@@ -140,10 +140,10 @@ export default function AdminLayout({
         </header>
         <div className="p-4 md:p-8 flex-1">
             <div className="mb-6">
-                <h1 className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight text-center">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight text-center">
                     Área Administrativa
                 </h1>
-                <p className="text-lg text-muted-foreground mt-2 text-center">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
+                <p className="text-lg text-white/80 mt-2 text-center">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
             </div>
             {children}
         </div>
