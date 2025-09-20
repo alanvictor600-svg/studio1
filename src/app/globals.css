@@ -91,6 +91,6 @@ body {
   }
 
   :not(.dark) body {
-    background: linear-gradient(to bottom, hsl(142, 71%, 25%), hsl(142, 81%, 15%));
+    background: linear-gradient(to bottom, hsl(142, 81%, 15%), hsl(142, 71%, 25%));
   }
 }
