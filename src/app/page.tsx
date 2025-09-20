@@ -51,7 +51,7 @@ const Header = () => {
           <span className="hidden sm:inline-block">Bolão Potiguar</span>
         </Link>
         <div className="flex items-center gap-2">
-            <Button asChild className="bg-green-600 hover:bg-green-700 text-white shadow-md">
+            <Button asChild variant="default" className="shadow-md">
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Entrar</Link>
             </Button>
             <Button asChild className="shadow-md">
