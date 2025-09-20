@@ -218,17 +218,7 @@ const ResultsSection: FC<{ lastDraw: Draw | null; isLoading: boolean }> = ({ las
     }
 
     if (!lastDraw) {
-        return (
-            <section id="welcome" className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
-                <div className="container px-4 md:px-6 text-center">
-                    <Rocket className="h-16 w-16 text-primary mx-auto mb-6" />
-                    <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Nenhum Sorteio Ativo no Momento</h2>
-                    <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed mt-4">
-                        A sorte está se preparando para o próximo ciclo! Fique de olho, em breve teremos novos sorteios.
-                    </p>
-                </div>
-            </section>
-        );
+        return null;
     }
 
     return (
@@ -349,5 +339,3 @@ export default function LandingPage() {
         </div>
     );
 }
-
-    
