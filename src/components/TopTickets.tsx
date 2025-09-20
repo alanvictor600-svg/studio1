@@ -29,13 +29,13 @@ export const TopTickets: FC<TopTicketsProps> = ({ draws }) => {
 
   if (draws.length === 0 || drawnNumbersFrequency.length === 0) {
     return (
-      <Card className="h-full">
+      <Card className="h-full flex flex-col">
         <CardHeader>
            <CardTitle className="text-2xl font-bold text-primary text-center flex items-center justify-center">
               <Star className="mr-3 h-6 w-6" /> Números da Sorte
            </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center h-full p-6">
+        <CardContent className="flex-grow flex flex-col items-center justify-center p-6">
           <p className="text-muted-foreground text-center">Aguardando o primeiro sorteio do ciclo para exibir estatísticas.</p>
         </CardContent>
       </Card>
