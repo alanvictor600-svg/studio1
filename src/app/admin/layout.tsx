@@ -147,7 +147,7 @@ export default function AdminLayout({
             </div>
             {children}
         </div>
-        <footer className="mt-auto py-8 text-center border-t border-border/50">
+        <footer className="mt-auto py-8 text-center border-t border-border/50 bg-secondary">
             <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} Bolão Potiguar - Admin.
             </p>
