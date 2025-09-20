@@ -14,13 +14,11 @@ import type { Draw } from '@/types';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 
-// Sub-componente para o formulário de login do admin
 const AdminLoginForm: FC = () => {
     const { login } = useAuth();
     const [adminUsername, setAdminUsername] = useState('');
@@ -68,7 +66,6 @@ const AdminLoginForm: FC = () => {
     );
 };
 
-// Sub-componente para o cabeçalho da página
 const LandingHeader: FC = () => {
     const { currentUser, logout } = useAuth();
     const router = useRouter();
@@ -125,7 +122,17 @@ const LandingHeader: FC = () => {
     );
 };
 
-// Componente principal da página, agora mais limpo e organizado
+const LandingFooter: FC = () => {
+    return (
+        <footer className="border-t">
+            <div className="container py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+                <p>&copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.</p>
+                <p className="text-xs">Jogue com responsabilidade. Para maiores de 18 anos.</p>
+            </div>
+        </footer>
+    );
+};
+
 export default function LandingPage() {
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
     const [isLoadingDraw, setIsLoadingDraw] = useState(true);
@@ -152,7 +159,7 @@ export default function LandingPage() {
     }, [toast]);
 
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col flex-1">
             <LandingHeader />
             <main className="flex-1">
                 {/* Hero Section */}
@@ -208,7 +215,7 @@ export default function LandingPage() {
                                 <TopTickets draws={[lastDraw]} />
                             </div>
                          ) : (
-                             <div className="text-center py-10 text-muted-foreground">Nenhum sorteio cadastrado ainda.</div>
+                            <div className="text-center py-10 text-muted-foreground">Nenhum sorteio cadastrado ainda.</div>
                          )}
                     </div>
                 </section>
@@ -248,14 +255,7 @@ export default function LandingPage() {
                     </div>
                 </section>
             </main>
-
-            {/* Footer */}
-            <footer className="border-t">
-                <div className="container py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.</p>
-                    <p className="text-xs">Jogue com responsabilidade. Para maiores de 18 anos.</p>
-                </div>
-            </footer>
+            <LandingFooter />
         </div>
     );
 }
