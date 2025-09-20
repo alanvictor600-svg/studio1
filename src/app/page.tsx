@@ -47,7 +47,7 @@ const Header = () => {
   return (
     <header className="container mx-auto px-4 md:px-6 sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
       <div className="flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-foreground">
+        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
           <span className="hidden sm:inline-block text-foreground">Bolão Potiguar</span>
         </Link>
@@ -191,7 +191,7 @@ const HowItWorksSection = () => (
 const Footer = () => (
   <footer className="bg-card border-t">
     <div className="container mx-auto px-4 md:px-6 py-8 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} <Link href="/login?as=admin" className="hover:text-primary">Bolão Potiguar</Link>. Todos os direitos reservados.</p>
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
             <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
             <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
