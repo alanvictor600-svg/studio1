@@ -298,14 +298,16 @@ const HowItWorksSection: FC = () => (
 
 // Sub-componente para o rodapé
 const LandingFooter: FC = () => (
-    <footer className="container text-center py-8 border-t border-border/50">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 md:px-6">
-            <p className="text-sm text-muted-foreground">
-                &copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.
-            </p>
-            <p className="text-xs text-muted-foreground/70">
-                Jogue com responsabilidade. Para maiores de 18 anos.
-            </p>
+    <footer className="w-full">
+        <div className="container text-center py-8 border-t border-border/50">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 px-4 md:px-6">
+                <p className="text-sm text-muted-foreground">
+                    &copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                    Jogue com responsabilidade. Para maiores de 18 anos.
+                </p>
+            </div>
         </div>
     </footer>
 );
