@@ -5,8 +5,8 @@ import { useState, useEffect, type FC } from 'react';
 import Link from 'next/link';
 import Image from 'next/image'; 
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LogIn, UserPlus, LogOut, LayoutDashboard, ShieldCheck, CheckCircle, Trophy, TrendingUp } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { LogIn, UserPlus, LogOut, LayoutDashboard, ShieldCheck, ArrowRight, CheckCircle, Gift, BarChart2, TrendingUp } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,9 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
+import { cn } from '@/lib/utils';
+
+// --- SUB-COMPONENTS FOR THE NEW LAYOUT ---
 
 const AdminLoginForm: FC = () => {
     const { login } = useAuth();
@@ -81,13 +84,13 @@ const LandingHeader: FC = () => {
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
+            <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-6">
                 <Link href="/" className="flex items-center gap-2 font-bold">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
                     <span>Bolão Potiguar</span>
                 </Link>
 
-                <div className="flex items-center gap-2">
+                <nav className="flex items-center gap-2">
                     {currentUser ? (
                         <>
                             <Button onClick={handlePainelClick} size="sm">
@@ -116,128 +119,122 @@ const LandingHeader: FC = () => {
                             <AdminLoginForm />
                         </PopoverContent>
                     </Popover>
-                </div>
+                </nav>
             </div>
         </header>
     );
 };
 
-const HeroSection: FC<{ currentUser: User | null }> = ({ currentUser }) => (
-    <section className="w-full py-20 md:py-28 lg:py-32 xl:py-40 text-center">
-        <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-6">
-                <Image
-                    src="/logo.png"
-                    alt="Logo Bolão Potiguar"
-                    width={150}
-                    height={150}
-                    priority
-                    className="mx-auto"
-                />
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                    Bolão Potiguar
-                </h1>
-                <p className="max-w-[600px] mx-auto text-muted-foreground md:text-xl">
-                    Sua sorte começa aqui! Escolha seus números, faça sua aposta e concorra a prêmios.
-                </p>
-                {!currentUser && (
-                    <div className="flex flex-col sm:flex-row gap-4">
+const NewHeroSection: FC = () => {
+    return (
+        <section className="w-full py-20 md:py-32">
+            <div className="container px-4 md:px-6 text-center">
+                <div className="flex flex-col items-center space-y-6">
+                     <Image
+                        src="/logo.png"
+                        alt="Logo Bolão Potiguar"
+                        width={120}
+                        height={120}
+                        priority
+                        className="mx-auto drop-shadow-2xl"
+                    />
+                    <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+                        A Sorte Bate à sua Porta
+                    </h1>
+                    <p className="max-w-2xl mx-auto text-muted-foreground md:text-xl">
+                        Participe do Bolão Potiguar. Escolha seus números, faça sua aposta e concorra a prêmios incríveis de um jeito simples e divertido.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 mt-6">
                         <Button asChild size="lg">
                             <Link href="/cadastrar?role=cliente">
-                                <UserPlus className="mr-2 h-5 w-5" /> Criar Conta de Cliente
+                                Começar a Apostar <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>
                         </Button>
                         <Button asChild size="lg" variant="secondary">
                             <Link href="/cadastrar?role=vendedor">
-                                Virar um Vendedor
+                                Torne-se um Vendedor
                             </Link>
                         </Button>
                     </div>
-                )}
+                </div>
             </div>
-        </div>
-    </section>
-);
+        </section>
+    );
+};
 
-const ResultsSection: FC<{ lastDraw: Draw | null; isLoading: boolean }> = ({ lastDraw, isLoading }) => (
-    <section id="results" className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+const FeaturesSection: FC = () => {
+    const features = [
+        { icon: CheckCircle, title: 'Simples de Jogar', description: 'Escolha seus números em uma interface intuitiva e fácil de usar.' },
+        { icon: Gift, title: 'Prêmios Atrativos', description: 'Concorra a prêmios que podem mudar o seu dia.' },
+        { icon: BarChart2, title: 'Resultados Rápidos', description: 'Acompanhe os sorteios e confira os resultados em tempo real.' }
+    ];
+
+    return (
+        <section className="w-full py-12 md:py-24 bg-muted">
+            <div className="container px-4 md:px-6">
+                <div className="mx-auto grid max-w-5xl items-center gap-6 lg:grid-cols-3 lg:gap-12">
+                    {features.map((feature, index) => (
+                        <div key={index} className="flex flex-col items-center text-center">
+                            <feature.icon className="h-12 w-12 text-primary mb-4" />
+                            <h3 className="text-xl font-bold">{feature.title}</h3>
+                            <p className="text-muted-foreground mt-2">{feature.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+const NewResultsSection: FC<{ lastDraw: Draw | null; isLoading: boolean }> = ({ lastDraw, isLoading }) => (
+    <section id="results" className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-primary flex items-center justify-center gap-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-primary flex items-center justify-center gap-3">
                     <TrendingUp className="h-8 w-8" />
-                    Confira o Último Resultado
+                    Último Sorteio
                 </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed">
-                    Veja os números que saíram no último sorteio e os bichos mais sorteados do ciclo.
+                    Confira os números sorteados e os bichos mais populares do ciclo atual.
                 </p>
             </div>
              {isLoading ? (
-                 <div className="text-center py-10 text-muted-foreground">Carregando...</div>
+                 <div className="text-center py-10 text-muted-foreground">Carregando resultados...</div>
              ) : lastDraw ? (
                 <div className="mx-auto grid items-start gap-8 sm:max-w-4xl md:gap-12 lg:max-w-5xl lg:grid-cols-2 pt-12">
                     <AdminDrawCard draw={lastDraw} />
                     <TopTickets draws={[lastDraw]} />
                 </div>
              ) : (
-                <div className="text-center py-10 text-muted-foreground bg-background/50 rounded-lg shadow-inner mt-8">
-                    <p className="font-semibold text-lg">Nenhum sorteio cadastrado ainda.</p>
-                    <p className="text-sm">Aguardando o próximo sorteio do ciclo.</p>
+                <div className="text-center py-16 bg-background/50 rounded-lg shadow-inner mt-8 max-w-2xl mx-auto">
+                    <p className="font-semibold text-lg text-foreground">Nenhum sorteio ativo no momento.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Aguardando o administrador registrar o primeiro sorteio do ciclo.</p>
                 </div>
              )}
         </div>
     </section>
 );
 
-const HowItWorksSection: FC = () => (
-    <section id="how-it-works" className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Como Funciona?</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed">
-                    Participar é simples, rápido e divertido. Siga os passos abaixo.
-                </p>
-            </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-6 py-12 lg:grid-cols-3">
-                <Card>
-                    <CardHeader className="items-center text-center">
-                        <UserPlus className="h-10 w-10 text-primary mb-2" />
-                        <CardTitle>1. Crie sua Conta</CardTitle>
-                        <CardDescription>Cadastre-se gratuitamente como cliente ou vendedor.</CardDescription>
-                    </CardHeader>
-                </Card>
-                 <Card>
-                    <CardHeader className="items-center text-center">
-                        <CheckCircle className="h-10 w-10 text-primary mb-2" />
-                        <CardTitle>2. Faça sua Aposta</CardTitle>
-                        <CardDescription>Escolha seus números e confirme sua aposta no painel.</CardDescription>
-                    </CardHeader>
-                </Card>
-                 <Card>
-                    <CardHeader className="items-center text-center">
-                        <Trophy className="h-10 w-10 text-primary mb-2" />
-                        <CardTitle>3. Confira os Prêmios</CardTitle>
-                        <CardDescription>Acompanhe os resultados e veja se você ganhou.</CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-        </div>
-    </section>
-);
 
-const LandingFooter: FC = () => (
-    <footer className="w-full border-t">
-        <div className="container py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+const NewFooter: FC = () => (
+    <footer className="w-full border-t bg-background">
+        <div className="container px-4 md:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.</p>
-            <p className="text-xs">Jogue com responsabilidade. Para maiores de 18 anos.</p>
+            <nav className="flex gap-4">
+                <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
+                <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
+            </nav>
         </div>
     </footer>
 );
+
+
+// --- MAIN PAGE COMPONENT ---
 
 export default function LandingPage() {
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
     const [isLoadingDraw, setIsLoadingDraw] = useState(true);
     const { toast } = useToast();
-    const { currentUser } = useAuth();
 
     useEffect(() => {
         const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'), limit(1));
@@ -259,14 +256,14 @@ export default function LandingPage() {
     }, [toast]);
 
     return (
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col min-h-screen">
             <LandingHeader />
-            <main>
-                <HeroSection currentUser={currentUser} />
-                <ResultsSection lastDraw={lastDraw} isLoading={isLoadingDraw} />
-                <HowItWorksSection />
+            <main className="flex-1">
+                <NewHeroSection />
+                <FeaturesSection />
+                <NewResultsSection lastDraw={lastDraw} isLoading={isLoadingDraw} />
             </main>
-            <LandingFooter />
+            <NewFooter />
         </div>
     );
 }
