@@ -60,8 +60,8 @@ export default function AdminLayout({
   // This prevents content from flashing before the redirect logic in useEffect runs.
   if (isLoading || !isAuthenticated || !currentUser) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando sessão de Admin...</p>
+      <div className="flex justify-center items-center min-h-screen">
+        <p className="text-white text-xl">Verificando sessão de Admin...</p>
       </div>
     );
   }

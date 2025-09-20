@@ -71,7 +71,7 @@ body {
     --chart-4: 217 81% 75%;
     --chart-5: 48 96% 70%;
 
-    --sidebar-background: 223 99% 7%;
+    --sidebar-background: 224 76% 10%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 222 47% 11%;
@@ -88,6 +88,10 @@ body {
   }
   body {
     @apply text-foreground;
-    background: linear-gradient(to bottom, hsl(142, 81%, 15%), hsl(142, 71%, 25%));
+    background: linear-gradient(to top, hsl(142, 81%, 15%), hsl(142, 71%, 25%));
+  }
+
+  .dark body {
+    background: linear-gradient(to top, hsl(223, 99%, 7%), hsl(223, 89%, 12%));
   }
 }

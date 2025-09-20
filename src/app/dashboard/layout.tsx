@@ -76,7 +76,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (isAuthLoading || !isAuthenticated || !currentUser) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
+      <div className="flex justify-center items-center min-h-screen">
         <p className="text-white text-xl">Verificando sessão...</p>
       </div>
     );
@@ -84,7 +84,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   
   if (currentUser.role !== role) {
       return (
-         <div className="flex justify-center items-center min-h-screen bg-background">
+         <div className="flex justify-center items-center min-h-screen">
             <p className="text-white text-xl">Acesso negado. Redirecionando...</p>
         </div>
       );
