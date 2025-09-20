@@ -172,13 +172,13 @@ export default function LandingPage() {
                     <Button asChild className="bg-green-600 hover:bg-green-700 text-white" size="sm">
                         <Link href="/login">
                             <LogIn className="sm:mr-2 h-4 w-4" />
-                            <span>Entrar</span>
+                            <span className="hidden sm:inline">Entrar</span>
                         </Link>
                     </Button>
                     <Button asChild size="sm">
                         <Link href="/cadastrar">
                             <UserPlus className="sm:mr-2 h-4 w-4" />
-                            <span>Cadastrar</span>
+                            <span className="hidden sm:inline">Cadastrar</span>
                         </Link>
                     </Button>
                 </div>
@@ -188,7 +188,7 @@ export default function LandingPage() {
         </div>
       </header>
       
-      <main className="flex-1">
+      <main className="flex flex-1 flex-col items-center">
         <section className="w-full py-20 md:py-28 lg:py-32 xl:py-40 text-center">
              <div className="container px-4 md:px-6">
                  <div className="flex flex-col items-center space-y-6">
