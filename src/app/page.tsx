@@ -51,7 +51,7 @@ const LandingHeader = () => {
         </Link>
         <div className="flex items-center gap-2">
             <ThemeToggleButton />
-            <Button asChild variant="outline">
+            <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
                 <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Entrar</Link>
             </Button>
             <Button asChild>
