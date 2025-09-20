@@ -8,24 +8,24 @@ body {
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 215 25% 25%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --background: 100 80% 96%; /* Bright Green Tint */
+    --foreground: 120 25% 15%; /* Dark Greenish Gray */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 120 25% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 120 25% 10%;
     --primary: 142 71% 45%; /* Emerald Green */
     --primary-foreground: 142 71% 95%;
     --secondary: 45 95% 55%; /* Gold/Yellow */
     --secondary-foreground: 45 95% 10%;
-    --muted: 210 40% 94%;
-    --muted-foreground: 215 20% 45%;
+    --muted: 110 30% 94%;
+    --muted-foreground: 115 20% 45%;
     --accent: 170 75% 45%; /* Cyan/Teal Accent */
     --accent-foreground: 170 75% 95%;
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 210 30% 88%;
-    --input: 210 40% 96%;
+    --border: 110 30% 88%;
+    --input: 110 40% 96%;
     --ring: 142 71% 50%;
     
     --chart-1: 142 71% 45%;
@@ -36,13 +36,13 @@ body {
 
     --radius: 0.5rem;
 
-    --sidebar-background: 210 40% 97%;
-    --sidebar-foreground: 215 25% 15%;
+    --sidebar-background: 100 80% 98%;
+    --sidebar-foreground: 120 25% 15%;
     --sidebar-primary: 142 71% 45%;
     --sidebar-primary-foreground: 142 71% 95%;
-    --sidebar-accent: 210 40% 92%;
-    --sidebar-accent-foreground: 215 25% 10%;
-    --sidebar-border: 210 30% 85%;
+    --sidebar-accent: 100 70% 92%;
+    --sidebar-accent-foreground: 120 25% 10%;
+    --sidebar-border: 110 30% 85%;
     --sidebar-ring: 142 71% 50%;
   }
 
