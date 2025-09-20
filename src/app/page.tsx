@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LogIn, UserPlus, Gift, Gamepad2 } from 'lucide-react';
+import { LogIn, UserPlus, Gift, Gamepad2, TrendingUp, History } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestor
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
+import { Separator } from '@/components/ui/separator';
 
 // Sub-component for the Header
 const LandingHeader = () => {
@@ -63,9 +64,10 @@ const LandingHeader = () => {
   );
 };
 
+
 // Sub-component for the Hero Section
 const HeroSection = () => (
-  <section className="container px-4 md:px-6 py-12 md:py-24 text-center">
+  <section className="container px-4 md:px-6 py-16 md:py-24 text-center">
     <div className="max-w-3xl mx-auto">
       <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-primary">
         Sua Sorte Começa Aqui
@@ -104,28 +106,33 @@ const ResultsSection = () => {
     }, []);
 
     return (
-        <section className="w-full bg-muted/50 py-12 md:py-20">
+        <section className="w-full bg-muted/50 py-16 md:py-24">
             <div className="container px-4 md:px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start">
-                    <div className="space-y-4 text-center lg:text-left">
-                        <h2 className="text-3xl md:text-4xl font-bold text-primary">Resultados e Estatísticas</h2>
-                        <p className="text-muted-foreground text-lg">
-                            Confira o resultado do último sorteio e veja os números mais quentes do ciclo.
-                        </p>
+                <div className="mx-auto max-w-5xl space-y-8 text-center">
+                     <h2 className="text-3xl md:text-4xl font-bold text-primary flex items-center justify-center gap-3">
+                        <History className="h-8 w-8"/>
+                        Resultados e Estatísticas
+                    </h2>
+                    <p className="text-muted-foreground text-lg">
+                        Confira o resultado do último sorteio e veja os números mais quentes do ciclo.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start mt-12 max-w-6xl mx-auto">
+                    <div>
                          {isLoading ? (
                             <Card className="h-full">
-                                <CardContent className="flex items-center justify-center h-48">
+                                <CardContent className="flex items-center justify-center h-full min-h-[300px]">
                                     <p className="text-muted-foreground">Carregando resultados...</p>
                                 </CardContent>
                             </Card>
                         ) : lastDraw ? (
                            <AdminDrawCard draw={lastDraw} />
                         ) : (
-                           <Card>
+                           <Card className="h-full">
                                 <CardHeader>
-                                    <CardTitle className="text-xl text-center">Nenhum Sorteio Realizado</CardTitle>
+                                    <CardTitle className="text-xl text-center">Nenhum Sorteio Ativo</CardTitle>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="flex items-center justify-center h-full min-h-[300px]">
                                     <p className="text-center text-muted-foreground">Ainda não houve sorteios neste ciclo. Volte em breve!</p>
                                 </CardContent>
                             </Card>
@@ -142,33 +149,39 @@ const ResultsSection = () => {
 
 // Sub-component for "How it Works"
 const HowItWorksSection = () => (
-  <section className="container px-4 md:px-6 py-12 md:py-24">
+  <section className="container px-4 md:px-6 py-16 md:py-24">
     <div className="text-center max-w-2xl mx-auto">
       <h2 className="text-3xl md:text-4xl font-bold text-primary">Como Funciona?</h2>
       <p className="mt-3 text-lg text-muted-foreground">É fácil participar. Siga os três passos abaixo:</p>
     </div>
-    <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-4 shadow-lg">
-          <UserPlus size={32} />
+    <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-5xl mx-auto">
+      <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
+            <UserPlus size={32} />
+            </div>
+            <h3 className="text-xl font-bold">1. Cadastre-se</h3>
+            <p className="text-muted-foreground mt-2">Crie sua conta de cliente de forma rápida e segura.</p>
         </div>
-        <h3 className="text-xl font-bold">1. Cadastre-se</h3>
-        <p className="text-muted-foreground mt-2">Crie sua conta de cliente de forma rápida e segura.</p>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-4 shadow-lg">
-          <Gamepad2 size={32} />
+      </Card>
+      <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
+            <Gamepad2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold">2. Faça sua Aposta</h3>
+            <p className="text-muted-foreground mt-2">Escolha seus 10 números da sorte, de 1 a 25. Pode repetir!</p>
         </div>
-        <h3 className="text-xl font-bold">2. Faça sua Aposta</h3>
-        <p className="text-muted-foreground mt-2">Escolha seus 10 números da sorte, de 1 a 25. Pode repetir!</p>
-      </div>
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-4 shadow-lg">
-          <Gift size={32} />
+      </Card>
+      <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
+            <Gift size={32} />
+            </div>
+            <h3 className="text-xl font-bold">3. Concorra aos Prêmios</h3>
+            <p className="text-muted-foreground mt-2">Aguarde o sorteio. Se seus 10 números forem sorteados, você ganha!</p>
         </div>
-        <h3 className="text-xl font-bold">3. Concorra aos Prêmios</h3>
-        <p className="text-muted-foreground mt-2">Aguarde o sorteio. Se seus 10 números forem sorteados, você ganha!</p>
-      </div>
+      </Card>
     </div>
   </section>
 );
@@ -176,7 +189,7 @@ const HowItWorksSection = () => (
 
 // Sub-component for the Footer
 const LandingFooter = () => (
-  <footer className="border-t">
+  <footer className="w-full bg-muted/50 border-t">
     <div className="container px-4 md:px-6 py-8 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} Bolão Potiguar. Todos os direitos reservados.</p>
         <div className="flex gap-4 mt-4 sm:mt-0">
@@ -189,9 +202,9 @@ const LandingFooter = () => (
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col min-h-screen">
       <LandingHeader />
-      <main>
+      <main className="flex-1">
         <HeroSection />
         <ResultsSection />
         <HowItWorksSection />
@@ -200,3 +213,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
