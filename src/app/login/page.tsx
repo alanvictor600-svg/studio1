@@ -104,9 +104,9 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md shadow-xl bg-card/90 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
-          <Link href="/login?as=admin" className="mx-auto mb-4 group">
+          <button onClick={() => router.push('/login?as=admin')} className="mx-auto mb-4 group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full">
             <Image src="/logo.png" alt="Logo Bolão Potiguar" width={80} height={80} className="group-hover:scale-110 transition-transform" />
-          </Link>
+          </button>
           <CardTitle className="text-3xl font-bold text-primary">
             {isAdminLogin ? (
               <span className="flex items-center justify-center"><KeyRound className="mr-2 h-7 w-7"/>Acesso Restrito</span>
