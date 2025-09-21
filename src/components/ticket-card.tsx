@@ -105,7 +105,7 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
 
   return (
      <Card className={cn(
-        "shadow-lg hover:shadow-xl transition-shadow duration-300 relative overflow-hidden bg-card/80 backdrop-blur-sm border-border/50",
+        "shadow-lg hover:shadow-xl transition-shadow duration-300 relative overflow-hidden bg-card/90 backdrop-blur-sm border-border/50",
         ticket.status === 'winning' && 'shadow-emerald-500/20 hover:shadow-emerald-500/30'
      )}>
         {/* Glow effect for winning ticket */}
