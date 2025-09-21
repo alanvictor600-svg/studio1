@@ -159,10 +159,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             setReceiptTickets(createdTickets);
 
         } catch (e: any) {
-            console.error("Transaction failed: ", e);
-            if (e.message === "Insufficient credits.") {
+            if (e.message === "Saldo insuficiente.") {
                 showCreditsDialog();
             } else {
+                console.error("Transaction failed: ", e);
                 toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
             }
         } finally {

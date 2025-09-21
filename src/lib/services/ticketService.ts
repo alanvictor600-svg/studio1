@@ -54,7 +54,7 @@ export const createSellerTicket = async ({
         const currentBalance = userDoc.data().saldo || 0;
         if (currentBalance < ticketPrice) {
             // This specific error message is caught by the client to show a dialog
-            throw new Error("Insufficient credits.");
+            throw new Error("Saldo insuficiente.");
         }
         
         newBalance = currentBalance - ticketPrice;
@@ -106,7 +106,7 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
         
         const currentBalance = freshUserDoc.data().saldo || 0;
         if (currentBalance < totalCost) {
-            throw new Error("Insufficient credits.");
+            throw new Error("Saldo insuficiente.");
         }
 
         newBalance = currentBalance - totalCost;

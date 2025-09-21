@@ -130,10 +130,9 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e: any) {
-       if (e.message === 'Insufficient credits.') {
+       if (e.message === 'Saldo insuficiente.') {
           showCreditsDialog();
         } else {
-          console.error("Failed to create seller ticket: ", e);
           toast({ title: "Erro ao Vender", description: e.message || "Não foi possível registrar a venda.", variant: "destructive" });
         }
     } finally {
