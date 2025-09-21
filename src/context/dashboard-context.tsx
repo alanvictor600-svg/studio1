@@ -18,8 +18,12 @@ interface DashboardContextType {
     lotteryConfig: LotteryConfig;
     setLotteryConfig: Dispatch<SetStateAction<LotteryConfig>>;
     handlePurchaseCart: () => Promise<void>;
+    
+    // Dialog control
     isCreditsDialogOpen: boolean;
+    showCreditsDialog: () => void;
     setIsCreditsDialogOpen: Dispatch<SetStateAction<boolean>>;
+    
     receiptTickets: Ticket[] | null;
     setReceiptTickets: Dispatch<SetStateAction<Ticket[] | null>>;
     
@@ -57,6 +61,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     
     // To prevent setting up multiple listeners
     const listenersActive = useRef(false);
+
+    const showCreditsDialog = useCallback(() => {
+        setIsCreditsDialogOpen(true);
+    }, []);
 
     const startDataListeners = useCallback((user: User) => {
         if (listenersActive.current) return;
@@ -153,7 +161,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         } catch (e: any) {
             console.error("Transaction failed: ", e);
             if (e.message === "Insufficient credits.") {
-                setIsCreditsDialogOpen(true);
+                showCreditsDialog();
             } else {
                 toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
             }
@@ -172,6 +180,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         handlePurchaseCart,
         isCreditsDialogOpen,
         setIsCreditsDialogOpen,
+        showCreditsDialog,
         receiptTickets,
         setReceiptTickets,
         // Pass new data and functions

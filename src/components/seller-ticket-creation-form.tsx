@@ -39,7 +39,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentUser, updateCurrentUserCredits } = useAuth();
-  const { setReceiptTickets, setIsCreditsDialogOpen } = useDashboard();
+  const { setReceiptTickets, showCreditsDialog } = useDashboard();
 
 
   const numberCounts = countOccurrences(currentPicks);
@@ -132,7 +132,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     } catch (e: any) {
       console.error("Failed to create seller ticket: ", e);
        if (e.message === 'Insufficient credits.') {
-          setIsCreditsDialogOpen(true);
+          showCreditsDialog();
         } else {
           toast({ title: "Erro ao Vender", description: e.message || "Não foi possível registrar a venda.", variant: "destructive" });
         }
