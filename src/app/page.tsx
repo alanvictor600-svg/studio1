@@ -65,7 +65,7 @@ const Header = () => {
 };
 
 const HeroSection = () => (
-  <section className="text-center py-16 md:py-24 bg-gradient-to-b from-green-50 via-emerald-100 to-white">
+  <section className="text-center py-16 md:py-24 bg-gradient-to-b from-green-100 to-teal-200">
     <div className="max-w-3xl mx-auto">
       <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-black">
         A Próxima Grande Sorte Pode Ser a Sua.
