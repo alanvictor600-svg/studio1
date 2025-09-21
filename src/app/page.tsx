@@ -32,8 +32,8 @@ const Header = () => {
 
   if (isLoading || isAuthenticated) {
     return (
-      <header className="container mx-auto px-4 md:px-6 sticky top-0 z-40 w-full border-b bg-secondary">
-        <div className="flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-40 w-full border-b bg-secondary">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
                 <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
                 <span className="hidden sm:inline-block">Bolão Potiguar</span>
@@ -45,8 +45,8 @@ const Header = () => {
   }
 
   return (
-    <header className="container mx-auto px-4 md:px-6 sticky top-0 z-40 w-full border-b bg-secondary">
-      <div className="flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-40 w-full border-b bg-secondary">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
           <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
           <span className="hidden sm:inline-block text-foreground">Bolão Potiguar</span>
@@ -66,11 +66,11 @@ const Header = () => {
 
 const HeroSection = () => (
   <section className="text-center py-16 md:py-24 bg-gradient-to-b from-emerald-700 to-emerald-900">
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto px-4">
       <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-500 text-transparent bg-clip-text">
         A Próxima Grande Sorte Pode Ser a Sua.
       </h1>
-      <p className="mt-4 text-lg md:text-xl text-white/80">
+      <p className="mt-4 text-lg md:text-xl text-white">
         Escolha seus números, sinta a emoção e transforme um simples palpite em prêmios incríveis. A aposta é fácil, a diversão é garantida.
       </p>
       <div className="mt-8 flex justify-center gap-4">
