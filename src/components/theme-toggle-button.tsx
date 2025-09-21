@@ -19,7 +19,7 @@ export const ThemeToggleButton: FC = () => {
   if (!isMounted) {
     return (
       <Button
-        variant="outline"
+        variant="secondary"
         size="icon"
         disabled
         className="shadow-lg rounded-full"
@@ -33,7 +33,7 @@ export const ThemeToggleButton: FC = () => {
 
   return (
     <Button
-      variant="outline"
+      variant="secondary"
       size="icon"
       onClick={toggleTheme}
       aria-label={isCurrentlyDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
