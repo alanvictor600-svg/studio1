@@ -69,7 +69,7 @@ const HeroSection = () => (
     <div className="max-w-3xl mx-auto">
       <h1 className={cn(
           "text-4xl md:text-6xl font-extrabold tracking-tighter",
-          "bg-gradient-to-r from-primary via-cyan-400 to-primary text-transparent bg-clip-text"
+          "text-green-500"
       )}>
         A Próxima Grande Sorte Pode Ser a Sua.
       </h1>
