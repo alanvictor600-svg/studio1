@@ -183,7 +183,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <ThemeToggleButton />
             </div>
         </header>
-        <main className="p-4 md:p-8 flex-1">
+        <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
             {isDataLoading && !children ? (
                 <div className="text-center p-10 text-white">Carregando dados...</div>
             ) : children}

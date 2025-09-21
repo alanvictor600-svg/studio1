@@ -33,8 +33,9 @@ export const ShoppingCart: FC<ShoppingCartProps> = ({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" className="relative shadow-md">
+        <Button variant="outline" className="relative shadow-md h-10 w-10 p-0 sm:w-auto sm:px-4 sm:py-2">
           <ShoppingCartIcon className="h-5 w-5" />
+          <span className="hidden sm:inline-block sm:ml-2">Meu Carrinho</span>
           {cart.length > 0 && (
             <Badge 
               variant="destructive" 
