@@ -89,7 +89,7 @@ export default function SolicitarSaldoPage() {
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Voltar</span>
             </Button>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 text-transparent bg-clip-text">
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-green-400 via-emerald-500 to-green-600 text-transparent bg-clip-text">
               A Sorte te Espera!
             </h1>
           </div>
