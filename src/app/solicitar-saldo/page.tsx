@@ -160,19 +160,21 @@ export default function SolicitarSaldoPage() {
                         <CardTitle>Pagamento via WhatsApp</CardTitle>
                         <CardDescription>Combine o pagamento conosco.</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex flex-col justify-center h-full gap-4 pt-4">
+                    <CardContent className="flex flex-col gap-4">
                         <div className="p-3 rounded-md bg-muted text-center">
                             <Label className="text-xs text-muted-foreground">Nosso Número</Label>
                             <p className="font-mono text-lg text-center">
                                 {config?.whatsappNumber}
                             </p>
                         </div>
-                        <Button asChild disabled={!config?.whatsappNumber || config.whatsappNumber === 'Não configurado'} className="w-full bg-green-500 hover:bg-green-600 text-white">
-                            <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                            <Send className="mr-2 h-4 w-4" /> Combinar Pagamento
-                            </Link>
-                        </Button>
-                        <p className="text-xs text-muted-foreground text-center pt-2">Clique no botão para abrir a conversa, tirar dúvidas e combinar o pagamento.</p>
+                        <div className="space-y-2 text-center">
+                             <Button asChild disabled={!config?.whatsappNumber || config.whatsappNumber === 'Não configurado'} className="w-full bg-green-500 hover:bg-green-600 text-white">
+                                <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                                <Send className="mr-2 h-4 w-4" /> Combinar Pagamento
+                                </Link>
+                            </Button>
+                            <p className="text-xs text-muted-foreground">Clique no botão para abrir a conversa, tirar dúvidas e combinar o pagamento.</p>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
