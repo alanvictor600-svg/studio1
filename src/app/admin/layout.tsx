@@ -17,7 +17,8 @@ import {
     SidebarMenu, 
     SidebarMenuItem, 
     SidebarMenuButton, 
-    SidebarInset 
+    SidebarInset,
+    useSidebar
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -35,15 +36,12 @@ const menuItems: { id: string; label: string; Icon: React.ElementType }[] = [
   { id: 'bilhetes-premiados', label: 'Bilhetes Premiados', Icon: Trophy },
 ];
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { setOpenMobile } = useSidebar();
   
   const activeSection = searchParams.get('section') || 'configuracoes';
 
@@ -73,10 +71,10 @@ export default function AdminLayout({
   }
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
              <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
              <div className="flex flex-col">
                 <span className="text-lg font-semibold text-black dark:text-white">Bolão Potiguar</span>
@@ -103,6 +101,7 @@ export default function AdminLayout({
                         <SidebarMenuButton 
                           asChild 
                           isActive={activeSection === item.id}
+                          onClick={() => setOpenMobile(false)}
                         >
                             <Link href={`/admin?section=${item.id}`}>
                                 <item.Icon /> {item.label}
@@ -115,14 +114,14 @@ export default function AdminLayout({
         <SidebarFooter>
             <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild variant="ghost">
+                    <SidebarMenuButton asChild variant="ghost" onClick={() => setOpenMobile(false)}>
                         <Link href="/">
                             <Home /> Página Inicial
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={logout} variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
                         <LogOut /> Sair da Conta
                     </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -136,7 +135,7 @@ export default function AdminLayout({
         <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
             <div className="flex items-center gap-2">
                  <SidebarTrigger />
-                 <Link href="/" className="flex items-center gap-1 md:hidden">
+                 <Link href="/" className="flex items-center gap-1">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
                     <span className="sm:inline-block">Bolão Potiguar</span>
                 </Link>
@@ -159,6 +158,15 @@ export default function AdminLayout({
             </p>
         </footer>
       </SidebarInset>
-    </SidebarProvider>
+    </>
   );
 }
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <SidebarProvider>
+            <AdminLayoutContent>{children}</AdminLayoutContent>
+        </SidebarProvider>
+    );
+}
+

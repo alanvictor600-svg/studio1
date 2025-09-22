@@ -17,7 +17,8 @@ import {
     SidebarMenu, 
     SidebarMenuItem, 
     SidebarMenuButton, 
-    SidebarInset 
+    SidebarInset,
+    useSidebar
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +37,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const params = useParams();
   const { role } = params as { role: 'cliente' | 'vendedor' };
+  const { setOpenMobile } = useSidebar();
 
   const { 
     cart, 
@@ -95,10 +97,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const dashboardPath = `/dashboard/${currentUser.role}`;
 
   return (
-    <SidebarProvider>
+    <>
       <Sidebar>
         <SidebarHeader>
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
              <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
              <div className="flex flex-col">
                 <span className="text-lg font-semibold text-black dark:text-white">Bolão Potiguar</span>
@@ -127,7 +129,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
             <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === dashboardPath}>
+                    <SidebarMenuButton asChild isActive={pathname === dashboardPath} onClick={() => setOpenMobile(false)}>
                         <Link href={dashboardPath}>
                             <LayoutDashboard />
                             Meu Painel
@@ -136,7 +138,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                  </SidebarMenuItem>
                  
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild variant="secondary" className="bg-green-500/80 text-white hover:bg-green-600/90 font-semibold text-base h-12">
+                    <SidebarMenuButton asChild variant="secondary" className="bg-green-500/80 text-white hover:bg-green-600/90 font-semibold text-base h-12" onClick={() => setOpenMobile(false)}>
                          <Link href="/solicitar-saldo">
                             <Coins className="mr-2 h-5 w-5" /> Adquirir Saldo
                         </Link>
@@ -147,14 +149,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
             <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild variant="ghost">
+                    <SidebarMenuButton asChild variant="ghost" onClick={() => setOpenMobile(false)}>
                         <Link href="/">
                             <Home /> Página Inicial
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
-                    <SidebarMenuButton onClick={logout} variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive">
                         <LogOut /> Sair da Conta
                     </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -170,7 +172,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <div className="md:hidden">
                     <SidebarTrigger />
                 </div>
-                <Link href="/" className="flex items-center gap-1 md:hidden">
+                <Link href="/" className="flex items-center gap-1">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
                     <span className="sm:inline-block">Bolão Potiguar</span>
                 </Link>
@@ -210,15 +212,18 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             lotteryConfig={lotteryConfig}
         />
       </SidebarInset>
-    </SidebarProvider>
+    </>
   );
 }
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </DashboardProvider>
+    <SidebarProvider>
+      <DashboardProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </DashboardProvider>
+    </SidebarProvider>
   );
 }
+
