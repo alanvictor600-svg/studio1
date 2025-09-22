@@ -166,8 +166,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
         <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:px-6 sticky top-0 z-10">
-            <div className="md:hidden">
-                <SidebarTrigger />
+            <div className="flex items-center gap-2">
+                <div className="md:hidden">
+                    <SidebarTrigger />
+                </div>
+                <Link href="/" className="flex items-center gap-2 font-bold text-lg md:hidden">
+                    <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
+                    <span className="hidden sm:inline-block">Bolão Potiguar</span>
+                </Link>
             </div>
             <span className="font-semibold text-primary hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
             <div className="flex items-center gap-4 ml-auto">

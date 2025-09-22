@@ -134,9 +134,15 @@ export default function AdminLayout({
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
         <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
-            <SidebarTrigger />
+            <div className="flex items-center gap-2">
+                 <SidebarTrigger />
+                 <Link href="/" className="flex items-center gap-2 font-bold text-lg md:hidden">
+                    <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
+                    <span className="hidden sm:inline-block">Bolão Potiguar</span>
+                </Link>
+            </div>
             <span className="font-semibold text-primary">Painel do Admin</span>
-            <div/>
+            <ThemeToggleButton />
         </header>
         <div className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
             <div className="mb-6">
