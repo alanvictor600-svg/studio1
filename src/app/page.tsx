@@ -142,58 +142,6 @@ const ResultsSection = () => {
     }, [activeTickets, allDraws, currentUser, isAuthenticated]);
 
 
-    const renderContent = () => {
-        if (isLoading) {
-            return (
-                <Card className="h-full col-span-1 lg:col-span-2">
-                    <CardContent className="flex items-center justify-center h-full min-h-[300px]">
-                        <p className="text-muted-foreground">Verificando... Carregando dados...</p>
-                    </CardContent>
-                </Card>
-            );
-        }
-        
-        if (!isAuthenticated) {
-            return (
-                <Card className="h-full col-span-1 lg:col-span-2 flex flex-col items-center justify-center text-center p-8 bg-card/80 backdrop-blur-sm shadow-xl">
-                    <Lock className="h-12 w-12 text-primary mb-4" />
-                    <h3 className="text-2xl font-bold">Conteúdo Exclusivo para Membros</h3>
-                    <p className="text-muted-foreground mt-2 max-w-sm">
-                        Faça login ou cadastre-se para ver os resultados dos últimos sorteios.
-                    </p>
-                    <div className="flex gap-4 mt-6">
-                        <Button asChild><Link href="/login">Entrar</Link></Button>
-                        <Button asChild variant="secondary"><Link href="/cadastrar">Cadastrar</Link></Button>
-                    </div>
-                </Card>
-            );
-        }
-
-        return (
-            <>
-                <div className={cn(currentUser?.role === 'admin' ? 'lg:col-span-1' : 'lg:col-span-2')}>
-                     {lastDraw ? (
-                       <AdminDrawCard draw={lastDraw} />
-                    ) : (
-                       <Card className="h-full">
-                            <CardHeader>
-                                <CardTitle className="text-xl text-center">Nenhum Sorteio Ativo</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex items-center justify-center h-full min-h-[300px]">
-                                <p className="text-center text-muted-foreground">Ainda não houve sorteios neste ciclo. Volte em breve!</p>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-                 {isAuthenticated && currentUser?.role === 'admin' && (
-                    <div className="h-full lg:col-span-1">
-                        <TopTickets rankedTickets={rankedTickets} />
-                    </div>
-                 )}
-            </>
-        );
-    };
-
     return (
         <section className="bg-muted/50 py-16 md:py-24">
             <div className="container mx-auto px-4 md:px-6">
@@ -208,9 +156,49 @@ const ResultsSection = () => {
                 </div>
                 <div className={cn(
                     "grid grid-cols-1 gap-8 md:gap-12 items-start mt-12 max-w-6xl mx-auto",
-                    isAuthenticated && currentUser?.role === 'admin' ? "lg:grid-cols-2" : "lg:grid-cols-1"
+                    isAuthenticated && currentUser?.role === 'admin' ? "lg:grid-cols-2" : ""
                 )}>
-                    {renderContent()}
+                   {isLoading ? (
+                        <Card className="h-full col-span-1 lg:col-span-2">
+                            <CardContent className="flex items-center justify-center h-full min-h-[300px]">
+                                <p className="text-muted-foreground">Verificando... Carregando dados...</p>
+                            </CardContent>
+                        </Card>
+                    ) : !isAuthenticated ? (
+                        <Card className="h-full col-span-1 lg:col-span-2 flex flex-col items-center justify-center text-center p-8 bg-card/80 backdrop-blur-sm shadow-xl">
+                            <Lock className="h-12 w-12 text-primary mb-4" />
+                            <h3 className="text-2xl font-bold">Conteúdo Exclusivo para Membros</h3>
+                            <p className="text-muted-foreground mt-2 max-w-sm">
+                                Faça login ou cadastre-se para ver os resultados dos últimos sorteios.
+                            </p>
+                            <div className="flex gap-4 mt-6">
+                                <Button asChild><Link href="/login">Entrar</Link></Button>
+                                <Button asChild variant="secondary"><Link href="/cadastrar">Cadastrar</Link></Button>
+                            </div>
+                        </Card>
+                    ) : (
+                        <>
+                            <div className={cn(currentUser?.role !== 'admin' && 'lg:col-span-2')}>
+                                {lastDraw ? (
+                                <AdminDrawCard draw={lastDraw} />
+                                ) : (
+                                <Card className="h-full">
+                                    <CardHeader>
+                                        <CardTitle className="text-xl text-center">Nenhum Sorteio Ativo</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex items-center justify-center h-full min-h-[300px]">
+                                        <p className="text-center text-muted-foreground">Ainda não houve sorteios neste ciclo. Volte em breve!</p>
+                                    </CardContent>
+                                </Card>
+                                )}
+                            </div>
+                            {currentUser?.role === 'admin' && (
+                                <div className="h-full">
+                                    <TopTickets rankedTickets={rankedTickets} />
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         </section>
