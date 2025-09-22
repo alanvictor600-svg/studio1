@@ -1,52 +1,81 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if a user is an admin
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Default to deny all reads and writes for security
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Allow public read access to draws
-    match /draws/{drawId} {
-      allow read: if true;
-    }
     
-    // Configs are publicly readable by anyone
-    match /configs/global {
-      allow read: if true;
-    }
-
-    // Allow users to read and write their own documents if they are authenticated
+    // Users collection rules
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      // Admins can read any user's document
-      allow read: if isAdmin();
+      // Anyone can create a user document (for registration)
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // A user can read their own data.
+      // An admin can read any user's data.
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // A user can update their own data. Admins can also update any user data (e.g., saldo).
+      allow update: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      
+      // Only admins can delete users.
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Allow authenticated users to create tickets
-    // Allow users to read their own tickets (as buyer or seller)
-    // Allow admins to read all tickets
+    // Tickets collection rules
     match /tickets/{ticketId} {
+      // Any authenticated user can create a ticket (clients or sellers).
       allow create: if request.auth != null;
-      allow read: if (request.auth != null && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid)) || isAdmin();
+
+      // An admin can read any ticket.
+      // A user can read a ticket if they are the buyer or the seller.
+      allow read: if request.auth != null && 
+                  (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+                   resource.data.buyerId == request.auth.uid || 
+                   resource.data.sellerId == request.auth.uid);
+                   
+      // Only admins can update ticket status (e.g., expiring tickets).
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Only admins can delete tickets.
+      allow delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Allow sellers to read their own history entries
-    // Allow admins to read all seller history
-    match /sellerHistory/{historyId} {
-      allow read: if (request.auth != null && resource.data.sellerId == request.auth.uid) || isAdmin();
+    // Draws collection rules
+    match /draws/{drawId} {
+      // Any authenticated user can read draws.
+      allow read: if request.auth != null;
+      
+      // Only admins can create, update, or delete draws.
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
-    
-    // Only admins can read the admin history
+
+    // Configs collection rules
+    match /configs/{configId} {
+       // Any authenticated user can read configs (like ticket price).
+      allow read: if request.auth != null;
+
+      // Only admins can change configs.
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Seller history rules
+    match /sellerHistory/{historyId} {
+      // An admin can read any seller history.
+      // A seller can read their own history.
+      allow read: if request.auth != null && 
+                  (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+                   resource.data.sellerId == request.auth.uid);
+                   
+      // Only admins can create history entries (done in a batch write).
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // History should be immutable.
+      allow update, delete: if false;
+    }
+
+    // Admin history rules
     match /adminHistory/{historyId} {
-      allow read: if isAdmin();
+      // Only admins can read or write admin history.
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
