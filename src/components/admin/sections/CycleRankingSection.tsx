@@ -30,16 +30,12 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
     return countOccurrences(draws.flatMap(draw => draw.numbers));
   }, [draws]);
 
-  const getProcessedTicketNumbers = (ticket: RankedTicket) => {
-    const tempDrawnFrequency = { ...drawnNumbersFrequency };
-    return ticket.numbers.map(num => {
-      let isMatched = false;
-      if (tempDrawnFrequency[num] && tempDrawnFrequency[num] > 0) {
-        isMatched = true;
-        tempDrawnFrequency[num]--;
-      }
-      return { numberValue: num, isMatched };
-    });
+  const getIsNumberMatched = (num: number, tempDrawnFrequency: Record<number, number>) => {
+    if (tempDrawnFrequency[num] && tempDrawnFrequency[num] > 0) {
+      tempDrawnFrequency[num]--;
+      return true;
+    }
+    return false;
   };
   
   const handleDownloadPdf = () => {
@@ -53,64 +49,76 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
     const date = format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     doc.text(date, 14, 30);
     
-    const body = rankedTickets.map(ticket => ({
-      buyer: ticket.buyerName || 'N/A',
-      numbers: getProcessedTicketNumbers(ticket), // Pass processed numbers
-      matches: ticket.matches.toString(),
-    }));
+    // Flatten ticket numbers for the PDF body
+    const body = rankedTickets.map(ticket => {
+        const row = [
+            ticket.buyerName || 'N/A',
+            ticket.sellerUsername || '-',
+            ...ticket.numbers,
+            ticket.matches.toString()
+        ];
+        return row;
+    });
+
+    const head = [['Comprador', 'Vendedor', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º', 'Acertos']];
 
     autoTable(doc, {
       startY: tableStartY,
-      head: [['Comprador', 'Números do Bilhete', 'Acertos']],
-      body: body.map(row => [row.buyer, row.numbers.map(n => n.numberValue).join(', '), row.matches]),
+      head: head,
+      body: body,
       headStyles: { fillColor: [22, 163, 74] }, // Emerald-600
       didDrawCell: (data) => {
-        // Style "Acertos" column
-        if (data.column.index === 2 && data.cell.section === 'body') {
-            const matches = parseInt(data.cell.text[0] || '0', 10);
-            let topMatches: number[] = [];
-            if (rankedTickets.length > 0) topMatches.push(rankedTickets[0].matches);
-            if (rankedTickets.length > 1) topMatches.push(rankedTickets[1].matches);
-            if (rankedTickets.length > 2) topMatches.push(rankedTickets[2].matches);
-            
-            let color: [number, number, number] | undefined;
-            if (matches === topMatches[0] && matches > 0) color = [255, 215, 0]; // Gold
-            else if (matches === topMatches[1] && matches > 0) color = [192, 192, 192]; // Silver
-            else if (matches === topMatches[2] && matches > 0) color = [205, 127, 50]; // Bronze
-            
-            if(color) {
-                 doc.setFillColor(...color);
-                 doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+        if (data.cell.section === 'body') {
+           // Style "Acertos" column
+            if (data.column.index === head[0].length - 1) {
+                const matches = parseInt(data.cell.text[0] || '0', 10);
+                let topMatches: number[] = [];
+                if (rankedTickets.length > 0) topMatches.push(rankedTickets[0].matches);
+                if (rankedTickets.length > 1) topMatches.push(rankedTickets[1].matches);
+                if (rankedTickets.length > 2) topMatches.push(rankedTickets[2].matches);
+                
+                let color: [number, number, number] | undefined;
+                if (matches === topMatches[0] && matches > 0) color = [255, 215, 0]; // Gold
+                else if (matches === topMatches[1] && matches > 0) color = [192, 192, 192]; // Silver
+                else if (matches === topMatches[2] && matches > 0) color = [205, 127, 50]; // Bronze
+                
+                if(color) {
+                    doc.setFillColor(...color);
+                    doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+                }
             }
-        }
-        
-        // Custom draw for "Números do Bilhete" column
-        if (data.column.index === 1 && data.cell.section === 'body') {
-          const ticketData = body[data.row.index];
-          if (ticketData) {
-            const processedNumbers = ticketData.numbers;
-            const cellPadding = 2;
-            let currentX = data.cell.x + cellPadding;
-            const currentY = data.cell.y + data.cell.height / 2 + 3; // Vertically center
+             // Style number columns
+            if (data.column.index >= 2 && data.column.index <= 11) {
+                const num = parseInt(data.cell.text[0] || '0');
+                const ticket = rankedTickets[data.row.index];
+                const tempDrawnFreq = countOccurrences(draws.flatMap(draw => draw.numbers));
+                
+                let isMatched = false;
+                const ticketNumbersBeforeThis = ticket.numbers.slice(0, data.column.index - 2);
+                
+                // Adjust frequency based on numbers already checked in the same row
+                ticketNumbersBeforeThis.forEach(n => {
+                    if (tempDrawnFreq[n] > 0) tempDrawnFreq[n]--;
+                });
 
-            processedNumbers.forEach((num, index) => {
-              const text = num.numberValue.toString() + (index < processedNumbers.length - 1 ? ', ' : '');
-              
-              if (num.isMatched) {
-                doc.setTextColor(34, 197, 94); // Green-500
-              } else {
-                doc.setTextColor(0, 0, 0); // Black
-              }
-              
-              doc.text(text, currentX, currentY);
-              currentX += doc.getStringUnitWidth(text) * (doc.getFontSize() / doc.internal.scaleFactor);
-            });
-            doc.setTextColor(0, 0, 0); // Reset text color
-          }
+                if (tempDrawnFreq[num] > 0) {
+                   isMatched = true;
+                }
+
+                if (isMatched) {
+                    doc.setTextColor(34, 197, 94); // Green-500
+                    doc.setFont(doc.getFont().fontName, 'bold');
+                } else {
+                     doc.setTextColor(100);
+                     doc.setFont(doc.getFont().fontName, 'normal');
+                }
+            }
         }
       },
       columnStyles: {
-        2: { halign: 'center' },
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 'auto' },
+        12: { halign: 'center' },
       }
     });
     
@@ -140,49 +148,56 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[60vh]">
+          <ScrollArea className="h-[60vh] w-full">
             <Table>
               <TableHeader className="sticky top-0 bg-secondary/95 z-10">
                 <TableRow>
                   <TableHead>Comprador</TableHead>
-                  <TableHead className="text-center">Números do Bilhete</TableHead>
-                  <TableHead className="w-[100px] text-center">Acertos</TableHead>
+                  <TableHead>Vendedor</TableHead>
+                   {Array.from({ length: 10 }, (_, i) => (
+                      <TableHead key={i} className="text-center">{`${i + 1}º`}</TableHead>
+                   ))}
+                  <TableHead className="text-center">Acertos</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rankedTickets.length > 0 ? (
-                  rankedTickets.map((ticket) => (
-                    <TableRow key={ticket.id}>
-                      <TableCell className="font-medium">{ticket.buyerName}</TableCell>
-                       <TableCell>
-                        <div className="flex flex-wrap gap-1 justify-center">
-                            {getProcessedTicketNumbers(ticket).map(({ numberValue, isMatched }, i) => (
-                                <Badge 
-                                  key={i} 
-                                  variant={isMatched ? "default" : "outline"} 
-                                  className={cn(
-                                    "font-mono text-xs w-7 h-7 flex items-center justify-center transition-colors",
-                                    isMatched && "bg-green-500 text-white"
-                                  )}
+                  rankedTickets.map((ticket) => {
+                    const tempDrawnFrequency = { ...drawnNumbersFrequency };
+                    return (
+                        <TableRow key={ticket.id}>
+                            <TableCell className="font-medium">{ticket.buyerName}</TableCell>
+                            <TableCell>{ticket.sellerUsername || '-'}</TableCell>
+                            {ticket.numbers.map((num, i) => {
+                                const isMatched = getIsNumberMatched(num, tempDrawnFrequency);
+                                return (
+                                <TableCell key={i} className="text-center">
+                                    <Badge
+                                    variant={isMatched ? "default" : "outline"}
+                                    className={cn(
+                                        "font-mono text-xs w-7 h-7 flex items-center justify-center transition-colors",
+                                        isMatched && "bg-green-500 text-white"
+                                    )}
+                                    >
+                                    {num}
+                                    </Badge>
+                                </TableCell>
+                                );
+                            })}
+                            <TableCell className="text-center">
+                                <Badge
+                                    variant="default"
+                                    className="font-mono text-lg font-bold h-8 w-8 flex items-center justify-center rounded-full shadow-lg"
                                 >
-                                  {numberValue}
+                                    {ticket.matches}
                                 </Badge>
-                            ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                         <Badge
-                            variant="default"
-                            className="font-mono text-lg font-bold h-8 w-8 flex items-center justify-center rounded-full shadow-lg"
-                        >
-                            {ticket.matches}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            </TableCell>
+                        </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">
                       Nenhum bilhete ativo no ciclo atual para exibir no ranking.
                     </TableCell>
                   </TableRow>
