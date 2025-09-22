@@ -170,7 +170,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <div className="md:hidden">
                     <SidebarTrigger />
                 </div>
-                <Link href="/" className="flex items-center gap-1 font-bold md:hidden">
+                <Link href="/" className="flex items-center gap-1 md:hidden">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
                     <span className="sm:inline-block">Bolão Potiguar</span>
                 </Link>
