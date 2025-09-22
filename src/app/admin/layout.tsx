@@ -138,7 +138,7 @@ export default function AdminLayout({
                  <SidebarTrigger />
                  <Link href="/" className="flex items-center gap-2 font-bold text-lg">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-                    <span className="hidden sm:inline-block">Bolão Potiguar</span>
+                    <span className="sm:inline-block">Bolão Potiguar</span>
                 </Link>
             </div>
             <span className="font-semibold text-primary">Painel do Admin</span>
