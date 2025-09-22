@@ -1,22 +1,23 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import type { Draw } from '@/types';
+import type { Draw, Ticket } from '@/types';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { TopTickets } from '@/components/TopTickets';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { History, Gamepad2, Gift, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { calculateTicketMatches } from '@/lib/lottery-utils';
 
 
 const Header = () => {
@@ -29,7 +30,7 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-secondary">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2 text-lg">
+        <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
           <span className="hidden sm:inline-block text-foreground">Bolão Potiguar</span>
         </Link>
@@ -75,41 +76,74 @@ const HeroSection = () => (
 );
 
 const ResultsSection = () => {
-    const { isAuthenticated, isLoading: authLoading } = useAuth();
+    const { isAuthenticated, authLoading } = useAuth();
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
     const [allDraws, setAllDraws] = useState<Draw[]>([]);
+    const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Only fetch data if the user is authenticated
+        if (authLoading) {
+            setIsLoading(true);
+            return;
+        }
+
         if (isAuthenticated) {
             setIsLoading(true);
-            const q = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
-            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            
+            // Listener for draws
+            const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
+            const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
                 const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
                 setAllDraws(drawsData);
                 setLastDraw(drawsData[0] || null);
-                setIsLoading(false);
             }, (error) => {
                 console.error("Error fetching draws: ", error);
+            });
+
+            // Listener for active tickets
+            const ticketsQuery = query(collection(db, 'tickets'), where('status', '==', 'active'));
+            const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
+                const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+                setActiveTickets(ticketsData);
+                setIsLoading(false); // Consider loading finished when both are fetched at least once
+            }, (error) => {
+                console.error("Error fetching active tickets: ", error);
                 setIsLoading(false);
             });
 
-            return () => unsubscribe();
+            return () => {
+                unsubscribeDraws();
+                unsubscribeTickets();
+            };
         } else {
-            // If not authenticated, stop loading and clear data
             setIsLoading(false);
             setAllDraws([]);
+            setActiveTickets([]);
             setLastDraw(null);
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, authLoading]);
+
+    const rankedTickets = useMemo(() => {
+        if (!allDraws.length || !activeTickets.length) return [];
+        
+        return activeTickets
+            .map(ticket => ({
+                ...ticket,
+                matches: calculateTicketMatches(ticket, allDraws),
+            }))
+            .filter(ticket => ticket.matches > 0)
+            .sort((a, b) => b.matches - a.matches)
+            .slice(0, 5); // Top 5 tickets
+    }, [activeTickets, allDraws]);
+
 
     const renderContent = () => {
-        if (authLoading) {
+        if (isLoading) {
             return (
-                <Card className="h-full">
+                <Card className="h-full col-span-1 lg:col-span-2">
                     <CardContent className="flex items-center justify-center h-full min-h-[300px]">
-                        <p className="text-muted-foreground">Verificando autenticação...</p>
+                        <p className="text-muted-foreground">Verificando... Carregando dados...</p>
                     </CardContent>
                 </Card>
             );
@@ -121,7 +155,7 @@ const ResultsSection = () => {
                     <Lock className="h-12 w-12 text-primary mb-4" />
                     <h3 className="text-2xl font-bold">Conteúdo Exclusivo para Membros</h3>
                     <p className="text-muted-foreground mt-2 max-w-sm">
-                        Faça login ou cadastre-se para ver os resultados dos últimos sorteios e as estatísticas dos números mais quentes.
+                        Faça login ou cadastre-se para ver os resultados dos últimos sorteios e o ranking de acertos.
                     </p>
                     <div className="flex gap-4 mt-6">
                         <Button asChild><Link href="/login">Entrar</Link></Button>
@@ -134,13 +168,7 @@ const ResultsSection = () => {
         return (
             <>
                 <div>
-                     {isLoading ? (
-                        <Card className="h-full">
-                            <CardContent className="flex items-center justify-center h-full min-h-[300px]">
-                                <p className="text-muted-foreground">Carregando resultados...</p>
-                            </CardContent>
-                        </Card>
-                    ) : lastDraw ? (
+                     {lastDraw ? (
                        <AdminDrawCard draw={lastDraw} />
                     ) : (
                        <Card className="h-full">
@@ -154,7 +182,7 @@ const ResultsSection = () => {
                     )}
                 </div>
                  <div className="h-full">
-                     <TopTickets draws={allDraws} />
+                     <TopTickets rankedTickets={rankedTickets} />
                 </div>
             </>
         );
@@ -166,10 +194,10 @@ const ResultsSection = () => {
                 <div className="mx-auto max-w-5xl space-y-8 text-center">
                      <h2 className="text-3xl md:text-4xl font-bold text-primary flex items-center justify-center gap-3">
                         <History className="h-8 w-8"/>
-                        Resultados e Estatísticas
+                        Resultados e Ranking
                     </h2>
                     <p className="text-muted-foreground text-lg">
-                        Confira o resultado do último sorteio e veja os números mais quentes do ciclo.
+                        Confira o resultado do último sorteio e veja os bilhetes com mais acertos!
                     </p>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start mt-12 max-w-6xl mx-auto">
@@ -247,3 +275,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
