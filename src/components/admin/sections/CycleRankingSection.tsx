@@ -49,16 +49,12 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
     const date = format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     doc.text(date, 14, 30);
     
-    // Flatten ticket numbers for the PDF body
-    const body = rankedTickets.map(ticket => {
-        const row = [
-            ticket.buyerName || 'N/A',
-            ticket.sellerUsername || '-',
-            ...ticket.numbers.map(n => n.toString()),
-            ticket.matches.toString()
-        ];
-        return row;
-    });
+    const body = rankedTickets.map(ticket => [
+      ticket.buyerName || 'N/A',
+      ticket.sellerUsername || '-',
+      ...ticket.numbers,
+      ticket.matches.toString()
+    ]);
 
     const head = [['Comprador', 'Vendedor', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º', 'Acertos']];
 
@@ -90,6 +86,9 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
                     doc.setFillColor(...color);
                     doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
                 }
+                // Ensure text is readable on colored backgrounds
+                doc.setTextColor(0, 0, 0); 
+                doc.setFont(doc.getFont().fontName, 'bold');
             }
 
             // Logic to style the individual number columns
@@ -104,6 +103,9 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
                      doc.setTextColor(100);
                      doc.setFont(doc.getFont().fontName, 'normal');
                 }
+            } else if (data.column.index < 2) { // Reset for Comprador/Vendedor columns
+                doc.setTextColor(40);
+                doc.setFont(doc.getFont().fontName, 'normal');
             }
         }
       },
