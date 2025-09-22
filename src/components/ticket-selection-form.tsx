@@ -1,15 +1,14 @@
-
 "use client";
 
 import { useState, type FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib/lottery-utils';
 import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, PauseCircle, PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { SelectedNumberBadge } from './selected-number-badge';
 
 interface TicketSelectionFormProps {
   isLotteryPaused?: boolean;
@@ -102,16 +101,12 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
           <div className="flex flex-wrap gap-2 p-3 border border-border rounded-lg min-h-[52px] bg-background/50 items-center justify-center">
             {currentPicks.length === 0 && <span className="text-sm text-muted-foreground">Nenhum número selecionado</span>}
             {currentPicks.map((num, index) => (
-              <Badge key={index} variant="secondary" className="text-base relative pr-7 shadow-sm">
-                {num}
-                <button
-                  onClick={() => handleRemoveNumber(index)}
-                  className="absolute top-1/2 right-1 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-secondary-foreground/20"
-                  aria-label={`Remover número ${num}`}
-                >
-                  <X size={14} />
-                </button>
-              </Badge>
+              <SelectedNumberBadge 
+                key={index}
+                number={num}
+                index={index}
+                onRemove={handleRemoveNumber}
+              />
             ))}
           </div>
            <div className="flex justify-between mt-4 gap-2">
