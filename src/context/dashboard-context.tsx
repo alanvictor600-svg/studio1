@@ -7,7 +7,7 @@ import type { LotteryConfig, User, Ticket, Draw } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { createClientTickets } from '@/lib/services/ticketService';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface PublicRankingEntry {
@@ -36,10 +36,9 @@ interface DashboardContextType {
     // New properties for centralized data
     userTickets: Ticket[];
     allDraws: Draw[];
-    publicRanking: PublicRankingEntry[];
     isLotteryPaused: boolean;
     isDataLoading: boolean;
-    startDataListeners: (user: User) => void;
+    startDataListeners: (user: User) => () => void; // Now returns a cleanup function
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -63,7 +62,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     // New state for centralized data
     const [userTickets, setUserTickets] = useState<Ticket[]>([]);
     const [allDraws, setAllDraws] = useState<Draw[]>([]);
-    const [publicRanking, setPublicRanking] = useState<PublicRankingEntry[]>([]);
     const [isLotteryPaused, setIsLotteryPaused] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
     
@@ -74,12 +72,15 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsCreditsDialogOpen(true);
     }, []);
 
-    const startDataListeners = useCallback((user: User) => {
-        if (listenersActive.current) return;
+    const startDataListeners = useCallback((user: User): () => void => {
+        if (listenersActive.current) {
+            // If called again, return a no-op cleanup function
+            return () => {};
+        }
         listenersActive.current = true;
         setIsDataLoading(true);
 
-        const unsubscribes: (() => void)[] = [];
+        const unsubscribes: Unsubscribe[] = [];
 
         // 1. Config Listener
         const configDocRef = doc(db, 'configs', 'global');
@@ -95,7 +96,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             }
         }, (error) => {
             console.error("Error fetching lottery config: ", error);
-            toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da loteria.", variant: "destructive" });
         }));
 
         // 2. Draws Listener
@@ -103,10 +103,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         unsubscribes.push(onSnapshot(drawsQuery, (drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
             setAllDraws(drawsData);
-            setIsLotteryPaused(drawsData.length > 0);
+            // Any draw means the lottery is "paused" for new bets
+            const winningTicketsExist = userTickets.some(t => t.status === 'winning');
+            setIsLotteryPaused(drawsData.length > 0 || winningTicketsExist);
         }, (error) => {
             console.error("Error fetching draws: ", error);
-            toast({ title: "Erro de Sorteios", description: "Não foi possível carregar os sorteios.", variant: "destructive" });
         }));
 
         // 3. User Tickets Listener
@@ -120,37 +121,24 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 .map(doc => ({ id: doc.id, ...doc.data() } as Ticket))
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             setUserTickets(userTicketsData);
-            setIsDataLoading(false); // Consider loading finished after tickets arrive
+             // Re-evaluate if lottery is paused based on winning tickets
+            const winningTicketsExist = userTicketsData.some(t => t.status === 'winning');
+            setIsLotteryPaused(allDraws.length > 0 || winningTicketsExist);
+            setIsDataLoading(false);
         }, (error) => {
             console.error("Error fetching user tickets: ", error);
-            toast({ title: "Erro ao Carregar Bilhetes", description: "Não foi possível carregar seus bilhetes.", variant: "destructive" });
             setIsDataLoading(false);
         }));
-
-        // 4. Public Ranking Listener
-        const publicRankingDocRef = doc(db, 'configs', 'publicRanking');
-        unsubscribes.push(onSnapshot(publicRankingDocRef, (doc) => {
-          if (doc.exists()) {
-            setPublicRanking(doc.data().ranking || []);
-          }
-        }, (error) => {
-           console.error("Error fetching public ranking: ", error);
-           toast({ title: "Erro de Ranking", description: "Não foi possível carregar o ranking.", variant: "destructive" });
-        }));
-
 
         // Return a cleanup function that calls all unsubscribes
         return () => {
             unsubscribes.forEach(unsub => unsub());
             listenersActive.current = false;
         };
-    }, [toast]);
+    }, [toast, allDraws.length, userTickets]); // Dependencies to re-evaluate pause state
 
-    // This effect ensures listeners are cleaned up if the component unmounts
      useEffect(() => {
         return () => {
-            // This is a safety net. The actual cleanup function is returned by startDataListeners,
-            // but if the provider itself unmounts, we should clear the flag.
             listenersActive.current = false;
         };
     }, []);
@@ -203,10 +191,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         showCreditsDialog,
         receiptTickets,
         setReceiptTickets,
-        // Pass new data and functions
         userTickets,
         allDraws,
-        publicRanking,
         isLotteryPaused,
         isDataLoading,
         startDataListeners,

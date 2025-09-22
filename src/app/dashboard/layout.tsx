@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import Link from 'next/link';
@@ -38,6 +38,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const { role } = params as { role: 'cliente' | 'vendedor' };
   const { setOpenMobile } = useSidebar();
+  const cleanupListenersRef = useRef<(() => void) | null>(null);
 
   const { 
     cart, 
@@ -49,15 +50,24 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     setIsCreditsDialogOpen,
     receiptTickets,
     setReceiptTickets,
-    startDataListeners, // New function from context
+    startDataListeners,
     isDataLoading
   } = useDashboard();
 
-  // Effect to start data listeners when user is authenticated
+  // Effect to start/stop data listeners based on auth state
   useEffect(() => {
     if (isAuthenticated && currentUser) {
-      startDataListeners(currentUser);
+      // Start listeners and store the cleanup function
+      cleanupListenersRef.current = startDataListeners(currentUser);
     }
+
+    // Cleanup function for when the component unmounts or user logs out
+    return () => {
+      if (cleanupListenersRef.current) {
+        cleanupListenersRef.current();
+        cleanupListenersRef.current = null;
+      }
+    };
   }, [isAuthenticated, currentUser, startDataListeners]);
 
 
@@ -68,10 +78,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, [isAuthLoading, isAuthenticated, router, pathname]);
 
   useEffect(() => {
-    // This handles the case where a user might try to access the wrong dashboard,
-    // e.g., a client accessing /dashboard/vendedor.
     if (!isAuthLoading && isAuthenticated && currentUser && currentUser.role !== role) {
-      // Redirect to their correct dashboard.
       router.replace(`/dashboard/${currentUser.role}`);
     }
   }, [isAuthLoading, isAuthenticated, currentUser, role, router]);
@@ -226,4 +233,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-

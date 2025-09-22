@@ -71,8 +71,8 @@ export default function DashboardPage() {
   }
 
   if (!isAuthenticated || !currentUser) {
-    router.replace('/login?redirect=/dashboard/' + role);
-    return <div className="text-center p-10 text-white">Você precisa estar logado para ver esta página. Redirecionando...</div>;
+    // This case is primarily handled by the layout, but as a fallback:
+    return <div className="text-center p-10 text-white">Você precisa estar logado para ver esta página.</div>;
   }
   
   if (currentUser.role !== role) {
@@ -119,7 +119,7 @@ export default function DashboardPage() {
                         <PauseCircle className="h-5 w-5 text-primary" />
                         <AlertTitle className="text-primary font-bold">Apostas Pausadas</AlertTitle>
                         <AlertDescription className="text-muted-foreground">
-                        O registro de novas apostas está suspenso, pois o ciclo atual já começou ou há um bilhete premiado.
+                        O registro de novas apostas está suspenso.
                         Aguarde o administrador iniciar um novo ciclo para continuar apostando.
                         </AlertDescription>
                     </Alert>
