@@ -5,16 +5,14 @@ import { useMemo, type FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, FileDown } from 'lucide-react';
+import { TrendingUp, Copy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { RankedTicket, Draw } from '@/types';
 import { cn } from '@/lib/utils';
 import { countOccurrences } from '@/lib/lottery-utils';
 import { Button } from '@/components/ui/button';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { useToast } from "@/hooks/use-toast";
+
 
 interface CycleRankingSectionProps {
   rankedTickets: RankedTicket[];
@@ -22,6 +20,7 @@ interface CycleRankingSectionProps {
 }
 
 export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTickets, draws }) => {
+  const { toast } = useToast();
 
   const drawnNumbersFrequency = useMemo(() => {
     if (!draws || draws.length === 0) {
@@ -38,96 +37,41 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
     return false;
   };
   
-  const handleDownloadPdf = () => {
-    const doc = new jsPDF();
-    const tableStartY = 35;
+  const handleCopyToClipboard = () => {
+    if (rankedTickets.length === 0) {
+      toast({ title: "Nenhum dado para copiar", variant: "destructive" });
+      return;
+    }
 
-    doc.setFontSize(18);
-    doc.text("Ranking do Ciclo - Bolão Potiguar", 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    const date = format(new Date(), "'Gerado em' dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    doc.text(date, 14, 30);
-    
-    const body = rankedTickets.map(ticket => [
+    const headers = ['Comprador', 'Vendedor', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º', 'Acertos'];
+    const rows = rankedTickets.map(ticket => [
       ticket.buyerName || 'N/A',
       ticket.sellerUsername || '-',
       ...ticket.numbers,
-      ticket.matches.toString()
+      ticket.matches
     ]);
 
-    const head = [['Comprador', 'Vendedor', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º', 'Acertos']];
+    const tsvContent = [
+      headers.join('\t'),
+      ...rows.map(row => row.join('\t'))
+    ].join('\n');
 
-    autoTable(doc, {
-      startY: tableStartY,
-      head: head,
-      body: body,
-      theme: 'grid',
-      headStyles: { fillColor: [22, 163, 74] }, // Emerald-600
-      didDrawCell: (data) => {
-        if (data.cell.section === 'body' && data.row.index < rankedTickets.length) {
-            const ticket = rankedTickets[data.row.index];
-            const tempDrawnFrequencyForRow = { ...drawnNumbersFrequency };
-
-            // Logic to style the 'Acertos' column
-            if (data.column.index === head[0].length - 1) {
-                const matches = ticket.matches;
-                let topMatches: number[] = [];
-                if (rankedTickets.length > 0) topMatches.push(rankedTickets[0].matches);
-                if (rankedTickets.length > 1) topMatches.push(rankedTickets[1].matches);
-                if (rankedTickets.length > 2) topMatches.push(rankedTickets[2].matches);
-                
-                let color: [number, number, number] | undefined;
-                if (matches > 0 && matches === topMatches[0]) color = [255, 215, 0]; // Gold
-                else if (matches > 0 && matches === topMatches[1]) color = [192, 192, 192]; // Silver
-                else if (matches > 0 && matches === topMatches[2]) color = [205, 127, 50]; // Bronze
-                
-                if(color) {
-                    doc.setFillColor(...color);
-                    doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
-                }
-                // Ensure text is readable on colored backgrounds
-                doc.setTextColor(0, 0, 0); 
-                doc.setFont(doc.getFont().fontName, 'bold');
-            }
-
-            // Logic to style the individual number columns
-            if (data.column.index >= 2 && data.column.index <= 11) {
-                 const num = parseInt(data.cell.text[0] || '0');
-                 const isMatched = getIsNumberMatched(num, tempDrawnFrequencyForRow);
-                
-                if (isMatched) {
-                    doc.setTextColor(34, 197, 94); // Green-500
-                    doc.setFont(doc.getFont().fontName, 'bold');
-                } else {
-                     doc.setTextColor(100);
-                     doc.setFont(doc.getFont().fontName, 'normal');
-                }
-            } else if (data.column.index < 2) { // Reset for Comprador/Vendedor columns
-                doc.setTextColor(40);
-                doc.setFont(doc.getFont().fontName, 'normal');
-            }
-        }
-      },
-      columnStyles: {
-        0: { cellWidth: 'auto' },
-        1: { cellWidth: 'auto' },
-        12: { halign: 'center', cellWidth: 15, fontStyle: 'bold' },
-         2: { halign: 'center', cellWidth: 10 },
-         3: { halign: 'center', cellWidth: 10 },
-         4: { halign: 'center', cellWidth: 10 },
-         5: { halign: 'center', cellWidth: 10 },
-         6: { halign: 'center', cellWidth: 10 },
-         7: { halign: 'center', cellWidth: 10 },
-         8: { halign: 'center', cellWidth: 10 },
-         9: { halign: 'center', cellWidth: 10 },
-        10: { halign: 'center', cellWidth: 10 },
-        11: { halign: 'center', cellWidth: 10 },
-      }
+    navigator.clipboard.writeText(tsvContent).then(() => {
+      toast({
+        title: "Tabela Copiada!",
+        description: "Os dados estão prontos para serem colados no Excel.",
+        className: "bg-primary text-primary-foreground"
+      });
+    }, (err) => {
+      toast({
+        title: "Erro ao Copiar",
+        description: "Não foi possível copiar os dados para a área de transferência.",
+        variant: "destructive"
+      });
+      console.error('Could not copy text: ', err);
     });
-    
-    doc.save(`ranking-ciclo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
+
 
   return (
     <section aria-labelledby="cycle-ranking-heading">
@@ -146,8 +90,8 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
                 Todos os bilhetes ativos ordenados pela quantidade de acertos.
               </CardDescription>
             </div>
-            <Button onClick={handleDownloadPdf} variant="outline" size="sm" disabled={rankedTickets.length === 0}>
-              <FileDown className="mr-2 h-4 w-4" /> Baixar PDF
+            <Button onClick={handleCopyToClipboard} variant="outline" size="sm" disabled={rankedTickets.length === 0}>
+              <Copy className="mr-2 h-4 w-4" /> Copiar para Excel
             </Button>
           </div>
         </CardHeader>
