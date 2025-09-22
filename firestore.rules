@@ -12,55 +12,67 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && getUserRole(request.auth.uid) == 'admin';
     }
 
-    function isSeller() {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'vendedor';
-    }
-    
-    function isClient() {
-        return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cliente';
-    }
-
-    // Rules for 'users' collection
+    // USERS collection
     match /users/{userId} {
-      allow read: if (isAdmin() || isOwner(userId));
-      allow create: if !isSignedIn(); // Allow user creation during sign-up before they are authenticated
-      allow update: if isOwner(userId) || isAdmin(); // Admins can update any user, users can update their own doc
-      allow delete: if isAdmin(); // Only admins can delete users
+      // Anyone can create a user document (for registration)
+      allow create: if isSignedIn() && request.resource.data.username is string;
+      // Only the owner can read or update their own data. Admins can read any user.
+      allow read: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin(); // Admin can update credits
+      // Only admins can delete users.
+      allow delete: if isAdmin();
     }
     
-    // Rules for 'tickets' collection
+    // TICKETS collection
     match /tickets/{ticketId} {
-      allow read: if (isAdmin() || (isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid)));
-      allow create: if isSignedIn(); // Any authenticated user can create a ticket
-      allow update, delete: if isAdmin(); // Only admins can modify or delete tickets
-    }
-
-    // Rules for 'draws' collection
-    match /draws/{drawId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+        // Users can create tickets for themselves or as a seller
+        allow create: if isSignedIn();
+        // Users can read tickets they bought or sold. Admins can read all.
+        allow read: if isSignedIn() && (
+            (resource.data.buyerId == request.auth.uid) || 
+            (resource.data.sellerId == request.auth.uid) || 
+            isAdmin()
+        );
+        // Generally, tickets are not updatable by clients. Admin might update status.
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
     }
     
-    // Rules for 'configs' collection
-    match /configs/{configId} {
+    // DRAWS collection
+    match /draws/{drawId} {
+      // Any signed-in user can view the draws.
       allow read: if isSignedIn();
+      // Only admins can create, update or delete draws.
       allow create, update, delete: if isAdmin();
     }
 
-    // Rules for 'sellerHistory' collection
-    match /sellerHistory/{historyId} {
-      // Sellers can read their own history, Admins can read all.
-      allow read: if (isAdmin() || (isSeller() && resource.data.sellerId == request.auth.uid));
-      allow create, update, delete: if isAdmin(); // Only Admins can create history (done via batch job)
+    // CONFIGS collection
+    match /configs/{configId} {
+        // any signed in user can read configs (for ticket price, etc)
+        // and the new publicRanking document
+        allow read: if isSignedIn();
+        // only admin can change configs
+        allow write: if isAdmin();
     }
 
-    // Rules for 'adminHistory' collection
-    match /adminHistory/{historyId} {
-      allow read, create, update, delete: if isAdmin(); // Only admins can manage this collection
+    // SELLERHISTORY and ADMINHISTORY collections
+    match /{historyCollection}/{historyId} where historyCollection in ['sellerHistory', 'adminHistory'] {
+      // Sellers can read their own history. Admins can read all.
+      allow read: if (
+        (historyCollection == 'sellerHistory' && resource.data.sellerId == request.auth.uid) ||
+        isAdmin()
+      );
+      // Only the backend/admin can create history entries.
+      allow create: if isAdmin(); 
+      allow update, delete: if false; // History should be immutable
     }
   }
 }
