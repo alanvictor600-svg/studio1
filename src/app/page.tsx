@@ -9,17 +9,14 @@ import { LogIn, UserPlus, ArrowLeft, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import type { Draw, Ticket } from '@/types';
+import type { Draw } from '@/types';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { AdminDrawCard } from '@/components/admin-draw-card';
-import { TopTickets } from '@/components/TopTickets';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { History, Gamepad2, Gift, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { calculateTicketMatches } from '@/lib/lottery-utils';
-
 
 const Header = () => {
   const { currentUser, isLoading, isAuthenticated } = useAuth();
@@ -77,65 +74,26 @@ const HeroSection = () => (
 );
 
 const ResultsSection = () => {
-    const { currentUser, isAuthenticated, isLoading: authLoading } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
-    const [allDraws, setAllDraws] = useState<Draw[]>([]);
-    const [activeTickets, setActiveTickets] = useState<Ticket[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setIsLoading(true);
-        // Listener for draws (all authenticated users can see this)
         const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
         const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
             const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
-            setAllDraws(drawsData);
             setLastDraw(drawsData[0] || null);
-            if (!currentUser || currentUser.role !== 'admin') {
-                setIsLoading(false);
-            }
+            setIsLoading(false);
         }, (error) => {
             console.error("Error fetching draws: ", error);
             setIsLoading(false);
         });
 
-        let unsubscribeTickets = () => {};
-
-        // Listener for active tickets (ONLY for admins)
-        if (isAuthenticated && currentUser?.role === 'admin') {
-            const ticketsQuery = query(collection(db, 'tickets'), where('status', '==', 'active'));
-            unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
-                const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
-                setActiveTickets(ticketsData);
-                setIsLoading(false); // Admin loading finishes when tickets arrive
-            }, (error) => {
-                console.error("Error fetching active tickets: ", error);
-                setIsLoading(false);
-            });
-        } else {
-            setActiveTickets([]);
-            // Non-admins loading state is handled by the draws listener
-        }
-
         return () => {
             unsubscribeDraws();
-            unsubscribeTickets();
         };
-    }, [isAuthenticated, currentUser]);
-
-    const rankedTickets = useMemo(() => {
-        if (currentUser?.role !== 'admin' || !allDraws.length || !activeTickets.length) return [];
-        
-        return activeTickets
-            .map(ticket => ({
-                ...ticket,
-                matches: calculateTicketMatches(ticket, allDraws),
-            }))
-            .filter(ticket => ticket.matches > 0)
-            .sort((a, b) => b.matches - a.matches)
-            .slice(0, 5); // Top 5 tickets
-    }, [activeTickets, allDraws, currentUser]);
-
+    }, []);
 
     return (
         <section className="bg-muted/50 py-16 md:py-24">
@@ -143,24 +101,21 @@ const ResultsSection = () => {
                 <div className="mx-auto max-w-5xl space-y-8 text-center">
                      <h2 className="text-3xl md:text-4xl font-bold text-primary flex items-center justify-center gap-3">
                         <History className="h-8 w-8"/>
-                        Resultados e Ranking
+                        Último Resultado
                     </h2>
                     <p className="text-muted-foreground text-lg">
-                        Confira o resultado do último sorteio e {currentUser?.role === 'admin' ? 'veja os bilhetes com mais acertos!' : 'acompanhe os resultados.'}
+                        Confira o resultado do último sorteio realizado no ciclo atual.
                     </p>
                 </div>
-                <div className={cn(
-                    "grid grid-cols-1 gap-8 md:gap-12 items-start mt-12 max-w-6xl mx-auto",
-                    currentUser?.role === 'admin' && "lg:grid-cols-2"
-                )}>
+                <div className="grid grid-cols-1 gap-8 md:gap-12 items-start mt-12 max-w-2xl mx-auto">
                    {isLoading ? (
-                        <Card className="h-full col-span-1 lg:col-span-2">
+                        <Card className="h-full">
                             <CardContent className="flex items-center justify-center h-full min-h-[300px]">
                                 <p className="text-muted-foreground">Verificando... Carregando dados...</p>
                             </CardContent>
                         </Card>
                     ) : !isAuthenticated ? (
-                        <Card className="h-full col-span-1 lg:col-span-2 flex flex-col items-center justify-center text-center p-8 bg-card/80 backdrop-blur-sm shadow-xl">
+                        <Card className="h-full flex flex-col items-center justify-center text-center p-8 bg-card/80 backdrop-blur-sm shadow-xl">
                             <Lock className="h-12 w-12 text-primary mb-4" />
                             <h3 className="text-2xl font-bold">Conteúdo Exclusivo para Membros</h3>
                             <p className="text-muted-foreground mt-2 max-w-sm">
@@ -173,7 +128,7 @@ const ResultsSection = () => {
                         </Card>
                     ) : (
                         <>
-                            <div className={cn(currentUser?.role !== 'admin' && 'lg:col-span-2')}>
+                            <div>
                                 {lastDraw ? (
                                 <AdminDrawCard draw={lastDraw} />
                                 ) : (
@@ -187,11 +142,6 @@ const ResultsSection = () => {
                                 </Card>
                                 )}
                             </div>
-                            {currentUser?.role === 'admin' && (
-                                <div className="h-full">
-                                    <TopTickets rankedTickets={rankedTickets} />
-                                </div>
-                            )}
                         </>
                     )}
                 </div>
