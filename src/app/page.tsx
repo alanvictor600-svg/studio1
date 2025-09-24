@@ -79,6 +79,12 @@ const ResultsSection = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        if (!isAuthenticated) {
+            setIsLoading(false);
+            setLastDraw(null);
+            return;
+        }
+
         setIsLoading(true);
         const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
         const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
@@ -93,7 +99,7 @@ const ResultsSection = () => {
         return () => {
             unsubscribeDraws();
         };
-    }, []);
+    }, [isAuthenticated]);
 
     return (
         <section className="bg-muted/50 py-16 md:py-24">
