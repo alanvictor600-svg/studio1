@@ -1,38 +1,39 @@
 // src/lib/firebase-admin.ts
 import admin from 'firebase-admin';
 
-// Decode the private key which is stored in a single line in environment variables
-const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-// Check if the required environment variables are set
-if (!privateKey || !process.env.FIREBASE_CLIENT_EMAIL || !process.env.FIREBASE_PROJECT_ID) {
-    console.error("Firebase admin credentials not set in environment variables.");
-    // In a real app, you might throw an error here or handle it differently.
-    // For the build process, we'll proceed, but it might fail later if admin features are used at build time.
+// Esta função garante que a chave privada, que pode vir com quebras de linha `\n`, seja formatada corretamente.
+const formatPrivateKey = (key: string | undefined) => {
+    if (!key) {
+        return undefined;
+    }
+    return key.replace(/\\n/g, '\n');
 }
 
-// Construct the service account object from environment variables
-// This avoids needing a JSON file, which is better for security and deployment
+// Monta o objeto de credenciais usando as variáveis de ambiente.
+// Isso evita a necessidade de um arquivo JSON no servidor, o que é mais seguro.
 const serviceAccount = {
-  type: "service_account",
+  type: process.env.FIREBASE_TYPE,
   project_id: process.env.FIREBASE_PROJECT_ID,
   private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-  private_key: privateKey,
+  private_key: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
   client_id: process.env.FIREBASE_CLIENT_ID,
-  auth_uri: "https://accounts.google.com/o/oauth2/auth",
-  token_uri: "https://oauth2.googleapis.com/token",
-  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL
+  auth_uri: process.env.FIREBASE_AUTH_URI,
+  token_uri: process.env.FIREBASE_TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
 };
 
-
-// Verifica se o app já foi inicializado para evitar reinicializações
-if (!admin.apps.length) {
-  admin.initializeApp({
-    // Use the constructed service account object
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
-  });
+// Verifica se as credenciais essenciais estão presentes
+if (!serviceAccount.private_key || !serviceAccount.client_email || !serviceAccount.project_id) {
+    console.error("Credenciais do Firebase Admin não estão completamente configuradas nas variáveis de ambiente.");
+} else {
+    // Inicializa o app do Firebase Admin apenas se não houver sido inicializado antes.
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
+      });
+    }
 }
 
 export const adminDb = admin.firestore();
