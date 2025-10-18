@@ -33,7 +33,7 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
   onSave,
   onClose,
 }) => {
-  const [creditsToAdd, setCreditsToAdd] = useState<number | '' | '-'>('');
+  const [creditsToAdd, setCreditsToAdd] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,8 +47,8 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
   }
 
   const handleSave = () => {
-    const creditsChange = Number(creditsToAdd);
-    if(isNaN(creditsChange) || creditsToAdd === '' || creditsToAdd === '-') {
+    const creditsChange = parseFloat(creditsToAdd);
+    if(isNaN(creditsChange) || creditsToAdd.trim() === '' || creditsToAdd === '-') {
       toast({ title: 'Erro de Validação', description: 'O valor do saldo é inválido ou está vazio.', variant: 'destructive' });
       return;
     }
@@ -65,10 +65,9 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || value === '-') {
-      setCreditsToAdd(value);
-    } else {
-      setCreditsToAdd(Number(value));
+    // Permite apenas números, um sinal de menos no início, e um ponto decimal.
+    if (/^-?\d*\.?\d*$/.test(value)) {
+        setCreditsToAdd(value);
     }
   };
 
@@ -101,11 +100,12 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
                 <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     id="credits"
-                    type="number"
+                    type="text" // Change to text to allow '-' and '.' properly
                     value={creditsToAdd}
                     onChange={handleInputChange}
                     className="pl-9"
                     placeholder="Ex: 50 para adicionar, -10 para remover"
+                    inputMode="decimal"
                 />
                 </div>
             </div>
