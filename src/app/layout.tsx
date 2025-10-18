@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/context/auth-context'; // Import AuthProvider
+import { PWALoader } from '@/components/pwa-loader'; // Import the PWA loader
 
 const APP_NAME = "Bolão Potiguar";
 const APP_DEFAULT_TITLE = "Bolão Potiguar";
@@ -66,6 +67,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider> {/* Wrap with AuthProvider */}
+            <PWALoader /> {/* Add PWA Loader */}
             {children}
             <Toaster />
           </AuthProvider>
