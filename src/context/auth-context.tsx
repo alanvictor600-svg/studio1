@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -111,8 +110,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
         }
      } catch (error: any) {
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
+        } else if (error.code === 'auth/api-key-expired') {
+            toast({ title: "Chave de API Expirada", description: "A chave de configuração do Firebase expirou. Verifique o arquivo .env.", variant: "destructive", duration: 6000 });
         } else {
              console.error("Firebase login error:", error.code, error.message);
              toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
@@ -247,5 +248,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
