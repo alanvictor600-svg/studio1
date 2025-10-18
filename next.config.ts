@@ -21,7 +21,9 @@ const nextConfig = {
       },
     ],
   },
+  // Forçando a atualização do cache para resolver ChunkLoadError.
+  // Esta opção vazia não afeta a aplicação.
+  experimental: {},
 };
 
-// Forçando a atualização do cache.
 module.exports = nextConfig;
