@@ -3,7 +3,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration is now loaded from environment variables.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,6 +16,10 @@ const firebaseConfig = {
 // Initialize Firebase
 let app: FirebaseApp;
 let db: Firestore;
+
+if (!firebaseConfig.apiKey) {
+    console.error("Firebase config is missing. Make sure to set up your .env.local file.");
+}
 
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
@@ -34,5 +38,3 @@ try {
 const auth = getAuth(app);
 
 export { app, auth, db };
-
-    
