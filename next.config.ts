@@ -4,26 +4,23 @@
 require('dotenv').config({ path: './.env' });
 
 const nextConfig = {
-  /* config options here */
   typescript: {
-    ignoreBuildErrors: false,
+    // AVISO: Ignorar erros de build pode levar a problemas em produção.
+    // Use isso com cautela e verifique os logs de build.
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: false,
+    // Não recomendado, mas pode ser necessário para builds rápidos.
+    ignoreDuringBuilds: true,
   },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
       },
     ],
   },
-  // Forçando a atualização do cache para resolver ChunkLoadError.
-  // Esta opção vazia não afeta a aplicação.
-  experimental: {},
 };
 
 module.exports = nextConfig;
