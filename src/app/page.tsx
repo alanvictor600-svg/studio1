@@ -69,7 +69,6 @@ const HeroSection = () => (
         </Button>
         <div className="mt-4">
             <InstallPwaButton />
-            <p className="text-xs text-white/70 mt-2">Clique acima para instalar o app no seu celular!</p>
         </div>
       </div>
     </div>
@@ -233,3 +232,4 @@ export default function LandingPage() {
     
 
     
+
