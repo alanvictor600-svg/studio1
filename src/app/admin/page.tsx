@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/context/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, query, orderBy, getDocs } from 'firebase/firestore';
 
 // Import Services
 import { addDraw as addDrawService, startNewLottery as startNewLotteryService } from '@/lib/services/lotteryService';
@@ -54,7 +54,7 @@ export default function AdminPage() {
 
   const [activeSection, setActiveSection] = useState<AdminSection>('configuracoes');
   
-  const [allUsers, setAllUsers] = useState<User[]>([]); // This will be managed inside SettingsSection now
+  const [allUsers, setAllUsers] = useState<User[]>([]); // Used for StartNewLottery & Credit Dialog
   const [userToView, setUserToView] = useState<User | null>(null);
   const [isUserViewDialogOpen, setIsUserViewDialogOpen] = useState(false);
   const [userToManageCredits, setUserToManageCredits] = useState<User | null>(null);
@@ -138,16 +138,17 @@ export default function AdminPage() {
         toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
     });
 
-    // Users - This listener fetches ALL users, which will be changed for pagination.
-    // For now, we keep it to provide the data to other parts that might need it, like the credit dialog.
+    // Users - This listener fetches ALL users for the "start new lottery" service.
+    // It is separate from the paginated fetch inside the SettingsSection component.
     const usersQuery = query(collection(db, 'users'));
     const unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
         const usersData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setAllUsers(usersData); // This state will be used for credit dialog updates.
+        setAllUsers(usersData);
     }, (error) => {
         console.error("Error fetching users: ", error);
         toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível carregar os dados dos usuários.", variant: "destructive" });
     });
+
 
     // Admin History
     const adminHistoryQuery = query(collection(db, 'adminHistory'), orderBy('endDate', 'desc'));
@@ -207,8 +208,12 @@ export default function AdminPage() {
   };
   
   const handleStartNewLottery = async () => {
+    // We now fetch all users on-demand here instead of keeping them in state.
+    const usersSnapshot = await getDocs(query(collection(db, 'users')));
+    const allUsersForLottery = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+
     try {
-        await startNewLotteryService({ allUsers, processedTickets, lotteryConfig, financialReport });
+        await startNewLotteryService({ allUsers: allUsersForLottery, processedTickets, lotteryConfig, financialReport });
         toast({
           title: "Nova Loteria Iniciada!",
           description: "Históricos foram salvos e o ciclo foi resetado com sucesso.",
