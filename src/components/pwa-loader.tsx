@@ -10,6 +10,7 @@ export function PWALoader() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(registration => {
+          // O registro foi bem-sucedido
           // console.log('SW registered: ', registration);
         }).catch(registrationError => {
           console.error('SW registration failed: ', registrationError);
