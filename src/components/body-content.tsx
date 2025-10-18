@@ -8,12 +8,7 @@ import { PWALoader } from '@/components/pwa-loader';
 
 export function BodyContent({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
+    <ThemeProvider>
       <AuthProvider>
         <PWALoader />
         {children}
