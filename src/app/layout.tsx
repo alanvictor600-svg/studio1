@@ -50,6 +50,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // --- CÓDIGO DE DIAGNÓSTICO ---
+  // Isso vai imprimir a chave de API no terminal do VS Code quando o servidor iniciar.
+  console.log("============================================================");
+  console.log("DIAGNÓSTICO: Chave de API do Firebase lida pelo Next.js:");
+  console.log(process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+  console.log("============================================================");
+  // --- FIM DO CÓDIGO DE DIAGNÓSTICO ---
+  
   return (
     <html lang="pt-BR" suppressHydrationWarning>
        <head>
