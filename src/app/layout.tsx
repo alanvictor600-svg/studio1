@@ -2,10 +2,7 @@
 import type {Metadata} from 'next';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from '@/components/theme-provider';
-import { AuthProvider } from '@/context/auth-context'; // Import AuthProvider
-import { PWALoader } from '@/components/pwa-loader'; // Import the PWA loader
+import { BodyContent } from '@/components/body-content';
 
 const APP_NAME = "Bolão Potiguar";
 const APP_DEFAULT_TITLE = "Bolão Potiguar";
@@ -56,22 +53,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
        <head>
-         <meta name="theme-color" content="#10B981" />
+         <meta name="theme-color" content="#228B22" />
          <link rel="manifest" href="/manifest.json" />
+         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
        </head>
       <body className={`${GeistSans.variable} font-sans antialiased flex flex-col min-h-screen`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider> {/* Wrap with AuthProvider */}
-            <PWALoader /> {/* Add PWA Loader */}
-            {children}
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <BodyContent>{children}</BodyContent>
       </body>
     </html>
   );
