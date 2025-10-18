@@ -9,7 +9,6 @@ import { TrendingUp, Copy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { RankedTicket, Draw } from '@/types';
 import { cn } from '@/lib/utils';
-import { countOccurrences } from '@/lib/lottery-utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,21 +21,6 @@ interface CycleRankingSectionProps {
 export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTickets, draws }) => {
   const { toast } = useToast();
 
-  const drawnNumbersFrequency = useMemo(() => {
-    if (!draws || draws.length === 0) {
-      return {} as Record<number, number>;
-    }
-    return countOccurrences(draws.flatMap(draw => draw.numbers));
-  }, [draws]);
-
-  const getIsNumberMatched = (num: number, tempDrawnFrequency: Record<number, number>) => {
-    if (tempDrawnFrequency[num] && tempDrawnFrequency[num] > 0) {
-      tempDrawnFrequency[num]--;
-      return true;
-    }
-    return false;
-  };
-  
   const handleCopyToClipboard = () => {
     if (rankedTickets.length === 0) {
       toast({ title: "Nenhum dado para copiar", variant: "destructive" });
@@ -110,28 +94,22 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
               </TableHeader>
               <TableBody>
                 {rankedTickets.length > 0 ? (
-                  rankedTickets.map((ticket) => {
-                    const tempDrawnFrequency = { ...drawnNumbersFrequency };
-                    return (
+                  rankedTickets.map((ticket) => (
                         <TableRow key={ticket.id}>
                             <TableCell className="font-medium">{ticket.buyerName}</TableCell>
                             <TableCell>{ticket.sellerUsername || '-'}</TableCell>
-                            {ticket.numbers.map((num, i) => {
-                                const isMatched = getIsNumberMatched(num, tempDrawnFrequency);
-                                return (
+                            {ticket.numbers.map((num, i) => (
                                 <TableCell key={i} className="text-center">
                                     <Badge
-                                    variant={isMatched ? "default" : "outline"}
+                                    variant={"outline"}
                                     className={cn(
-                                        "font-mono text-xs w-7 h-7 flex items-center justify-center transition-colors",
-                                        isMatched && "bg-green-500 text-white"
+                                        "font-mono text-xs w-7 h-7 flex items-center justify-center transition-colors"
                                     )}
                                     >
                                     {num}
                                     </Badge>
                                 </TableCell>
-                                );
-                            })}
+                            ))}
                             <TableCell className="text-center">
                                 <Badge
                                     variant="default"
@@ -144,8 +122,7 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
                                 </Badge>
                             </TableCell>
                         </TableRow>
-                    );
-                  })
+                    ))
                 ) : (
                   <TableRow>
                     <TableCell colSpan={13} className="h-24 text-center text-muted-foreground">

@@ -56,7 +56,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     }
 
     if (parsedNumbers.length === NUM_OF_PICKS) {
-      onAddDraw(parsedNumbers, drawName.trim() || undefined);
+      onAddDraw(parsedNumbers, drawName ? drawName.trim() : undefined);
       setNumbers(Array(NUM_OF_PICKS).fill('')); // Clear form
       setDrawName(''); // Clear name input
       // Toast for successful draw registration is handled in the parent page
@@ -145,5 +145,3 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     </Card>
   );
 };
-
-    

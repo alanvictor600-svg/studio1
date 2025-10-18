@@ -3,7 +3,7 @@
 // src/lib/services/lotteryService.ts
 import { db } from '@/lib/firebase';
 import { collection, addDoc, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
-import type { User, Ticket, LotteryConfig, AdminHistoryEntry } from '@/types';
+import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry } from '@/types';
 import type { FinancialReport } from '@/lib/reports';
 
 /**
@@ -52,7 +52,7 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
             const totalRevenueFromActiveTickets = activeSellerTicketsCount * lotteryConfig.ticketPrice;
             const commissionEarned = totalRevenueFromActiveTickets * (lotteryConfig.sellerCommissionPercentage / 100);
             
-            const newEntry = {
+            const newEntry: Omit<SellerHistoryEntry, 'id'> = {
                 sellerId: seller.id,
                 sellerUsername: seller.username,
                 endDate: new Date().toISOString(),
@@ -66,17 +66,20 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     }
 
     // 2. Capture Admin History
-    const newHistoryEntry: Omit<AdminHistoryEntry, 'id'> = {
-        endDate: new Date().toISOString(),
-        totalRevenue: financialReport.totalRevenue,
-        totalSellerCommission: financialReport.sellerCommission,
-        totalOwnerCommission: financialReport.ownerCommission,
-        totalPrizePool: financialReport.prizePool,
-        clientTicketCount: financialReport.clientTicketCount,
-        sellerTicketCount: financialReport.sellerTicketCount,
-    };
-    const newAdminHistoryDocRef = doc(collection(db, 'adminHistory'));
-    batch.set(newAdminHistoryDocRef, newHistoryEntry);
+    if (financialReport && financialReport.totalRevenue > 0) {
+        const newHistoryEntry: Omit<AdminHistoryEntry, 'id'> = {
+            endDate: new Date().toISOString(),
+            totalRevenue: financialReport.totalRevenue,
+            totalSellerCommission: financialReport.sellerCommission,
+            totalOwnerCommission: financialReport.ownerCommission,
+            totalPrizePool: financialReport.prizePool,
+            clientTicketCount: financialReport.clientTicketCount,
+            sellerTicketCount: financialReport.sellerTicketCount,
+        };
+        const newAdminHistoryDocRef = doc(collection(db, 'adminHistory'));
+        batch.set(newAdminHistoryDocRef, newHistoryEntry);
+    }
+
 
     // 3. Reset Draws
     const drawsSnapshot = await getDocs(query(collection(db, 'draws')));
@@ -93,5 +96,3 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     // Commit all operations at once
     await batch.commit();
 };
-
-    
