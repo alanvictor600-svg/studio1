@@ -3,10 +3,8 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
-// Carrega as variáveis de ambiente do arquivo .env
-// Isso adiciona uma camada extra de garantia que as variáveis serão carregadas.
-require('dotenv').config({ path: './.env' });
-
+// As variáveis de ambiente agora são carregadas pelo next.config.js,
+// então não é mais necessário carregar 'dotenv' aqui.
 
 // Your web app's Firebase configuration is now loaded from environment variables.
 const firebaseConfig = {
@@ -20,7 +18,7 @@ const firebaseConfig = {
 
 // This function ensures Firebase is initialized only once.
 const initializeFirebase = (): { app: FirebaseApp; auth: Auth; db: Firestore } => {
-  // Esta verificação agora é mais crítica. Se aqui for falso, o .env não foi lido.
+  // This check is now more critical. If it's false here, the .env wasn't read by next.config.js.
   if (!firebaseConfig.apiKey) {
       throw new Error("CONFIGURAÇÃO DO FIREBASE AUSENTE. Verifique se o arquivo .env existe, está na raiz do projeto e foi preenchido corretamente.");
   }

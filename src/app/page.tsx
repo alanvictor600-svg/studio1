@@ -34,7 +34,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
             {isLoading ? (
                 <div className="text-sm text-muted-foreground">Carregando...</div>
-            ) : isAuthenticated ? (
+            ) : isAuthenticated && currentUser ? (
                 <>
                     <Button asChild>
                         <Link href={dashboardPath}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel</Link>
@@ -233,9 +233,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
