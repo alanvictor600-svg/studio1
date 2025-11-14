@@ -59,23 +59,19 @@ export const createSellerTicket = async ({
         transaction.update(userRef, { saldo: newBalance });
         
         const newTicketRef = doc(collection(db, "tickets"));
-        const newTicketData: Omit<Ticket, 'buyerPhone'> & { buyerPhone?: string } = {
-          id: newTicketRef.id,
+        const newTicketData: Omit<Ticket, 'id'> = {
           numbers: [...ticketPicks].sort((a,b) => a-b),
           status: 'active',
           createdAt: new Date().toISOString(),
-          buyerName: buyerName,
-          sellerId: seller.id,
-          sellerUsername: seller.username,
+          buyerName: buyerName.trim(),
+          buyerPhone: buyerPhone?.trim() || undefined,
+          sellerId: seller.id, // Correctly add sellerId
+          sellerUsername: seller.username, // Correctly add sellerUsername
         };
-
-        if (buyerPhone) {
-            newTicketData.buyerPhone = buyerPhone;
-        }
 
         transaction.set(newTicketRef, newTicketData);
         
-        createdTicket = newTicketData as Ticket;
+        createdTicket = { ...newTicketData, id: newTicketRef.id };
     });
 
     if (!createdTicket) {
@@ -113,16 +109,15 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
         // Create tickets within the same transaction
         cart.forEach(ticketNumbers => {
             const newTicketRef = doc(collection(db, "tickets"));
-            const newTicketData: Ticket = {
-                id: newTicketRef.id,
+            const newTicketData: Omit<Ticket, 'id'> = {
                 numbers: ticketNumbers.sort((a, b) => a - b),
                 status: 'active' as const,
                 createdAt: new Date().toISOString(),
                 buyerName: user.username,
-                buyerId: user.id,
+                buyerId: user.id, // Correctly add buyerId
             };
             transaction.set(newTicketRef, newTicketData);
-            createdTickets.push(newTicketData);
+            createdTickets.push({ ...newTicketData, id: newTicketRef.id });
         });
     });
 
