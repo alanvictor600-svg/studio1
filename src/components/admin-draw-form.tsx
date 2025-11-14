@@ -9,9 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3, CheckCircle } from 'lucide-react';
+import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3, CheckCircle, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+
 
 interface AdminDrawFormProps {
   onAddDraw: (numbers: number[], name?: string) => void;
@@ -26,6 +38,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
   const [numbers, setNumbers] = useState<string[]>(Array(10).fill(''));
   const [confirmNumbers, setConfirmNumbers] = useState<string[]>(Array(10).fill(''));
   const [drawName, setDrawName] = useState('');
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleNumberOfPicksChange = (value: string) => {
@@ -35,15 +48,32 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     setConfirmNumbers(Array(newSize).fill(''));
   };
 
-  const handleInputChange = (index: number, value: string, isConfirm: boolean) => {
-    const newNumbers = isConfirm ? [...confirmNumbers] : [...numbers];
+  const handleInputChange = (index: number, value: string) => {
+    const newNumbers = [...numbers];
     if (/^\d*$/.test(value)) {
       newNumbers[index] = value;
-      isConfirm ? setConfirmNumbers(newNumbers) : setNumbers(newNumbers);
+      setNumbers(newNumbers);
     }
   };
 
-  const areNumbersMatching = useMemo(() => {
+  const handleConfirmInputChange = (index: number, value: string) => {
+    const newConfirm = [...confirmNumbers];
+    if (/^\d*$/.test(value)) {
+      newConfirm[index] = value;
+      setConfirmNumbers(newConfirm);
+    }
+  };
+
+  const areNumbersFilled = useMemo(() => {
+    for (let i = 0; i < numberOfPicks; i++) {
+        if (numbers[i] === '') {
+            return false;
+        }
+    }
+    return true;
+  }, [numbers, numberOfPicks]);
+
+  const areConfirmNumbersMatching = useMemo(() => {
     for (let i = 0; i < numberOfPicks; i++) {
         if (numbers[i] === '' || confirmNumbers[i] === '' || numbers[i] !== confirmNumbers[i]) {
             return false;
@@ -52,14 +82,10 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     return true;
   }, [numbers, confirmNumbers, numberOfPicks]);
 
+
   const validateAndSubmit = () => {
-    if (hasWinningTickets) {
-      toast({ title: "Ação Bloqueada", description: "Não é possível cadastrar sorteios enquanto houver bilhetes premiados. Inicie uma nova loteria.", variant: "destructive" });
-      return;
-    }
-    
-    if (!areNumbersMatching) {
-        toast({ title: "Erro de Confirmação", description: "Os números sorteados e os números de confirmação não coincidem ou estão incompletos.", variant: "destructive" });
+    if (!areConfirmNumbersMatching) {
+        toast({ title: "Erro de Confirmação", description: "Os números da contra-prova não coincidem com os originais.", variant: "destructive" });
         return;
     }
 
@@ -76,7 +102,8 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
 
     if (parsedNumbers.length === numberOfPicks) {
       onAddDraw(parsedNumbers, drawName ? drawName.trim() : undefined);
-      handleClear(); // Clear form after submission
+      handleClear();
+      setIsConfirmDialogOpen(false);
     }
   };
 
@@ -85,7 +112,16 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
     setConfirmNumbers(Array(numberOfPicks).fill(''));
     setDrawName('');
     toast({ title: "Campos Limpos", description: "Os números e o nome do sorteio foram removidos.", duration: 3000 });
-  }
+  };
+  
+  const handleOpenDialogChange = (open: boolean) => {
+    // Reset confirmation numbers when dialog is closed
+    if (!open) {
+      setConfirmNumbers(Array(numberOfPicks).fill(''));
+    }
+    setIsConfirmDialogOpen(open);
+  };
+
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
@@ -99,7 +135,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
         </CardTitle>
         {!hasWinningTickets && (
           <CardDescription className="text-center text-muted-foreground">
-            Escolha a quantidade de números, insira os valores (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}, confirme-os e adicione um nome opcional.
+            Escolha a quantidade de números, insira os valores (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER} e adicione um nome opcional.
           </CardDescription>
         )}
       </CardHeader>
@@ -149,7 +185,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
                     key={index}
                     type="number"
                     value={numbers[index]}
-                    onChange={(e) => handleInputChange(index, e.target.value, false)}
+                    onChange={(e) => handleInputChange(index, e.target.value)}
                     placeholder={`${index + 1}º`}
                     min={MIN_NUMBER}
                     max={MAX_NUMBER}
@@ -159,31 +195,6 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
                 ))}
               </div>
             </div>
-
-            <div>
-              <Label className="text-muted-foreground mb-1 flex items-center">
-                Confirmação dos Números (Contra-prova)
-                {areNumbersMatching && <CheckCircle className="ml-2 h-5 w-5 text-green-500" />}
-              </Label>
-              <div className={`grid grid-cols-5 gap-3`}>
-                {Array.from({ length: numberOfPicks }).map((_, index) => (
-                  <Input
-                    key={`confirm-${index}`}
-                    type="number"
-                    value={confirmNumbers[index]}
-                    onChange={(e) => handleInputChange(index, e.target.value, true)}
-                    placeholder={`${index + 1}º`}
-                    min={MIN_NUMBER}
-                    max={MAX_NUMBER}
-                    className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    aria-label={`Confirmação do Número ${index + 1}`}
-                  />
-                ))}
-              </div>
-               {areNumbersMatching && (
-                <p className="text-sm text-green-600 mt-2 flex items-center gap-1"><CheckCircle size={14} /> Os números de confirmação batem com os originais.</p>
-              )}
-            </div>
           </>
         )}
       </CardContent>
@@ -191,13 +202,57 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
           <Button variant="outline" onClick={handleClear} disabled={hasWinningTickets} className="w-full sm:w-auto shadow-md hover:shadow-lg">
             <RotateCcw className="mr-2 h-4 w-4" /> Limpar Campos
           </Button>
-        <Button 
-          onClick={validateAndSubmit} 
-          disabled={hasWinningTickets || !areNumbersMatching}
-          className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
-        >
-          <PlusCircle className="mr-2 h-5 w-5" /> Cadastrar Sorteio
-        </Button>
+
+          <AlertDialog open={isConfirmDialogOpen} onOpenChange={handleOpenDialogChange}>
+            <AlertDialogTrigger asChild>
+                <Button 
+                    disabled={hasWinningTickets || !areNumbersFilled}
+                    className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
+                >
+                    <PlusCircle className="mr-2 h-5 w-5" /> Cadastrar Sorteio
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2"><ShieldCheck />Contra-prova de Segurança</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Para evitar erros, por favor, digite os números sorteados novamente. O sorteio só será cadastrado se os números forem idênticos.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="py-4">
+                    <Label className="text-muted-foreground mb-2 block">Confirme os {numberOfPicks} números:</Label>
+                    <div className={`grid grid-cols-5 gap-3`}>
+                        {Array.from({ length: numberOfPicks }).map((_, index) => (
+                        <Input
+                            key={`confirm-${index}`}
+                            type="number"
+                            value={confirmNumbers[index]}
+                            onChange={(e) => handleConfirmInputChange(index, e.target.value)}
+                            placeholder={`${index + 1}º`}
+                            min={MIN_NUMBER}
+                            max={MAX_NUMBER}
+                            className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            aria-label={`Confirmação do Número ${index + 1}`}
+                        />
+                        ))}
+                    </div>
+                    {areConfirmNumbersMatching && (
+                        <p className="text-sm text-green-600 mt-2 flex items-center gap-1"><CheckCircle size={14} /> Os números de confirmação batem!</p>
+                    )}
+                </div>
+
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={validateAndSubmit} 
+                        disabled={!areConfirmNumbersMatching}
+                    >
+                        Confirmar e Cadastrar
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   );
