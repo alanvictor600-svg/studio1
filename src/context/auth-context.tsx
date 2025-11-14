@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
 import type { User } from '@/types';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
@@ -66,14 +66,17 @@ function useAuthContextValue(): AuthContextType {
   }, [authError]);
 
   useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
     if (firebaseUser) {
         setIsFirestoreLoading(true);
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        unsubscribe = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
+              // This can happen if the user is deleted from Firestore but not Auth
               setCurrentUser(null); 
+              signOut(auth); // Log out to clean up state
             }
             setIsFirestoreLoading(false);
         }, (error) => {
@@ -81,34 +84,35 @@ function useAuthContextValue(): AuthContextType {
             toast({ title: "Erro de Conexão", description: "Não foi possível sincronizar seus dados.", variant: "destructive" });
             setIsFirestoreLoading(false);
         });
-
-        return () => unsubscribe();
     } else {
+        // No firebase user
         setCurrentUser(null);
         setIsFirestoreLoading(false);
     }
+    // Cleanup subscription on unmount
+    return () => {
+        if(unsubscribe) unsubscribe();
+    };
   }, [firebaseUser, toast]);
+
+  // This effect handles redirection after login
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && currentUser) {
+      const targetDashboardPath = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
+      // Use replace to avoid adding login to history
+      router.replace(targetDashboardPath);
+    }
+  }, [isLoading, isAuthenticated, currentUser, router]);
+
 
   const login = useCallback(async (username: string, passwordAttempt: string, loginAs?: 'admin') => {
      const emailUsername = sanitizeUsernameForEmail(username);
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
 
      try {
-        const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
-        const user = userCredential.user;
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
-            const targetDashboardPath = userData.role === 'admin' ? '/admin' : `/dashboard/${userData.role}`;
-            router.replace(targetDashboardPath);
-        } else {
-            // This case should ideally not happen on login.
-            // If it does, sign out the user to prevent inconsistent state.
-            await signOut(auth);
-            throw new Error("Dados do usuário não encontrados.");
-        }
+        // Just sign in. The useEffect above will handle the redirection.
+        await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
+        
      } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
@@ -120,7 +124,7 @@ function useAuthContextValue(): AuthContextType {
         }
         throw error;
      }
-  }, [toast, router]);
+  }, [toast]);
 
   const signInWithGoogle = useCallback(async (role: 'cliente' | 'vendedor') => {
     const provider = new GoogleAuthProvider();
@@ -130,7 +134,6 @@ function useAuthContextValue(): AuthContextType {
         
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
-        let userRole = role;
 
         if (!userDoc.exists()) {
             const newUser: User = {
@@ -141,12 +144,8 @@ function useAuthContextValue(): AuthContextType {
                 saldo: 0,
             };
             await setDoc(userDocRef, newUser);
-        } else {
-            userRole = userDoc.data().role;
         }
-
-        const targetDashboardPath = userRole === 'admin' ? '/admin' : `/dashboard/${userRole}`;
-        router.replace(targetDashboardPath);
+        // Redirection will be handled by the main useEffect
 
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
@@ -159,13 +158,13 @@ function useAuthContextValue(): AuthContextType {
         }
         throw error;
     }
-  }, [toast, router]);
+  }, [toast]);
 
 
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      setCurrentUser(null);
+      // No need to setCurrentUser to null, the onAuthStateChanged listener will do it.
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
       router.push('/');
     } catch (error) {
@@ -233,5 +232,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    
