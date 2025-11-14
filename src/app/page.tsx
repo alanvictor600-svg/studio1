@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, UserPlus, ArrowLeft } from 'lucide-react';
+import { LogIn, UserPlus, ArrowLeft, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import type { Draw } from '@/types';
@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InstallPwaButton } from '@/components/install-pwa-button';
 
 const Header = () => {
-  const { currentUser, isLoading, isAuthenticated } = useAuth();
+  const { currentUser, isLoading, isAuthenticated, logout } = useAuth();
 
   const dashboardPath = currentUser?.role === 'admin' 
       ? '/admin' 
@@ -35,9 +35,14 @@ const Header = () => {
             {isLoading ? (
                 <div className="text-sm text-muted-foreground">Carregando...</div>
             ) : isAuthenticated ? (
-                <Button asChild>
-                    <Link href={dashboardPath}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel</Link>
-                </Button>
+                <>
+                    <Button asChild>
+                        <Link href={dashboardPath}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel</Link>
+                    </Button>
+                     <Button variant="outline" onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" /> Sair
+                    </Button>
+                </>
             ) : (
                 <>
                     <Button asChild variant="outline">
@@ -232,4 +237,5 @@ export default function LandingPage() {
     
 
     
+
 
