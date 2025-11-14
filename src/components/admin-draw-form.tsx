@@ -3,51 +3,69 @@
 "use client";
 
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3 } from 'lucide-react';
+import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AdminDrawFormProps {
   onAddDraw: (numbers: number[], name?: string) => void;
   hasWinningTickets?: boolean;
 }
 
-const NUM_OF_PICKS = 10;
 const MIN_NUMBER = 1;
 const MAX_NUMBER = 25;
 
 export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTickets }) => {
-  const [numbers, setNumbers] = useState<string[]>(Array(NUM_OF_PICKS).fill(''));
+  const [numberOfPicks, setNumberOfPicks] = useState<5 | 10>(10);
+  const [numbers, setNumbers] = useState<string[]>(Array(10).fill(''));
+  const [confirmNumbers, setConfirmNumbers] = useState<string[]>(Array(10).fill(''));
   const [drawName, setDrawName] = useState('');
   const { toast } = useToast();
 
-  const handleInputChange = (index: number, value: string) => {
-    const newNumbers = [...numbers];
-    // Allow only numeric input, or empty string for clearing
+  const handleNumberOfPicksChange = (value: string) => {
+    const newSize = parseInt(value, 10) as 5 | 10;
+    setNumberOfPicks(newSize);
+    setNumbers(Array(newSize).fill(''));
+    setConfirmNumbers(Array(newSize).fill(''));
+  };
+
+  const handleInputChange = (index: number, value: string, isConfirm: boolean) => {
+    const newNumbers = isConfirm ? [...confirmNumbers] : [...numbers];
     if (/^\d*$/.test(value)) {
       newNumbers[index] = value;
-      setNumbers(newNumbers);
+      isConfirm ? setConfirmNumbers(newNumbers) : setNumbers(newNumbers);
     }
   };
+
+  const areNumbersMatching = useMemo(() => {
+    for (let i = 0; i < numberOfPicks; i++) {
+        if (numbers[i] === '' || confirmNumbers[i] === '' || numbers[i] !== confirmNumbers[i]) {
+            return false;
+        }
+    }
+    return true;
+  }, [numbers, confirmNumbers, numberOfPicks]);
 
   const validateAndSubmit = () => {
     if (hasWinningTickets) {
       toast({ title: "Ação Bloqueada", description: "Não é possível cadastrar sorteios enquanto houver bilhetes premiados. Inicie uma nova loteria.", variant: "destructive" });
       return;
     }
+    
+    if (!areNumbersMatching) {
+        toast({ title: "Erro de Confirmação", description: "Os números sorteados e os números de confirmação não coincidem ou estão incompletos.", variant: "destructive" });
+        return;
+    }
 
     const parsedNumbers: number[] = [];
-    for (let i = 0; i < NUM_OF_PICKS; i++) {
+    for (let i = 0; i < numberOfPicks; i++) {
       const numStr = numbers[i];
-      if (numStr === '') {
-        toast({ title: "Erro de Validação", description: `O número ${i + 1} não pode estar vazio.`, variant: "destructive" });
-        return;
-      }
       const num = parseInt(numStr, 10);
       if (isNaN(num) || num < MIN_NUMBER || num > MAX_NUMBER) {
         toast({ title: "Erro de Validação", description: `Número ${i + 1} inválido. Deve ser entre ${MIN_NUMBER} e ${MAX_NUMBER}.`, variant: "destructive" });
@@ -56,16 +74,15 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
       parsedNumbers.push(num);
     }
 
-    if (parsedNumbers.length === NUM_OF_PICKS) {
+    if (parsedNumbers.length === numberOfPicks) {
       onAddDraw(parsedNumbers, drawName ? drawName.trim() : undefined);
-      setNumbers(Array(NUM_OF_PICKS).fill('')); // Clear form
-      setDrawName(''); // Clear name input
-      // Toast for successful draw registration is handled in the parent page
+      handleClear(); // Clear form after submission
     }
   };
 
   const handleClear = () => {
-    setNumbers(Array(NUM_OF_PICKS).fill(''));
+    setNumbers(Array(numberOfPicks).fill(''));
+    setConfirmNumbers(Array(numberOfPicks).fill(''));
     setDrawName('');
     toast({ title: "Campos Limpos", description: "Os números e o nome do sorteio foram removidos.", duration: 3000 });
   }
@@ -82,7 +99,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
         </CardTitle>
         {!hasWinningTickets && (
           <CardDescription className="text-center text-muted-foreground">
-            Insira {NUM_OF_PICKS} números (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}, e um nome opcional para o sorteio.
+            Escolha a quantidade de números, insira os valores (podem ser repetidos) entre {MIN_NUMBER} e {MAX_NUMBER}, confirme-os e adicione um nome opcional.
           </CardDescription>
         )}
       </CardHeader>
@@ -99,6 +116,20 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
         ) : (
           <>
             <div>
+              <Label className="text-muted-foreground mb-2 block">Quantidade de Números</Label>
+              <RadioGroup defaultValue="10" onValueChange={handleNumberOfPicksChange} className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="5" id="r1" />
+                  <Label htmlFor="r1">5 Números</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="10" id="r2" />
+                  <Label htmlFor="r2">10 Números</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div>
               <Label htmlFor="drawName" className="text-muted-foreground mb-1 flex items-center">
                 <Edit3 className="mr-2 h-4 w-4" /> Nome do Sorteio (Opcional)
               </Label>
@@ -107,26 +138,51 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
                 value={drawName}
                 onChange={(e) => setDrawName(e.target.value)}
                 placeholder="Ex: Sorteio Especial de Natal"
-                
               />
             </div>
+
             <div>
-                <Label className="text-muted-foreground mb-1">Números Sorteados ({NUM_OF_PICKS}):</Label>
-                <div className="grid grid-cols-5 gap-3">
-                    {numbers.map((num, index) => (
-                    <Input
-                        key={index}
-                        type="number"
-                        value={num}
-                        onChange={(e) => handleInputChange(index, e.target.value)}
-                        placeholder={`${index + 1}º`}
-                        min={MIN_NUMBER}
-                        max={MAX_NUMBER}
-                        className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        aria-label={`Número ${index + 1}`}
-                    />
-                    ))}
-                </div>
+              <Label className="text-muted-foreground mb-1">Números Sorteados ({numberOfPicks}):</Label>
+              <div className={`grid grid-cols-5 gap-3`}>
+                {Array.from({ length: numberOfPicks }).map((_, index) => (
+                  <Input
+                    key={index}
+                    type="number"
+                    value={numbers[index]}
+                    onChange={(e) => handleInputChange(index, e.target.value, false)}
+                    placeholder={`${index + 1}º`}
+                    min={MIN_NUMBER}
+                    max={MAX_NUMBER}
+                    className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-label={`Número ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-muted-foreground mb-1 flex items-center">
+                Confirmação dos Números (Contra-prova)
+                {areNumbersMatching && <CheckCircle className="ml-2 h-5 w-5 text-green-500" />}
+              </Label>
+              <div className={`grid grid-cols-5 gap-3`}>
+                {Array.from({ length: numberOfPicks }).map((_, index) => (
+                  <Input
+                    key={`confirm-${index}`}
+                    type="number"
+                    value={confirmNumbers[index]}
+                    onChange={(e) => handleInputChange(index, e.target.value, true)}
+                    placeholder={`${index + 1}º`}
+                    min={MIN_NUMBER}
+                    max={MAX_NUMBER}
+                    className="text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    aria-label={`Confirmação do Número ${index + 1}`}
+                  />
+                ))}
+              </div>
+               {areNumbersMatching && (
+                <p className="text-sm text-green-600 mt-2 flex items-center gap-1"><CheckCircle size={14} /> Os números de confirmação batem com os originais.</p>
+              )}
             </div>
           </>
         )}
@@ -137,7 +193,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
           </Button>
         <Button 
           onClick={validateAndSubmit} 
-          disabled={hasWinningTickets}
+          disabled={hasWinningTickets || !areNumbersMatching}
           className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl text-base py-3 px-6"
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Cadastrar Sorteio

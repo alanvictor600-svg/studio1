@@ -8,12 +8,12 @@ import type { FinancialReport } from '@/lib/reports';
 /**
  * Adds a new draw to the 'draws' collection using the admin SDK.
  * This is a server action and must be called from the client.
- * @param newNumbers - An array of 10 numbers for the draw.
+ * @param newNumbers - An array of 5 or 10 numbers for the draw.
  * @param name - An optional name for the draw.
  */
 export const addDrawAction = async (newNumbers: number[], name?: string): Promise<void> => {
-    if (newNumbers.length !== 10) {
-        throw new Error("O sorteio deve conter exatamente 10 números.");
+    if (newNumbers.length !== 5 && newNumbers.length !== 10) {
+        throw new Error("O sorteio deve conter 5 ou 10 números.");
     }
 
     const newDrawData = {
