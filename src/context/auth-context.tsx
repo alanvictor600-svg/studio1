@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
 import type { User } from '@/types';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
@@ -31,24 +31,37 @@ const sanitizeUsernameForEmail = (username: string) => {
 // Este é o componente filho que usará os hooks que precisam de Suspense.
 function AuthProviderContent({ children }: { children: ReactNode }) {
     const authContextValue = useAuthContextValue();
-
-    // A lógica de redirecionamento que usa useSearchParams agora está isolada aqui.
     const router = useRouter();
-    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const { currentUser, isAuthenticated, isLoading } = authContextValue;
 
     useEffect(() => {
-        if (!isLoading && isAuthenticated && currentUser) {
-            const currentPath = window.location.pathname;
-            const loginOrRegister = currentPath.startsWith('/login') || currentPath.startsWith('/cadastrar');
+        if (isLoading) {
+            return; // Don't do anything while loading
+        }
+        
+        // If user is authenticated
+        if (isAuthenticated && currentUser) {
+            const isLoginPage = pathname.startsWith('/login');
+            const isRegisterPage = pathname.startsWith('/cadastrar');
+            const targetDashboardPath = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
+
+            // If user is on login/register page, redirect them to their dashboard.
+            if (isLoginPage || isRegisterPage) {
+                router.replace(targetDashboardPath);
+            }
+        } 
+        // If user is not authenticated
+        else {
+            // Protect admin and dashboard routes
+            const isAdminRoute = pathname.startsWith('/admin');
+            const isDashboardRoute = pathname.startsWith('/dashboard');
             
-            if(loginOrRegister) {
-                const defaultRedirect = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
-                const redirectPath = searchParams.get('redirect');
-                router.replace(redirectPath || defaultRedirect);
+            if (isAdminRoute || isDashboardRoute) {
+                router.replace('/login');
             }
         }
-    }, [isLoading, isAuthenticated, currentUser, router, searchParams]);
+    }, [isLoading, isAuthenticated, currentUser, pathname, router]);
 
     return (
         <AuthContext.Provider value={authContextValue}>
@@ -56,6 +69,7 @@ function AuthProviderContent({ children }: { children: ReactNode }) {
         </AuthContext.Provider>
     );
 }
+
 
 // Este é o provedor principal que envolve a aplicação.
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -93,7 +107,8 @@ function useAuthContextValue(): AuthContextType {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
-              setCurrentUser(null);
+              // This can happen if the user is deleted from Firestore but not Auth
+              setCurrentUser(null); 
             }
             setIsFirestoreLoading(false);
         }, (error) => {
@@ -115,8 +130,7 @@ function useAuthContextValue(): AuthContextType {
 
      try {
         await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
-        // O redirecionamento agora é tratado pelo useEffect no AuthProviderContent
-        // para evitar o uso de `useSearchParams` aqui.
+        // The redirection is now handled by the useEffect in AuthProviderContent
      } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
@@ -139,22 +153,17 @@ function useAuthContextValue(): AuthContextType {
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
-        let finalRole: User['role'] = role;
-
-        if (userDoc.exists()) {
-            const existingUserData = userDoc.data() as User;
-            finalRole = existingUserData.role;
-        } else {
+        if (!userDoc.exists()) {
             const newUser: User = {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`,
-                role: finalRole,
+                role: role,
                 createdAt: new Date().toISOString(),
                 saldo: 0,
             };
             await setDoc(userDocRef, newUser);
         }
-         // O redirecionamento também será tratado pelo AuthProviderContent
+        // Redirection will be handled by the main useEffect
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
             toast({ title: "Erro de Login", description: "Já existe uma conta com este e-mail. Tente fazer login com outro método.", variant: "destructive", duration: 5000 });
@@ -173,6 +182,7 @@ function useAuthContextValue(): AuthContextType {
     router.push('/');
     try {
       await signOut(auth);
+      setCurrentUser(null);
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
     } catch (error) {
       console.error("Error signing out: ", error);
@@ -217,6 +227,7 @@ function useAuthContextValue(): AuthContextType {
             console.error("Firebase registration error:", error);
             toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
         }
+        throw error;
     }
   }, [router, toast]);
 
