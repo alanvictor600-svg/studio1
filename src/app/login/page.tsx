@@ -46,11 +46,10 @@ function LoginPageContent() {
     }
   }, [searchParams]);
 
-  // Redirection is now handled by AuthProvider
   useEffect(() => {
     if (!isLoading && isAuthenticated && currentUser) {
-        const defaultRedirect = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
-        router.replace(defaultRedirect);
+      const targetDashboardPath = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
+      router.replace(targetDashboardPath);
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
@@ -59,6 +58,8 @@ function LoginPageContent() {
     try {
       await signInWithGoogle('cliente');
     } catch (error) {
+      // Error is handled in auth context
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -75,7 +76,9 @@ function LoginPageContent() {
     try {
       await login(username, password, isAdminLogin ? 'admin' : undefined);
     } catch (error) {
-       setIsSubmitting(false);
+       // Error is handled in auth context
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -171,7 +174,7 @@ function LoginPageContent() {
                     </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" disabled={isSubmitting || isLoading}>
                 <LogIn className="mr-2 h-5 w-5" />
                 {isSubmitting ? 'Entrando...' : 'Entrar'}
               </Button>
@@ -207,3 +210,5 @@ export default function LoginPage() {
     </SuspenseWrapper>
   );
 }
+
+    

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useRef } from 'react';
@@ -54,14 +53,26 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     isDataLoading
   } = useDashboard();
 
+  useEffect(() => {
+    if (isAuthLoading) return; // Wait until authentication check is complete
+
+    if (!isAuthenticated) {
+        router.replace('/login?redirect=' + pathname);
+        return;
+    }
+
+    if (currentUser && currentUser.role !== role) {
+        router.replace(`/dashboard/${currentUser.role}`);
+    }
+
+  }, [isAuthLoading, isAuthenticated, currentUser, role, router, pathname]);
+
   // Effect to start/stop data listeners based on auth state
   useEffect(() => {
     if (isAuthenticated && currentUser) {
-      // Start listeners and store the cleanup function
       cleanupListenersRef.current = startDataListeners(currentUser);
     }
 
-    // Cleanup function for when the component unmounts or user logs out
     return () => {
       if (cleanupListenersRef.current) {
         cleanupListenersRef.current();
@@ -71,33 +82,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, currentUser, startDataListeners]);
 
 
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.replace('/login?redirect=' + pathname);
-    }
-  }, [isAuthLoading, isAuthenticated, router, pathname]);
-
-  useEffect(() => {
-    if (!isAuthLoading && isAuthenticated && currentUser && currentUser.role !== role) {
-      router.replace(`/dashboard/${currentUser.role}`);
-    }
-  }, [isAuthLoading, isAuthenticated, currentUser, role, router]);
-
-
-  if (isAuthLoading || !isAuthenticated || !currentUser) {
+  if (isAuthLoading || !isAuthenticated || !currentUser || currentUser.role !== role) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p className="text-white text-xl">Verificando sessão...</p>
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <p className="text-foreground text-xl">Carregando painel...</p>
       </div>
     );
-  }
-  
-  if (currentUser.role !== role) {
-      return (
-         <div className="flex justify-center items-center min-h-screen">
-            <p className="text-white text-xl">Acesso negado. Redirecionando...</p>
-        </div>
-      );
   }
 
   const isSeller = currentUser.role === 'vendedor';
@@ -233,3 +223,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    
