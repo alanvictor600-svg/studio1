@@ -15,6 +15,7 @@ import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { SuspenseWrapper } from '@/components/suspense-wrapper';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -201,8 +202,8 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <SuspenseWrapper>
       <LoginPageContent />
-    </Suspense>
+    </SuspenseWrapper>
   );
 }
