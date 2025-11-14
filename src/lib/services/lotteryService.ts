@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase-client';
 import { collection, addDoc, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry } from '@/types';
 import type { FinancialReport } from '@/lib/reports';
+import { adminDb } from '../firebase-admin';
 
 /**
  * Adds a new draw to the 'draws' collection.
@@ -95,4 +96,25 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
 
     // Commit all operations at once
     await batch.commit();
+};
+
+/**
+ * Creates a new draw as an admin.
+ * This function should be called from a server environment or a trusted client with admin privileges.
+ * @param newNumbers - An array of 10 numbers for the draw.
+ * @param name - An optional name for the draw.
+ */
+export const addDrawAsAdmin = async (newNumbers: number[], name?: string): Promise<void> => {
+    if (newNumbers.length !== 10) {
+        throw new Error("O sorteio deve conter exatamente 10 números.");
+    }
+
+    const newDrawData = {
+        numbers: newNumbers,
+        createdAt: new Date().toISOString(),
+        ...(name && { name }),
+    };
+    
+    // Use adminDb to bypass security rules for this admin-only action
+    await adminDb.collection('draws').add(newDrawData);
 };

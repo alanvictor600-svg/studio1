@@ -2,19 +2,23 @@
  * @fileoverview Firestore Security Rules for the Bolão Potiguar app.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Each user has exclusive access to their profile data and associated tickets.
- * Public data like draws are readable by any authenticated user.
+ * This ruleset enforces a strict user-ownership model, with special privileges for administrators.
+ * Each user has exclusive access to their profile data.
+ * Admins can manage users, draws, and view system-wide data.
  *
  * Data Structure:
  * - User profiles are stored in `/users/{userId}`.
  * - Each user's lottery tickets are stored in `/users/{userId}/tickets/{ticketId}`.
  * - Draws are stored in `/draws/{drawId}`.
+ * - Historical data for sellers and admin summaries are stored in their respective collections.
  *
  * Key Security Decisions:
- * - Users can only read and write their own data, enforced through path-based matching and the `isOwner()` function.
- * - Listing of tickets is restricted to the owner of the tickets.
- * - Draws are public to all signed-in users but writable only by admins (simulated here by disallowing client writes).
- * - Users are identified using their Firebase Auth UID, which must match the `userId` in the Firestore paths.
+ * - Users can only read and write their own data, unless they are an admin.
+ * - Admins can list and update any user profile.
+ * - Ticket access is restricted to the buyer or seller, and admins.
+ * - Draws can be read by any signed-in user, but only written/deleted by admins.
+ * - History collections are protected, accessible only by the relevant user or an admin.
+ * - The root `tickets` collection is queryable by buyer/seller ID or by an admin.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -22,6 +26,12 @@ service cloud.firestore {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    // Helper function to check if the requesting user is an admin.
+    // It reads the 'role' field from the user's own profile document.
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     /**
@@ -33,25 +43,27 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      allow get: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; // Allow admins to list users
-      // Allow creation if the user ID in the path matches the authenticated user's ID
-      // This resolves a race condition during sign-up where isSignedIn() might be false briefly.
+      allow get: if isSignedIn() && (isOwner() || isAdmin());
+      allow list: if isSignedIn() && isAdmin(); // Allow admins to list users.
+      // Allow creation if the user ID in the path matches the authenticated user's ID.
+      // This resolves the race condition during sign-up.
       allow create: if request.auth.uid == userId && request.resource.data.id == userId;
-      allow update: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow delete: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      // Allow update if the user is the owner OR the user is an admin.
+      allow update: if isSignedIn() && (isOwner() || isAdmin());
+      allow delete: if isSignedIn() && (isOwner() || isAdmin());
     }
 
     /**
      * @description Controls access to ticket documents under a user's profile.
-     * @path /users/{userId}/tickets/{ticketId}
+     * @path /users/{userId}/tickets/{ticketId} - Note: This path is deprecated in favor of the root /tickets collection.
+     * Keeping for legacy or specific use cases.
      */
     match /users/{userId}/tickets/{ticketId} {
       function isOwner() {
         return request.auth.uid == userId;
       }
       
-      allow get, list: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow get, list: if isSignedIn() && (isOwner() || isAdmin());
       allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
       allow update: if isSignedIn() && isOwner() && resource.data.userId == userId && resource != null;
       allow delete: if isSignedIn() && isOwner() && resource != null;
@@ -60,59 +72,81 @@ service cloud.firestore {
     /**
      * @description Controls access to the draws collection.
      * @path /draws/{drawId}
-     * @principle Allows any authenticated user to read the list of draws, but prevents any client from writing.
-     * Writes should be handled by a secure backend/admin environment.
      */
     match /draws/{drawId} {
+      // Any signed-in user can read the list of draws.
       allow get, list: if isSignedIn();
-      allow write: if false; // Disallow client-side writes for draws
+      // Only an admin can create, update, or delete draws.
+      allow write: if isSignedIn() && isAdmin();
     }
 
-     /**
+    /**
      * @description Controls access to the configs collection.
      * @path /configs/{configId}
-     * @principle Allows any authenticated user to read configurations, but prevents any client from writing.
      */
     match /configs/{configId} {
+        // Any signed-in user can read configurations.
         allow get: if isSignedIn();
-        allow write: if false;
+        // Only admins can change configurations.
+        allow write: if isSignedIn() && isAdmin();
     }
     
     /**
      * @description Controls access to the sellerHistory collection.
      * @path /sellerHistory/{historyId}
-     * @principle Allows a seller to read their own history entries.
      */
     match /sellerHistory/{historyId} {
-        allow get, list: if isSignedIn() && (
-          (request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid) ||
-          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        // Allow a user to read their own history, or allow an admin to read any history.
+        allow read: if isSignedIn() && (
+            (request.auth.uid == resource.data.sellerId) || isAdmin()
         );
+        // Allow list queries scoped by sellerId for the user, or unrestricted for admins.
+        allow list: if isSignedIn() && (
+            (request.query.limit <= 10 && request.query.offset == null || request.query.offset > 0) &&
+            (request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid) || 
+            isAdmin()
+        );
+        // Client-side writes are not allowed. These are created by the system when a lottery cycle ends.
         allow write: if false;
     }
     
     /**
      * @description Controls access to the adminHistory collection.
      * @path /adminHistory/{historyId}
-     * @principle Disallows direct client access. Should be accessed via a secure backend.
      */
     match /adminHistory/{historyId} {
-        allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        // Only admins can read the admin history.
+        allow read: if isSignedIn() && isAdmin();
+        // Client-side writes are not allowed.
         allow write: if false;
     }
 
-     /**
-     * @description Controls access to the tickets collection (for queries).
+    /**
+     * @description Controls access to the root `tickets` collection.
      * @path /tickets/{ticketId}
-     * @principle This allows queries on the top-level tickets collection, scoped by buyerId or sellerId.
+     * @principle This allows queries scoped by `buyerId` or `sellerId` for regular users,
+     * and allows admins to perform any read operation.
      */
     match /tickets/{ticketId} {
-       allow read: if isSignedIn() && (
-          (request.query.where.field == 'buyerId' && request.query.where.value == request.auth.uid) ||
-          (request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid) ||
-          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+       allow get: if isSignedIn() && (
+          request.auth.uid == resource.data.buyerId ||
+          request.auth.uid == resource.data.sellerId ||
+          isAdmin()
        );
-       allow write: if false; // Direct writes to the root collection are disallowed. Use user-specific subcollections.
+       allow list: if isSignedIn() && (
+          (request.query.where[0][1] == 'buyerId' && request.query.where[0][2] == request.auth.uid) ||
+          (request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid) ||
+          isAdmin()
+       );
+       // Direct creation/update at the root is handled by transactional functions,
+       // so rules here can be strict. Allow create if user is buyer/seller.
+       allow create: if isSignedIn() && (
+         request.resource.data.buyerId == request.auth.uid || 
+         request.resource.data.sellerId == request.auth.uid
+       );
+       // Only allow updates for status changes by admin or transactional processes.
+       allow update: if isSignedIn() && isAdmin();
+       allow delete: if false; // Deleting tickets is not a desired functionality.
     }
   }
 }
