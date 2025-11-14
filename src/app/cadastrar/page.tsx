@@ -1,6 +1,7 @@
 
 "use client";
 
+import { SuspenseWrapper } from '@/components/suspense-wrapper';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
@@ -33,7 +34,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function CadastroPage() {
+function CadastroPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -269,5 +270,14 @@ export default function CadastroPage() {
         Ao se registrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
       </p>
     </div>
+  );
+}
+
+
+export default function CadastroPage() {
+  return (
+    <SuspenseWrapper>
+      <CadastroPageContent />
+    </SuspenseWrapper>
   );
 }

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { SuspenseWrapper } from '@/components/suspense-wrapper';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -25,8 +26,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-
-export default function LoginPage() {
+function LoginPageContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -199,4 +199,10 @@ export default function LoginPage() {
   );
 }
 
-    
+export default function LoginPage() {
+  return (
+    <SuspenseWrapper>
+      <LoginPageContent />
+    </SuspenseWrapper>
+  );
+}

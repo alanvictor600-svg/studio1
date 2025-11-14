@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -29,7 +28,21 @@ const sanitizeUsernameForEmail = (username: string) => {
     return username.trim().toLowerCase();
 };
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
+    return (
+        <AuthContext.Provider value={useAuthContextValue()}>
+            {children}
+        </AuthContext.Provider>
+    )
+}
+
+export function AuthProviderContent({ children }: { children: ReactNode }) {
+    const auth = useAuth();
+    return <>{children}</>;
+}
+
+
+function useAuthContextValue(): AuthContextType {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
@@ -238,10 +251,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
   
-  const value = { currentUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return { currentUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
+}
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
