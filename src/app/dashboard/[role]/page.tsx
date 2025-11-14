@@ -64,6 +64,11 @@ export default function DashboardPage() {
 
 
   const processedUserTickets = useMemo(() => updateTicketStatusesBasedOnDraws(userTickets, allDraws), [userTickets, allDraws]);
+  
+  const currentCycleClientTickets = useMemo(() => {
+    return processedUserTickets.filter(t => t.status === 'active' || t.status === 'winning');
+  }, [processedUserTickets]);
+
 
   if (isAuthLoading || isDataLoading) {
     return <div className="text-center p-10 text-white">Carregando dados do painel...</div>;
@@ -133,9 +138,9 @@ export default function DashboardPage() {
             <TabsContent value="bilhetes">
                  <section>
                     <h2 className="text-2xl font-bold text-center text-white mb-6">
-                        Meus Bilhetes
+                        Meus Bilhetes (Ciclo Atual)
                     </h2>
-                    <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />
+                    <TicketList tickets={currentCycleClientTickets} draws={allDraws} onRebet={handleRebet} />
                 </section>
             </TabsContent>
         </Tabs>
