@@ -33,13 +33,13 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      allow get: if isSignedIn() && isOwner();
-      allow list: if false; // Do not allow listing all users
+      allow get: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; // Allow admins to list users
       // Allow creation if the user ID in the path matches the authenticated user's ID
       // This resolves a race condition during sign-up where isSignedIn() might be false briefly.
       allow create: if request.auth.uid == userId && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isOwner() && resource.data.id == userId;
-      allow delete: if isSignedIn() && isOwner() && resource != null;
+      allow update: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow delete: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
 
     /**
@@ -51,7 +51,7 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
       
-      allow get, list: if isSignedIn() && isOwner();
+      allow get, list: if isSignedIn() && (isOwner() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
       allow create: if isSignedIn() && isOwner() && request.resource.data.userId == userId;
       allow update: if isSignedIn() && isOwner() && resource.data.userId == userId && resource != null;
       allow delete: if isSignedIn() && isOwner() && resource != null;
@@ -84,7 +84,10 @@ service cloud.firestore {
      * @principle Allows a seller to read their own history entries.
      */
     match /sellerHistory/{historyId} {
-        allow get, list: if isSignedIn() && request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid;
+        allow get, list: if isSignedIn() && (
+          (request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid) ||
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
         allow write: if false;
     }
     
@@ -94,7 +97,8 @@ service cloud.firestore {
      * @principle Disallows direct client access. Should be accessed via a secure backend.
      */
     match /adminHistory/{historyId} {
-        allow read, write: if false;
+        allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        allow write: if false;
     }
 
      /**
@@ -105,7 +109,8 @@ service cloud.firestore {
     match /tickets/{ticketId} {
        allow read: if isSignedIn() && (
           (request.query.where.field == 'buyerId' && request.query.where.value == request.auth.uid) ||
-          (request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid)
+          (request.query.where.field == 'sellerId' && request.query.where.value == request.auth.uid) ||
+          (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
        );
        allow write: if false; // Direct writes to the root collection are disallowed. Use user-specific subcollections.
     }
