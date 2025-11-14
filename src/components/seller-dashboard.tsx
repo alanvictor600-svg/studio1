@@ -105,10 +105,6 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
         return { ticketCount, totalRevenue, estimatedCommission };
     }, [userTickets, lotteryConfig]);
     
-    // Correctly filter tickets for the current cycle to be displayed in the list
-    const currentCycleTickets = useMemo(() => {
-        return userTickets.filter(t => t.status === 'active' || t.status === 'winning');
-    }, [userTickets]);
 
     return (
         <Tabs defaultValue="vendas" className="w-full">
@@ -135,9 +131,9 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
              <TabsContent value="bilhetes">
                  <section>
                     <h2 className="text-2xl font-bold text-center text-white mb-6">
-                        Meus Bilhetes Vendidos (Ciclo Atual)
+                        Meus Bilhetes Vendidos
                     </h2>
-                    <TicketList tickets={currentCycleTickets} draws={allDraws} />
+                    <TicketList tickets={userTickets} draws={allDraws} />
                 </section>
             </TabsContent>
 
@@ -226,5 +222,3 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
         </Tabs>
     );
 };
-
-    
