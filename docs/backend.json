@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "Ticket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ticket",
+      "type": "object",
+      "description": "Represents a lottery ticket with a set of chosen numbers.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Ticket entity."
+        },
+        "numbers": {
+          "type": "array",
+          "description": "The set of 10 numbers selected for the ticket, between 1 and 25.",
+          "items": {
+            "type": "number"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the ticket (e.g., active, expired, winning).",
+          "format": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the ticket was created.",
+          "format": "date-time"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Ticket)"
+        }
+      },
+      "required": [
+        "id",
+        "numbers",
+        "status",
+        "createdAt",
+        "userId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Bolão Potiguar app.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time when the user registered.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email",
+        "registrationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. Uses path-based ownership: only the authenticated user can read/write their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, corresponding to the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/tickets/{ticketId}",
+        "definition": {
+          "entityName": "Ticket",
+          "schema": {
+            "$ref": "#/backend/entities/Ticket"
+          },
+          "description": "Stores lottery tickets belonging to a specific user.  Uses path-based ownership: only the user can access tickets under their /users/{userId} path.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user who owns the ticket."
+            },
+            {
+              "name": "ticketId",
+              "description": "The unique ID of the ticket."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This design prioritizes security and scalability for the Bolão Potiguar app. It utilizes path-based ownership for user data and tickets, ensuring that tickets are directly associated with their respective users. This approach simplifies security rules and eliminates the need for complex `get()` calls to parent documents, promoting authorization independence and atomic operations.\n\nSpecifically, each user's tickets are stored in a subcollection `/users/{userId}/tickets/{ticketId}`. This structure clearly defines ownership and allows for straightforward security rules that restrict access to a ticket based on the authenticated user's ID matching the `userId` in the path. Denormalization is not required since the ticket is directly nested under the user's document and no authorization data depends on information stored outside of the ticket document itself or user id, providing simplicity without sacrificing security.\n\nThis design supports the QAPs (Rules Are Not Filters) principle. Listing tickets is inherently scoped to a user. The `list` operation will always be performed within the `/users/{userId}/tickets` collection, ensuring that users can only see their own tickets. No filtering based on ticket content is needed in the rules, preventing insecure data exposure.\n\nThe single `status` field on each ticket facilitates a clear state management, aligning with the principle of explicit state modeling. Also, as specified in Access Modeling, we are using hierarchical paths for User-Owned Data."
+  }
+}
