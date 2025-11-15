@@ -1,4 +1,9 @@
 {
+  "theme_color": "#15803d",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
   "name": "Bolão Potiguar",
   "short_name": "BOLÃO POTIGUAR",
   "description": "Sua sorte começa aqui!",
@@ -8,10 +13,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#15803d",
-  "background_color": "#15803d",
-  "display": "standalone",
-  "scope": "/",
-  "start_url": "/"
+  ]
 }
