@@ -68,7 +68,7 @@ export const createSellerTicket = async ({
           buyerPhone: buyerPhone?.trim() || undefined,
           sellerId: seller.id, // Correctly setting sellerId
           sellerUsername: seller.username, // Correctly setting sellerUsername
-          buyerId: undefined, // Explicitly undefined
+          // buyerId is omitted as it's not applicable
         };
 
         transaction.set(newTicketRef, newTicketData);
@@ -117,8 +117,7 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
                 createdAt: new Date().toISOString(),
                 buyerName: user.username,
                 buyerId: user.id, // Correctly add buyerId for client's own tickets
-                sellerId: undefined, // Explicitly undefined
-                sellerUsername: undefined, // Explicitly undefined
+                // sellerId and sellerUsername are omitted as they are not applicable
             };
             transaction.set(newTicketRef, newTicketData);
             createdTickets.push({ ...newTicketData, id: newTicketRef.id });
@@ -127,3 +126,4 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
 
     return { createdTickets, newBalance };
 };
+
