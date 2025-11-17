@@ -111,6 +111,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     ownerCommissionPercentage: data.ownerCommissionPercentage || 5,
                     clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || 10,
                 });
+            } else {
+                 setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
             }
         }, (error) => {
             console.error("Error fetching lottery config: ", error);
