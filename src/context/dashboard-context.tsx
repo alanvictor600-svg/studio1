@@ -6,7 +6,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { LotteryConfig, User, Ticket, Draw } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
-import { createClientTicketsAction } from '@/app/actions/sheets';
+import { createClientTicketsAction } from '@/app/actions/ticket';
 import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 
