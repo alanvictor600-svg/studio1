@@ -38,7 +38,7 @@ export const ReportsSection: FC<ReportsSectionProps> = ({ financialReport, admin
       }
 
       const buyerName = ticket.buyerName || 'N/A';
-      const sellerUsername = ticket.sellerUsername || '-';
+      const sellerUsername = ticket.sellerUsername || 'Aplicativo';
 
       return [
           buyerName,
