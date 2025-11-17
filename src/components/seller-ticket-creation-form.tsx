@@ -108,7 +108,8 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     
     try {
       const { createdTicket, newBalance } = await createSellerTicketAction({
-        seller: currentUser,
+        sellerId: currentUser.id,
+        sellerUsername: currentUser.username,
         lotteryConfig,
         ticketPicks: currentPicks,
         buyerName: buyerName.trim(),

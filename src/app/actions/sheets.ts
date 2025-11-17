@@ -94,7 +94,8 @@ export const appendTicketToSheet = async (ticket: Ticket) => {
 };
 
 interface CreateSellerTicketParams {
-    seller: User;
+    sellerId: string;
+    sellerUsername: string;
     lotteryConfig: LotteryConfig;
     ticketPicks: number[];
     buyerName: string;
@@ -102,18 +103,19 @@ interface CreateSellerTicketParams {
 }
 
 export const createSellerTicketAction = async ({
-    seller,
+    sellerId,
+    sellerUsername,
     lotteryConfig,
     ticketPicks,
     buyerName,
     buyerPhone,
 }: CreateSellerTicketParams): Promise<{ createdTicket: Ticket, newBalance: number }> => {
-    if (!seller || !seller.id) throw new Error("Vendedor não autenticado.");
+    if (!sellerId) throw new Error("Vendedor não autenticado.");
     if (ticketPicks.length !== 10) throw new Error("O bilhete deve conter 10 números.");
     if (!buyerName) throw new Error("O nome do comprador é obrigatório.");
 
     const ticketPrice = lotteryConfig.ticketPrice;
-    const userRef = adminDb.collection("users").doc(seller.id);
+    const userRef = adminDb.collection("users").doc(sellerId);
     
     let createdTicket: Ticket | null = null;
     let newBalance = 0;
@@ -135,8 +137,8 @@ export const createSellerTicketAction = async ({
             createdAt: new Date().toISOString(),
             buyerName: buyerName.trim(),
             buyerPhone: buyerPhone?.trim() || undefined,
-            sellerId: seller.id,
-            sellerUsername: seller.username,
+            sellerId: sellerId,
+            sellerUsername: sellerUsername,
         };
         transaction.set(newTicketRef, newTicketData);
         createdTicket = { ...newTicketData, id: newTicketRef.id };
