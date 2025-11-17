@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useCallback, useRef, useEffect } from 'react';
 import type { LotteryConfig, User, Ticket, Draw } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
-import { createClientTickets } from '@/lib/services/ticketService';
+import { createClientTicketsAction } from '@/app/actions/sheets';
 import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 
@@ -179,7 +180,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsSubmitting(true);
         
         try {
-            const { createdTickets, newBalance } = await createClientTickets({
+            const { createdTickets, newBalance } = await createClientTicketsAction({
                 user: currentUser,
                 cart,
                 lotteryConfig

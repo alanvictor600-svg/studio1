@@ -2,9 +2,11 @@
 'use server';
 
 import { google } from 'googleapis';
-import type { Ticket } from '@/types';
+import type { Ticket, User, LotteryConfig } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Esta função garante que a chave privada, que pode vir com quebras de linha `\n`, seja formatada corretamente.
 const formatPrivateKey = (key: string | undefined) => {
@@ -81,10 +83,119 @@ export const appendTicketToSheet = async (ticket: Ticket) => {
     } catch (error) {
         console.error('ERRO AO ADICIONAR LINHA NO GOOGLE SHEETS:');
         console.error('============================================');
-        console.error('Mensagem de Erro:', (error as Error).message);
+        if (error instanceof Error) {
+            console.error('Mensagem de Erro:', error.message);
+        }
         console.error('Objeto de Erro Completo:', JSON.stringify(error, null, 2));
         console.error('============================================');
         // Agora, lançamos o erro para que o cliente saiba que a integração falhou.
         throw new Error('Falha ao enviar dados para a planilha.');
     }
+};
+
+interface CreateSellerTicketParams {
+    seller: User;
+    lotteryConfig: LotteryConfig;
+    ticketPicks: number[];
+    buyerName: string;
+    buyerPhone?: string;
+}
+
+export const createSellerTicketAction = async ({
+    seller,
+    lotteryConfig,
+    ticketPicks,
+    buyerName,
+    buyerPhone,
+}: CreateSellerTicketParams): Promise<{ createdTicket: Ticket, newBalance: number }> => {
+    if (!seller || !seller.id) throw new Error("Vendedor não autenticado.");
+    if (ticketPicks.length !== 10) throw new Error("O bilhete deve conter 10 números.");
+    if (!buyerName) throw new Error("O nome do comprador é obrigatório.");
+
+    const ticketPrice = lotteryConfig.ticketPrice;
+    const userRef = adminDb.collection("users").doc(seller.id);
+    
+    let createdTicket: Ticket | null = null;
+    let newBalance = 0;
+
+    await adminDb.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        if (!userDoc.exists) throw new Error("Usuário do vendedor não encontrado.");
+        
+        const currentBalance = userDoc.data()?.saldo || 0;
+        if (currentBalance < ticketPrice) throw new Error("Saldo insuficiente.");
+
+        newBalance = currentBalance - ticketPrice;
+        transaction.update(userRef, { saldo: newBalance });
+        
+        const newTicketRef = adminDb.collection("tickets").doc();
+        const newTicketData: Omit<Ticket, 'id'> = {
+            numbers: [...ticketPicks].sort((a,b) => a-b),
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            buyerName: buyerName.trim(),
+            buyerPhone: buyerPhone?.trim() || undefined,
+            sellerId: seller.id,
+            sellerUsername: seller.username,
+        };
+        transaction.set(newTicketRef, newTicketData);
+        createdTicket = { ...newTicketData, id: newTicketRef.id };
+    });
+
+    if (!createdTicket) throw new Error("Falha ao criar o bilhete na transação.");
+    
+    try {
+        await appendTicketToSheet(createdTicket);
+    } catch (error) {
+        console.error("Falha ao enviar bilhete para o Google Sheets (não fatal):", error);
+    }
+
+    return { createdTicket, newBalance };
+};
+
+interface CreateClientTicketsParams {
+    user: User;
+    cart: number[][];
+    lotteryConfig: LotteryConfig;
+}
+
+export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: CreateClientTicketsParams): Promise<{ createdTickets: Ticket[], newBalance: number }> => {
+    const totalCost = cart.length * lotteryConfig.ticketPrice;
+    const userRef = adminDb.collection("users").doc(user.id);
+    const createdTickets: Ticket[] = [];
+    let newBalance = 0;
+
+    await adminDb.runTransaction(async (transaction) => {
+        const freshUserDoc = await transaction.get(userRef);
+        if (!freshUserDoc.exists()) throw new Error("Usuário não encontrado.");
+        
+        const currentBalance = freshUserDoc.data()?.saldo || 0;
+        if (currentBalance < totalCost) throw new Error("Saldo insuficiente.");
+
+        newBalance = currentBalance - totalCost;
+        transaction.update(userRef, { saldo: newBalance });
+
+        for (const ticketNumbers of cart) {
+            const newTicketRef = adminDb.collection("tickets").doc();
+            const newTicketData: Omit<Ticket, 'id'> = {
+                numbers: ticketNumbers.sort((a, b) => a - b),
+                status: 'active' as const,
+                createdAt: new Date().toISOString(),
+                buyerName: user.username,
+                buyerId: user.id,
+            };
+            transaction.set(newTicketRef, newTicketData);
+            createdTickets.push({ ...newTicketData, id: newTicketRef.id });
+        }
+    });
+
+    for (const ticket of createdTickets) {
+        try {
+            await appendTicketToSheet(ticket);
+        } catch (error) {
+            console.error("Falha ao enviar bilhete para o Google Sheets (não fatal):", error);
+        }
+    }
+
+    return { createdTickets, newBalance };
 };

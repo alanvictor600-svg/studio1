@@ -14,7 +14,7 @@ import { X, Sparkles, Trash2, TicketPlus, User, Phone, PauseCircle } from 'lucid
 import { useToast } from "@/hooks/use-toast";
 import type { Ticket, LotteryConfig } from '@/types';
 import { useAuth } from '@/context/auth-context';
-import { createSellerTicket } from '@/lib/services/ticketService';
+import { createSellerTicketAction } from '@/app/actions/sheets';
 import { useDashboard } from '@/context/dashboard-context';
 import { SelectedNumberBadge } from './selected-number-badge';
 
@@ -107,7 +107,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const { createdTicket, newBalance } = await createSellerTicket({
+      const { createdTicket, newBalance } = await createSellerTicketAction({
         seller: currentUser,
         lotteryConfig,
         ticketPicks: currentPicks,
