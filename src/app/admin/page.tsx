@@ -54,8 +54,6 @@ function AdminPageContent() {
   const [creditRequestConfig, setCreditRequestConfig] = useState<CreditRequestConfig>(DEFAULT_CREDIT_CONFIG);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-
-  const [activeSection, setActiveSection] = useState<AdminSection>('configuracoes');
   
   const [allUsers, setAllUsers] = useState<User[]>([]); // Now primarily used for `startNewLottery`
   const [userToView, setUserToView] = useState<User | null>(null);
@@ -69,14 +67,11 @@ function AdminPageContent() {
   const { currentUser, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Directly read the active section from URL search params.
+  // This makes the component fully controlled by the URL, eliminating state synchronization issues.
+  const activeSection = (searchParams.get('section') as AdminSection) || 'configuracoes';
 
-  // Read section from URL on load
-  useEffect(() => {
-    const section = searchParams.get('section') as AdminSection;
-    if (section) {
-        setActiveSection(section);
-    }
-  }, [searchParams]);
 
   // Initial client-side mount
   useEffect(() => {
