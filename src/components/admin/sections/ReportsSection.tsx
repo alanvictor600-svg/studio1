@@ -29,7 +29,7 @@ export const ReportsSection: FC<ReportsSectionProps> = ({ financialReport, admin
       return;
     }
 
-    const headers = ['Comprador', 'Vendedor', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9', 'N10'];
+    const headers = ['Jogador', 'Cambista', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º'];
     
     const data = activeTickets.map(ticket => {
       const ticketNumbers = ticket.numbers.slice(0, 10);
@@ -53,7 +53,7 @@ export const ReportsSection: FC<ReportsSectionProps> = ({ financialReport, admin
       XLSX.utils.book_append_sheet(workbook, worksheet, "Bilhetes");
       
       // Ajusta a largura das colunas
-      const colWidths = headers.map((_, i) => ({ wch: i < 2 ? 25 : 5 })); // Colunas de nome mais largas
+      const colWidths = headers.map((header, i) => ({ wch: (i < 2) ? 25 : (header.length > 5 ? header.length : 5) }));
       worksheet['!cols'] = colWidths;
 
       // Gera o arquivo e inicia o download
