@@ -1,8 +1,8 @@
-
 // src/lib/services/ticketService.ts
 import { db } from '@/lib/firebase-client';
 import { doc, runTransaction, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
 import type { Ticket, LotteryConfig, User } from '@/types';
+import { appendTicketToSheet } from './googleSheetsService';
 
 interface CreateSellerTicketParams {
     seller: User;
@@ -18,6 +18,7 @@ interface CreateSellerTicketParams {
  * 1. Check the seller's balance.
  * 2. Deduct the ticket price.
  * 3. Create the new ticket document.
+ * 4. Append the ticket to Google Sheets.
  * @returns The newly created Ticket object.
  */
 export const createSellerTicket = async ({
@@ -79,6 +80,11 @@ export const createSellerTicket = async ({
     if (!createdTicket) {
         throw new Error("Falha ao criar o bilhete na transação.");
     }
+    
+    // Append to Google Sheets after successful transaction
+    // This is done outside the transaction to avoid holding it for too long
+    // and because external API calls are not allowed inside Firestore transactions.
+    await appendTicketToSheet(createdTicket);
 
     return { createdTicket, newBalance };
 };
@@ -124,6 +130,10 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
         });
     });
 
+    // Append all created tickets to Google Sheets after the transaction is successful.
+    for (const ticket of createdTickets) {
+        await appendTicketToSheet(ticket);
+    }
+
     return { createdTickets, newBalance };
 };
-
