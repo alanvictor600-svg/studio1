@@ -64,7 +64,8 @@ function LoginPageContent() {
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     try {
-      await signInWithGoogle('cliente');
+      // Now we don't pass a role. The auth context will handle asking the user if they are new.
+      await signInWithGoogle();
       // On success, the useEffect above will handle redirection.
     } catch (error) {
       // Error is handled in auth context

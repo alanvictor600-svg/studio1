@@ -9,12 +9,14 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase-client';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { RoleSelectionDialog } from '@/components/role-selection-dialog';
+
 
 interface AuthContextType {
   currentUser: User | null;
   firebaseUser: FirebaseUser | null | undefined; 
   login: (username: string, passwordAttempt: string) => Promise<void>;
-  signInWithGoogle: (role: 'cliente' | 'vendedor') => Promise<void>;
+  signInWithGoogle: (role?: 'cliente' | 'vendedor') => Promise<void>;
   logout: () => void;
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
@@ -62,6 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
   
+  // State for the new user registration flow
+  const [isRoleSelectionOpen, setIsRoleSelectionOpen] = useState(false);
+  const [pendingGoogleUser, setPendingGoogleUser] = useState<FirebaseUser | null>(null);
+
   const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
   const isLoading = authLoading || (!!firebaseUser && isFirestoreLoading);
 
@@ -74,8 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
-              setCurrentUser(null); 
-              signOut(auth);
+              // This case will now be handled by the role selection flow for new Google users
+              if (!isRoleSelectionOpen) {
+                  setCurrentUser(null);
+              }
             }
             setIsFirestoreLoading(false);
         }, (error) => {
@@ -89,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
         if(unsubscribe) unsubscribe();
     };
-  }, [firebaseUser]);
+  }, [firebaseUser, isRoleSelectionOpen]);
 
   const login = useCallback(async (username: string, passwordAttempt: string) => {
      const emailUsername = sanitizeUsernameForEmail(username);
@@ -108,7 +116,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      }
   }, [toast]);
 
-  const signInWithGoogle = useCallback(async (role: 'cliente' | 'vendedor') => {
+  const handleRoleSelectedForNewUser = async (role: 'cliente' | 'vendedor') => {
+    if (!pendingGoogleUser) return;
+    
+    const user = pendingGoogleUser;
+    const userDocRef = doc(db, "users", user.uid);
+
+    try {
+        const newUser: User = {
+            id: user.uid,
+            username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`,
+            role: role,
+            createdAt: new Date().toISOString(),
+            saldo: 0,
+        };
+        await setDoc(userDocRef, newUser);
+        setCurrentUser(newUser); // Optimistically set current user
+        toast({ title: "Cadastro Concluído!", description: "Bem-vindo ao Bolão Potiguar!", className: "bg-primary text-primary-foreground" });
+    } catch(e) {
+        console.error("Error creating new user document:", e);
+        toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta.", variant: "destructive" });
+    } finally {
+        setIsRoleSelectionOpen(false);
+        setPendingGoogleUser(null);
+    }
+  };
+
+
+  const signInWithGoogle = useCallback(async (role?: 'cliente' | 'vendedor') => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -118,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            const newUser: User = {
+          // If a role is provided (from /cadastrar page), create user directly.
+          if (role) {
+             const newUser: User = {
                 id: user.uid,
                 username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`,
                 role: role,
@@ -126,8 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 saldo: 0,
             };
             await setDoc(userDocRef, newUser);
+            setCurrentUser(newUser);
+          } else {
+            // If no role is provided (from /login page), open the role selection dialog.
+            setPendingGoogleUser(user);
+            setIsRoleSelectionOpen(true);
+          }
         }
-        // Redirection is now handled by the AuthRedirectHandler component
+        // If user already exists, redirection is handled by the useEffect.
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
             toast({ title: "Erro de Login", description: "Já existe uma conta com este e-mail. Tente fazer login com outro método.", variant: "destructive", duration: 5000 });
@@ -203,6 +246,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <AuthRedirectHandler />
       </Suspense>
       {children}
+       <RoleSelectionDialog
+        isOpen={isRoleSelectionOpen}
+        onOpenChange={setIsRoleSelectionOpen}
+        onRoleSelect={handleRoleSelectedForNewUser}
+      />
     </AuthContext.Provider>
   );
 }
