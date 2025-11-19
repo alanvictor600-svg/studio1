@@ -57,37 +57,29 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const cleanupListenersRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    // This effect handles authentication and authorization for the dashboard.
     if (isAuthLoading) {
-      // Don't do anything while auth state is resolving.
       return;
     }
 
     if (!isAuthenticated) {
-      // If user is not logged in, redirect to login page, preserving the intended destination.
       router.replace('/login?redirect=' + pathname);
       return;
     }
 
     if (currentUser && currentUser.role !== role) {
-      // If user is logged in but trying to access the wrong role's dashboard,
-      // redirect them to their correct dashboard.
       router.replace(`/dashboard/${currentUser.role}`);
     }
   }, [isAuthLoading, isAuthenticated, currentUser, role, router, pathname]);
 
-  // Effect to start/stop data listeners based on auth state
   useEffect(() => {
-    // Only start listeners if the user is authenticated and correctly authorized for the current dashboard role.
     if (isAuthenticated && currentUser && currentUser.role === role) {
       cleanupListenersRef.current = startDataListeners(currentUser);
     }
 
-    // Cleanup function to run when the component unmounts or dependencies change.
     return () => {
       if (cleanupListenersRef.current) {
         cleanupListenersRef.current();
-        cleanupListenersRef.current = null; // Prevent multiple cleanups
+        cleanupListenersRef.current = null;
       }
     };
   }, [isAuthenticated, currentUser, role, startDataListeners]);
@@ -100,7 +92,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     });
 
     try {
-      // Unregister all service workers to ensure cache is bypassed on next load
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const registration of registrations) {
@@ -108,11 +99,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         }
       }
       
-      // Clear all caches managed by the Cache API
       const keys = await caches.keys();
       await Promise.all(keys.map(key => caches.delete(key)));
 
-      // Perform a hard reload
       window.location.reload();
 
     } catch (error) {
@@ -122,13 +111,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         description: 'Não foi possível limpar o cache. A página será recarregada.',
         variant: 'destructive',
       });
-      // Fallback to simple reload
       window.location.reload();
     }
   };
 
 
-  // While authentication is loading, or if we are waiting for a redirect to happen, show a loading screen.
   if (isAuthLoading || !isAuthenticated || !currentUser || currentUser.role !== role) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
@@ -137,7 +124,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isSeller = currentUser.role === 'vendedor';
   const dashboardPath = `/dashboard/${currentUser.role}`;
 
   return (
@@ -217,7 +203,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-1 flex-col overflow-x-hidden">
+      
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col md:pl-[16rem] group-data-[collapsible=icon]/sidebar-wrapper:md:pl-[3rem] transition-[padding] duration-200 ease-linear">
         {/* Mobile Header */}
         <header className="sticky top-0 z-10 grid h-16 grid-cols-3 items-center border-b bg-secondary px-2 md:hidden">
           <div className="flex justify-start">
@@ -265,21 +253,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <div className="text-center p-10 text-white">Carregando dados...</div>
             ) : children}
         </main>
-        <InsufficientCreditsDialog
-            isOpen={isCreditsDialogOpen}
-            onOpenChange={setIsCreditsDialogOpen}
-        />
-        <TicketReceiptDialog
-            isOpen={!!receiptTickets}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) {
-                setReceiptTickets(null);
-              }
-            }}
-            tickets={receiptTickets}
-            lotteryConfig={lotteryConfig}
-        />
-      </SidebarInset>
+      </div>
+
+      <InsufficientCreditsDialog
+          isOpen={isCreditsDialogOpen}
+          onOpenChange={setIsCreditsDialogOpen}
+      />
+      <TicketReceiptDialog
+          isOpen={!!receiptTickets}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setReceiptTickets(null);
+            }
+          }}
+          tickets={receiptTickets}
+          lotteryConfig={lotteryConfig}
+      />
     </>
   );
 }

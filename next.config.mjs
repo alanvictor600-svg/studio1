@@ -1,13 +1,13 @@
 
-/** @type {import('next').NextConfig} */
+import withPWAInit from "next-pwa";
 
-const withPWA = require('next-pwa')({
+const withPWA = withPWAInit({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  sw: 'sw-v2.js', // Renomeia o service worker para forçar a atualização
-  importScripts: ['/sw-cleanup.js'], // Importa o script de limpeza
+  sw: 'sw-v2.js',
+  importScripts: ['/sw-cleanup.js'],
   runtimeCaching: [
     {
       urlPattern: ({ request }) => request.mode === 'navigate',
@@ -47,6 +47,7 @@ const withPWA = require('next-pwa')({
   ],
 });
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -71,4 +72,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+export default withPWA(nextConfig);
