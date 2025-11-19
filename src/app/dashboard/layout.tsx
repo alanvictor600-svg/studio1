@@ -182,7 +182,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex justify-center">
             <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2">
               <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-              <span className="inline-block font-semibold">Bolão Potiguar</span>
+              <span className="hidden sm:inline-block font-semibold">Bolão Potiguar</span>
             </Link>
           </div>
           <div className="flex items-center justify-end">

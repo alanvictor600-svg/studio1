@@ -87,20 +87,16 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
               />
             ))}
           </div>
-          <div className="mt-4 space-y-3">
-              <div className="flex justify-between gap-3">
-                  <Button variant="destructive" onClick={handleClearSelection} className="w-full shadow-md hover:shadow-lg h-11 text-base" disabled={isSubmitting || currentPicks.length === 0}>
-                      <Trash2 className="mr-2 h-4 w-4" /> Limpar Seleção
-                  </Button>
-                  <Button onClick={handleAddTicketToCart} className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl text-base h-11" disabled={isSubmitting || currentPicks.length !== MAX_PICKS}>
-                      <PlusCircle className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
-                  </Button>
-              </div>
-              <div className="flex justify-center">
-                <Button variant="outline" size="sm" onClick={handleAutoFill} className="shadow-sm" disabled={isSubmitting}>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={handleAutoFill} className="h-11 text-base shadow-sm" disabled={isSubmitting}>
                   <Sparkles className="mr-2 h-4 w-4" /> Surpresinha
-                </Button>
-              </div>
+              </Button>
+               <Button variant="destructive" onClick={handleClearSelection} className="h-11 text-base shadow-md" disabled={isSubmitting || currentPicks.length === 0}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Limpar
+              </Button>
+              <Button onClick={handleAddTicketToCart} className="col-span-2 h-12 bg-green-600 hover:bg-green-700 text-white shadow-lg text-base" disabled={isSubmitting || currentPicks.length !== MAX_PICKS}>
+                  <PlusCircle className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+              </Button>
           </div>
         </div>
 
