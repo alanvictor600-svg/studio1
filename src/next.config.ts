@@ -19,6 +19,18 @@ const withPWA = require('next-pwa')({
       },
     },
     {
+      urlPattern: /\.(?:js|css)$/i,
+      handler: 'NetworkFirst', // Changed from StaleWhileRevalidate to NetworkFirst
+      options: {
+        cacheName: 'static-resources',
+        networkTimeoutSeconds: 10, // Try the network for 10s, then fallback to cache
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 dias
+        },
+      },
+    },
+    {
       urlPattern: /\.(?:png|jpg|jpeg|svg|gif|ico|webp)$/i,
       handler: 'CacheFirst',
       options: {
@@ -26,17 +38,6 @@ const withPWA = require('next-pwa')({
         expiration: {
           maxEntries: 100,
           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 dias
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:js|css)$/i,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'static-resources',
-        expiration: {
-          maxEntries: 100,
-          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 dias
         },
       },
     },
