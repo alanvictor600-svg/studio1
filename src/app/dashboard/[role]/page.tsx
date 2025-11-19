@@ -33,6 +33,7 @@ export default function DashboardPage() {
       allDraws,
       isLotteryPaused,
       isDataLoading,
+      handleGenerateReceipt,
   } = useDashboard();
   
   const [activeTab, setActiveTab] = useState('aposta');
@@ -146,7 +147,8 @@ export default function DashboardPage() {
                     <TicketList 
                       tickets={processedUserTickets} 
                       draws={allDraws} 
-                      onRebet={handleRebet} 
+                      onRebet={handleRebet}
+                      onGenerateReceipt={handleGenerateReceipt} 
                     />
                 </section>
             </TabsContent>

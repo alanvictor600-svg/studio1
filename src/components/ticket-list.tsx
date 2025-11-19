@@ -11,12 +11,13 @@ interface TicketListProps {
   tickets: Ticket[];
   draws?: Draw[];
   onRebet?: (numbers: number[]) => void;
+  onGenerateReceipt?: (ticket: Ticket) => void;
 }
 
 type TabValue = 'all' | 'active' | 'winning' | 'expired' | 'unpaid';
 
 
-export const TicketList: FC<TicketListProps> = ({ tickets, draws, onRebet }) => {
+export const TicketList: FC<TicketListProps> = ({ tickets, draws, onRebet, onGenerateReceipt }) => {
   const [activeTab, setActiveTab] = useState<TabValue>('all');
 
   const filteredTickets = tickets.filter(ticket => {
@@ -71,6 +72,7 @@ export const TicketList: FC<TicketListProps> = ({ tickets, draws, onRebet }) => 
               ticket={ticket}
               draws={draws}
               onRebet={onRebet}
+              onGenerateReceipt={onGenerateReceipt}
             />
           ))}
         </div>

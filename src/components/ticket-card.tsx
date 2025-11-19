@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Award, CircleDot, TimerOff, CalendarDays, User, Clock, Ban, CheckCircle, Ticket as TicketIcon, Repeat } from 'lucide-react';
+import { Award, CircleDot, TimerOff, CalendarDays, User, Clock, Ban, CheckCircle, Ticket as TicketIcon, Repeat, Receipt } from 'lucide-react';
 import { calculateTicketMatches } from '@/lib/lottery-utils';
 import { Button } from './ui/button';
 
@@ -17,9 +17,10 @@ interface TicketCardProps {
   ticket: Ticket;
   draws?: Draw[];
   onRebet?: (numbers: number[]) => void;
+  onGenerateReceipt?: (ticket: Ticket) => void; // New prop
 }
 
-export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
+export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet, onGenerateReceipt }) => {
   
   const matches = useMemo(() => calculateTicketMatches(ticket, draws || []), [ticket, draws]);
   
@@ -102,6 +103,8 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
   }, [ticket.numbers, ticket.status, drawnNumbersFrequency]);
 
   const canRebet = onRebet && (ticket.status === 'expired' || ticket.status === 'unpaid');
+  const canGenerateReceipt = onGenerateReceipt && (ticket.status === 'active' || ticket.status === 'winning');
+
 
   return (
      <Card className={cn(
@@ -171,18 +174,25 @@ export const TicketCard: FC<TicketCardProps> = ({ ticket, draws, onRebet }) => {
                         </span>
                     </div>
                 )}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center">
                       <CalendarDays size={14} className="mr-1.5" />
                       <span>
                           {format(parseISO(ticket.createdAt), "dd/MM/yy HH:mm", { locale: ptBR })}
                       </span>
                   </div>
-                   {canRebet && (
-                    <Button size="sm" variant="ghost" onClick={() => onRebet(ticket.numbers)} className="h-8 -mr-2">
-                      <Repeat className="mr-2 h-4 w-4" /> Reapostar
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    {canGenerateReceipt && (
+                        <Button size="sm" variant="outline" onClick={() => onGenerateReceipt(ticket)} className="h-8">
+                            <Receipt className="mr-2 h-4 w-4" /> Gerar Recibo
+                        </Button>
+                    )}
+                    {canRebet && (
+                        <Button size="sm" variant="ghost" onClick={() => onRebet(ticket.numbers)} className="h-8">
+                        <Repeat className="mr-2 h-4 w-4" /> Reapostar
+                        </Button>
+                    )}
+                  </div>
                 </div>
             </div>
         </div>

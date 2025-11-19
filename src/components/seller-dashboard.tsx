@@ -7,7 +7,6 @@ import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-fo
 import { TicketList } from '@/components/ticket-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, FileText, Loader2, BarChart3, Percent, DollarSign, Ticket as TicketIcon } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
@@ -15,6 +14,7 @@ import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { useDashboard } from '@/context/dashboard-context';
 
 interface SellerDashboardProps {
     isLotteryPaused?: boolean;
@@ -41,8 +41,7 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [activeTab, setActiveTab] = useState('vendas');
 
-    // Getting the full lottery config from the context
-    const { lotteryConfig } = useAuth();
+    const { lotteryConfig, handleGenerateReceipt } = useDashboard();
 
     const fetchHistory = useCallback(async (loadMore = false) => {
         if (!currentUser || currentUser.role !== 'vendedor') {
@@ -143,7 +142,8 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                     </h2>
                     <TicketList 
                       tickets={userTickets} 
-                      draws={allDraws} 
+                      draws={allDraws}
+                      onGenerateReceipt={handleGenerateReceipt}
                     />
                 </section>
             </TabsContent>

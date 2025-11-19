@@ -39,6 +39,7 @@ interface DashboardContextType {
     isLotteryPaused: boolean;
     isDataLoading: boolean;
     startDataListeners: (user: User) => () => void; // Now returns a cleanup function
+    handleGenerateReceipt: (ticket: Ticket) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -81,6 +82,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
     const showCreditsDialog = useCallback(() => {
         setIsCreditsDialogOpen(true);
+    }, []);
+
+    const handleGenerateReceipt = useCallback((ticket: Ticket) => {
+        setReceiptTickets([ticket]);
     }, []);
 
     // This effect will run whenever draws or tickets change to re-evaluate the lottery pause state.
@@ -261,6 +266,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         isLotteryPaused,
         isDataLoading,
         startDataListeners,
+        handleGenerateReceipt,
     };
 
     return (
