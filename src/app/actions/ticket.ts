@@ -73,10 +73,9 @@ interface CreateClientTicketsParams {
     lotteryConfig: LotteryConfig;
 }
 
-export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: CreateClientTicketsParams): Promise<{ createdTickets: Ticket[], newBalance: number }> => {
+export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: CreateClientTicketsParams): Promise<{ newBalance: number }> => {
     const totalCost = cart.length * lotteryConfig.ticketPrice;
     const userRef = adminDb.collection("users").doc(user.id);
-    const createdTickets: Ticket[] = [];
     let newBalance = 0;
 
     await adminDb.runTransaction(async (transaction) => {
@@ -92,7 +91,7 @@ export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: C
         for (const ticketNumbers of cart) {
             const newTicketId = uuidv4();
             const newTicketRef = adminDb.collection("tickets").doc(newTicketId);
-            const newTicketData: Ticket = {
+            const newTicketData: Omit<Ticket, 'id'> & { id: string } = {
                 id: newTicketId,
                 numbers: ticketNumbers.sort((a, b) => a - b),
                 status: 'active' as const,
@@ -101,9 +100,8 @@ export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: C
                 buyerId: user.id,
             };
             transaction.set(newTicketRef, newTicketData);
-            createdTickets.push(newTicketData);
         }
     });
 
-    return { createdTickets, newBalance };
+    return { newBalance };
 };

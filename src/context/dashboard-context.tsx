@@ -9,6 +9,7 @@ import { useAuth } from '@/context/auth-context';
 import { createClientTicketsAction } from '@/app/actions/ticket';
 import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PublicRankingEntry {
   initials: string;
@@ -202,15 +203,32 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsSubmitting(true);
         
         try {
-            const { createdTickets, newBalance } = await createClientTicketsAction({
+            const { newBalance } = await createClientTicketsAction({
                 user: { id: currentUser.id, username: currentUser.username },
                 cart,
                 lotteryConfig
             });
 
+            // Optimistically generate tickets for the receipt before clearing cart
+            const ticketsForReceipt: Ticket[] = cart.map(ticketNumbers => ({
+                id: uuidv4(), // Generate a temp ID, the real one is in the DB
+                numbers: ticketNumbers,
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                buyerName: currentUser.username,
+                buyerId: currentUser.id,
+            }));
+
             updateCurrentUserCredits(newBalance);
             setCart([]);
-            setReceiptTickets(createdTickets);
+            setReceiptTickets(ticketsForReceipt);
+            
+            toast({
+              title: "Compra Realizada!",
+              description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso.`,
+              className: "bg-primary text-primary-foreground",
+              duration: 4000
+            });
 
         } catch (e: any) {
             if (e.message === "Saldo insuficiente.") {
