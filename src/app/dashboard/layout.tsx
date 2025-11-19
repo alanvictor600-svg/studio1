@@ -174,7 +174,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="flex flex-col flex-1 min-h-screen">
+      <SidebarInset>
         <header className="relative flex h-16 items-center border-b bg-secondary px-4 sticky top-0 z-10 md:hidden">
             {/* Left Section: Menu Trigger */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -258,4 +258,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
 
