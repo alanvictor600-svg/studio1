@@ -1,7 +1,10 @@
+
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
 import type { Ticket, LotteryConfig } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
+
 
 // Ação para criar um bilhete vendido por um vendedor
 interface CreateSellerTicketParams {
@@ -41,8 +44,11 @@ export const createSellerTicketAction = async ({
         newBalance = currentBalance - ticketPrice;
         transaction.update(userRef, { saldo: newBalance });
         
-        const newTicketRef = adminDb.collection("tickets").doc();
-        const newTicketData: Omit<Ticket, 'id'> = {
+        const newTicketId = uuidv4();
+        const newTicketRef = adminDb.collection("tickets").doc(newTicketId);
+        
+        const newTicketData: Ticket = {
+            id: newTicketId,
             numbers: [...ticketPicks].sort((a,b) => a-b),
             status: 'active',
             createdAt: new Date().toISOString(),
@@ -52,7 +58,7 @@ export const createSellerTicketAction = async ({
             sellerUsername: sellerUsername,
         };
         transaction.set(newTicketRef, newTicketData);
-        createdTicket = { ...newTicketData, id: newTicketRef.id };
+        createdTicket = newTicketData;
     });
 
     if (!createdTicket) throw new Error("Falha ao criar o bilhete na transação.");
@@ -84,8 +90,10 @@ export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: C
         transaction.update(userRef, { saldo: newBalance });
 
         for (const ticketNumbers of cart) {
-            const newTicketRef = adminDb.collection("tickets").doc();
-            const newTicketData: Omit<Ticket, 'id'> = {
+            const newTicketId = uuidv4();
+            const newTicketRef = adminDb.collection("tickets").doc(newTicketId);
+            const newTicketData: Ticket = {
+                id: newTicketId,
                 numbers: ticketNumbers.sort((a, b) => a - b),
                 status: 'active' as const,
                 createdAt: new Date().toISOString(),
@@ -93,7 +101,7 @@ export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: C
                 buyerId: user.id,
             };
             transaction.set(newTicketRef, newTicketData);
-            createdTickets.push({ ...newTicketData, id: newTicketRef.id });
+            createdTickets.push(newTicketData);
         }
     });
 
