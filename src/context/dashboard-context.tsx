@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useCallback, useRef, useEffect } from 'react';
@@ -49,6 +50,7 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   sellerCommissionPercentage: 10,
   ownerCommissionPercentage: 5,
   clientSalesCommissionToOwnerPercentage: 10,
+  configVersion: 1
 };
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
@@ -66,6 +68,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [isDataLoading, setIsDataLoading] = useState(true);
     
     const listenersActive = useRef(false);
+    const lastConfigVersion = useRef<number | undefined>(lotteryConfig.configVersion);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -112,13 +115,21 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         const configDocRef = doc(db, 'configs', 'global');
         unsubscribes.push(onSnapshot(configDocRef, { includeMetadataChanges: true }, (configDoc) => {
             if (configDoc.exists()) {
-                const data = configDoc.data();
+                const data = configDoc.data() as LotteryConfig;
                 setLotteryConfig({
                     ticketPrice: data.ticketPrice || 2,
                     sellerCommissionPercentage: data.sellerCommissionPercentage || 10,
                     ownerCommissionPercentage: data.ownerCommissionPercentage || 5,
                     clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || 10,
+                    configVersion: data.configVersion || 1,
                 });
+                
+                // Force reload if config version changes
+                if (lastConfigVersion.current && data.configVersion && lastConfigVersion.current < data.configVersion) {
+                    window.location.reload();
+                }
+                lastConfigVersion.current = data.configVersion;
+
             } else {
                  setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
             }

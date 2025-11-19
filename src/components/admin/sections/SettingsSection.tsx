@@ -15,10 +15,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw } from 'lucide-react';
+import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
 import { db } from '@/lib/firebase-client';
 import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, where, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { saveLotteryConfig } from '@/lib/services/configService';
 
 const USERS_PER_PAGE = 20;
 
@@ -168,6 +169,21 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
       clientSalesCommissionToOwnerPercentage: clientSalesCommission
     });
   };
+  
+  const handleForceSync = async () => {
+    try {
+        await saveLotteryConfig({ configVersion: new Date().getTime() });
+        toast({
+            title: "Sincronização Forçada!",
+            description: "Um sinal de atualização foi enviado para todos os dispositivos conectados.",
+            className: "bg-primary text-primary-foreground",
+            duration: 4000
+        });
+    } catch(e) {
+        console.error("Error forcing sync:", e);
+        toast({ title: "Erro", description: "Não foi possível forçar a sincronização.", variant: "destructive" });
+    }
+  };
 
   const handleSaveContact = () => {
     onSaveCreditRequestConfig({
@@ -282,18 +298,20 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
             </Card>
 
             <Card className="w-full max-w-lg mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
-              <CardHeader>
-                  <CardTitle className="text-xl text-center font-semibold flex items-center justify-center">
-                      <PaletteIcon className="mr-2 h-5 w-5" />
-                      Tema da Aplicação
-                  </CardTitle>
-                  <CardDescription className="text-center text-muted-foreground">
-                      Escolha entre o tema claro ou escuro para a interface.
-                  </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center items-center py-6">
-                  <ThemeToggleButton />
-              </CardContent>
+                <CardHeader>
+                    <CardTitle className="text-xl text-center font-semibold flex items-center justify-center">
+                        <Zap className="mr-2 h-5 w-5 text-yellow-500" />
+                        Sincronização Global
+                    </CardTitle>
+                    <CardDescription className="text-center text-muted-foreground">
+                        Force todos os usuários a recarregarem as configurações do bolão. Use após mudar preços ou comissões.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center items-center py-6">
+                    <Button onClick={handleForceSync} variant="outline" className="text-base py-3 px-6 shadow-lg hover:shadow-xl hover:bg-yellow-500/10 hover:text-yellow-600 border-yellow-500/50 text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-500">
+                       <RefreshCcw className="mr-2 h-5 w-5" /> Forçar Sincronização
+                    </Button>
+                </CardContent>
             </Card>
           </div>
         </TabsContent>
