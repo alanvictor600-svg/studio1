@@ -15,7 +15,7 @@ import {
     SidebarFooter, 
     SidebarMenu, 
     SidebarMenuItem, 
-    SidebarMenuButton, 
+    SidebarMenuButton, _
     SidebarInset,
     useSidebar,
     SidebarSeparator
@@ -152,7 +152,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
-            <SidebarSeparator className="my-2" />
+        </SidebarContent>
+        <SidebarFooter className="flex flex-col gap-2 p-2">
+            <div className="flex-grow"></div>
             <SidebarMenu>
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
@@ -167,8 +169,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                  </SidebarMenuItem>
             </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
             <div className="flex items-center justify-center p-2">
                 <ThemeToggleButton />
             </div>
