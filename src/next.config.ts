@@ -20,7 +20,7 @@ const withPWA = require('next-pwa')({
     },
     {
       urlPattern: /\.(?:js|css)$/i,
-      handler: 'NetworkFirst', // Revertido para NetworkFirst para priorizar conteúdo novo
+      handler: 'NetworkFirst', // Prioriza a rede para garantir que o código mais recente seja buscado
       options: {
         cacheName: 'static-resources',
         networkTimeoutSeconds: 10, // Tenta a rede por 10s, depois vai para o cache
