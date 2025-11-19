@@ -13,13 +13,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, query, orderBy, getDocs } from 'firebase/firestore';
 
-// Import Services
 import { addDrawAction, startNewLotteryAction } from '@/app/actions/lottery';
 import { saveLotteryConfig, saveCreditRequestConfig } from '@/lib/services/configService';
 import { updateUserCredits } from '@/lib/services/userService';
 import { deleteUserAction } from '@/app/actions/user';
 
-// Import section components
 import { SettingsSection } from '@/components/admin/sections/SettingsSection';
 import { NewDrawSection } from '@/components/admin/sections/NewDrawSection';
 import { ControlsSection } from '@/components/admin/sections/ControlsSection';
@@ -55,7 +53,6 @@ function AdminPageContent() {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   
-  const [allUsers, setAllUsers] = useState<User[]>([]); // Now primarily used for `startNewLottery`
   const [userToView, setUserToView] = useState<User | null>(null);
   const [isUserViewDialogOpen, setIsUserViewDialogOpen] = useState(false);
   const [userToManageCredits, setUserToManageCredits] = useState<User | null>(null);
@@ -68,28 +65,22 @@ function AdminPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Directly read the active section from URL search params.
-  // This makes the component fully controlled by the URL, eliminating state synchronization issues.
   const activeSection = (searchParams.get('section') as AdminSection) || 'configuracoes';
 
 
-  // Initial client-side mount
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Auth check
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || currentUser?.role !== 'admin')) {
       router.push('/login?redirect=/admin');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Realtime data from Firestore
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated) return;
 
-    // Global Configs
     const configDocRef = doc(db, 'configs', 'global');
     const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
         if (doc.exists()) {
@@ -116,7 +107,6 @@ function AdminPageContent() {
         toast({ title: "Erro ao Carregar Configurações", description: "Não foi possível carregar as configurações do sistema.", variant: "destructive" });
     });
 
-    // Tickets
     const ticketsQuery = query(collection(db, 'tickets'));
     const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
         const ticketsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
@@ -126,7 +116,6 @@ function AdminPageContent() {
         toast({ title: "Erro ao Carregar Bilhetes", description: "Não foi possível carregar os dados dos bilhetes.", variant: "destructive" });
     });
 
-    // Draws
     const drawsQuery = query(collection(db, 'draws'));
     const unsubscribeDraws = onSnapshot(drawsQuery, (querySnapshot) => {
         const drawsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
@@ -136,7 +125,6 @@ function AdminPageContent() {
         toast({ title: "Erro ao Carregar Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
     });
 
-    // Admin History
     const adminHistoryQuery = query(collection(db, 'adminHistory'), orderBy('endDate', 'desc'));
     const unsubscribeAdminHistory = onSnapshot(adminHistoryQuery, (querySnapshot) => {
       const historyData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AdminHistoryEntry));
@@ -166,7 +154,6 @@ function AdminPageContent() {
   const cycleRanking = useMemo(() => {
     const activeTickets = processedTickets.filter(t => t.status === 'active' || t.status === 'winning');
     
-    // We need user data to calculate matches correctly based on draws, so we do it here.
     const ticketsWithMatches = activeTickets.map(ticket => {
         const ticketNumbersFrequency = ticket.numbers.reduce((acc, num) => {
             acc[num] = (acc[num] || 0) + 1;
@@ -210,7 +197,6 @@ function AdminPageContent() {
   };
   
   const handleStartNewLottery = async () => {
-    // We now fetch all users on-demand here instead of keeping them in state.
     const usersSnapshot = await getDocs(query(collection(db, 'users')));
     const allUsersForLottery = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
 
@@ -266,7 +252,6 @@ function AdminPageContent() {
     try {
         const newBalance = await updateUserCredits(user.id, amount);
         
-        // --- Optimistically update the user in the dialog for immediate feedback ---
         if (userToManageCredits && userToManageCredits.id === user.id) {
             setUserToManageCredits(prev => prev ? { ...prev, saldo: newBalance } : null);
         }
