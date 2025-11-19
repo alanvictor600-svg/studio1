@@ -56,7 +56,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
     const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
     const [receiptTickets, setReceiptTickets] = useState<Ticket[] | null>(null);
-    const { currentUser, isAuthenticated, updateCurrentUserCredits } = useAuth();
+    const { currentUser, isAuthenticated } = useAuth();
     const { toast } = useToast();
 
     // New state for centralized data
@@ -206,12 +206,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsSubmitting(true);
         
         try {
-            const { newBalance } = await createClientTicketsAction({
+            await createClientTicketsAction({
                 user: { id: currentUser.id, username: currentUser.username },
                 cart,
             });
 
-            // Optimistically generate tickets for the receipt before clearing cart
+            // Generate tickets for the receipt before clearing cart
             const ticketsForReceipt: Ticket[] = cart.map(ticketNumbers => ({
                 id: uuidv4(), // Generate a temp ID, the real one is in the DB
                 numbers: ticketNumbers,
@@ -221,13 +221,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 buyerId: currentUser.id,
             }));
 
-            updateCurrentUserCredits(newBalance);
             setCart([]);
             setReceiptTickets(ticketsForReceipt);
             
             toast({
               title: "Compra Realizada!",
-              description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso.`,
+              description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso. Seu saldo será atualizado em breve.`,
               className: "bg-primary text-primary-foreground",
               duration: 4000
             });

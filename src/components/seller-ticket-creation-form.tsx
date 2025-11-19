@@ -36,7 +36,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
   const [buyerPhone, setBuyerPhone] = useState('');
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { currentUser, updateCurrentUserCredits } = useAuth();
+  const { currentUser } = useAuth();
   const { setReceiptTickets, showCreditsDialog, isDataLoading } = useDashboard();
 
 
@@ -109,16 +109,13 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const { createdTicket, newBalance } = await createSellerTicketAction({
+      const { createdTicket } = await createSellerTicketAction({
         sellerId: currentUser.id,
         sellerUsername: currentUser.username,
         ticketPicks: currentPicks,
         buyerName: buyerName.trim(),
         buyerPhone: buyerPhone.trim() || undefined,
       });
-
-      // Update local balance optimistically
-      updateCurrentUserCredits(newBalance);
       
       // Clear form and show receipt using context
       setCurrentPicks([]);
@@ -129,7 +126,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       // Notify parent about new ticket (onSnapshot will handle the rest)
       onTicketCreated(createdTicket);
 
-      toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado.", className: "bg-primary text-primary-foreground", duration: 3000 });
+      toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado. O saldo será atualizado em breve.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e: any) {
        if (e.message === 'Saldo insuficiente.') {

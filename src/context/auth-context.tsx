@@ -21,8 +21,7 @@ interface AuthContextType {
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  updateCurrentUserCredits: (newCredits: number) => void;
-  lotteryConfig: LotteryConfig | null; // Add lotteryConfig to the context
+  lotteryConfig: LotteryConfig | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -242,15 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
     }
   }, [router, toast]);
-
-  const updateCurrentUserCredits = (newCredits: number) => {
-    setCurrentUser(prevUser => {
-        if (!prevUser) return null;
-        return { ...prevUser, saldo: newCredits };
-    });
-  };
   
-  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits, lotteryConfig };
+  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, lotteryConfig };
 
   return (
     <AuthContext.Provider value={value}>

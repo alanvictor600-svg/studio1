@@ -21,7 +21,7 @@ export const createSellerTicketAction = async ({
     ticketPicks,
     buyerName,
     buyerPhone,
-}: CreateSellerTicketParams): Promise<{ createdTicket: Ticket, newBalance: number }> => {
+}: CreateSellerTicketParams): Promise<{ createdTicket: Ticket }> => {
     if (!sellerId) throw new Error("Vendedor não autenticado.");
     if (ticketPicks.length !== 10) throw new Error("O bilhete deve conter 10 números.");
     if (!buyerName) throw new Error("O nome do comprador é obrigatório.");
@@ -29,7 +29,6 @@ export const createSellerTicketAction = async ({
     const userRef = adminDb.collection("users").doc(sellerId);
     
     let createdTicket: Ticket | null = null;
-    let newBalance = 0;
 
     await adminDb.runTransaction(async (transaction) => {
         const configDoc = await transaction.get(adminDb.collection('configs').doc('global'));
@@ -42,7 +41,7 @@ export const createSellerTicketAction = async ({
         const currentBalance = userDoc.data()?.saldo || 0;
         if (currentBalance < ticketPrice) throw new Error("Saldo insuficiente.");
 
-        newBalance = currentBalance - ticketPrice;
+        const newBalance = currentBalance - ticketPrice;
         transaction.update(userRef, { saldo: newBalance });
         
         const newTicketId = uuidv4();
@@ -64,7 +63,7 @@ export const createSellerTicketAction = async ({
 
     if (!createdTicket) throw new Error("Falha ao criar o bilhete na transação.");
 
-    return { createdTicket, newBalance };
+    return { createdTicket };
 };
 
 // Ação para criar bilhetes comprados por um cliente
@@ -73,9 +72,8 @@ interface CreateClientTicketsParams {
     cart: number[][];
 }
 
-export const createClientTicketsAction = async ({ user, cart }: CreateClientTicketsParams): Promise<{ newBalance: number }> => {
+export const createClientTicketsAction = async ({ user, cart }: CreateClientTicketsParams): Promise<void> => {
     const userRef = adminDb.collection("users").doc(user.id);
-    let newBalance = 0;
 
     await adminDb.runTransaction(async (transaction) => {
         const configDoc = await transaction.get(adminDb.collection('configs').doc('global'));
@@ -89,7 +87,7 @@ export const createClientTicketsAction = async ({ user, cart }: CreateClientTick
         const currentBalance = freshUserDoc.data()?.saldo || 0;
         if (currentBalance < totalCost) throw new Error("Saldo insuficiente.");
 
-        newBalance = currentBalance - totalCost;
+        const newBalance = currentBalance - totalCost;
         transaction.update(userRef, { saldo: newBalance });
 
         for (const ticketNumbers of cart) {
@@ -107,5 +105,5 @@ export const createClientTicketsAction = async ({ user, cart }: CreateClientTick
         }
     });
 
-    return { newBalance };
+    // This function returns void, relying on the client's onSnapshot to update the UI.
 };
