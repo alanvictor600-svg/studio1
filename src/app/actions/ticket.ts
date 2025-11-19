@@ -75,52 +75,46 @@ interface CreateClientTicketsParams {
 export const createClientTicketsAction = async ({ user, cart }: CreateClientTicketsParams): Promise<void> => {
     const userRef = adminDb.collection("users").doc(user.id);
     const configRef = adminDb.collection('configs').doc('global');
-    
-    // 1. Fetch config and user data first
-    const [configDoc, userDoc] = await Promise.all([
-      configRef.get(),
-      userRef.get()
-    ]);
 
-    if (!userDoc.exists()) {
-        throw new Error("Usuário não encontrado.");
-    }
-    
-    // 2. Perform calculations
-    const lotteryConfig = configDoc.data() as LotteryConfig || { ticketPrice: 2 };
-    const ticketPrice = lotteryConfig.ticketPrice;
-    const totalCost = cart.length * ticketPrice;
-    const currentBalance = userDoc.data()?.saldo || 0;
+    await adminDb.runTransaction(async (transaction) => {
+        // 1. Ler todos os dados necessários DENTRO da transação.
+        const [configDoc, userDoc] = await Promise.all([
+            transaction.get(configRef),
+            transaction.get(userRef)
+        ]);
 
-    // 3. Validate balance
-    if (currentBalance < totalCost) {
-        throw new Error("Saldo insuficiente.");
-    }
-    
-    // 4. Prepare and execute batch write
-    const batch = adminDb.batch();
-    
-    // Update user balance
-    const newBalance = currentBalance - totalCost;
-    batch.update(userRef, { saldo: newBalance });
+        if (!userDoc.exists) {
+            throw new Error("Usuário não encontrado.");
+        }
 
-    // Create tickets
-    for (const ticketNumbers of cart) {
-        const newTicketId = uuidv4();
-        const newTicketRef = adminDb.collection("tickets").doc(newTicketId);
-        const newTicketData: Ticket = {
-            id: newTicketId,
-            numbers: ticketNumbers.sort((a, b) => a - b),
-            status: 'active' as const,
-            createdAt: new Date().toISOString(),
-            buyerName: user.username,
-            buyerId: user.id,
-        };
-        batch.set(newTicketRef, newTicketData);
-    }
-    
-    // 5. Commit all changes atomically
-    await batch.commit();
+        // 2. Realizar cálculos e validações
+        const lotteryConfig = (configDoc.data() as LotteryConfig) || { ticketPrice: 2 };
+        const ticketPrice = lotteryConfig.ticketPrice;
+        const totalCost = cart.length * ticketPrice;
+        const currentBalance = userDoc.data()?.saldo || 0;
 
-    // This function returns void, relying on the client's onSnapshot to update the UI.
+        if (currentBalance < totalCost) {
+            throw new Error("Saldo insuficiente.");
+        }
+
+        const newBalance = currentBalance - totalCost;
+
+        // 3. Executar todas as escritas DENTRO da transação
+        transaction.update(userRef, { saldo: newBalance });
+
+        for (const ticketNumbers of cart) {
+            const newTicketId = uuidv4();
+            const newTicketRef = adminDb.collection("tickets").doc(newTicketId);
+            const newTicketData: Ticket = {
+                id: newTicketId,
+                numbers: ticketNumbers.sort((a, b) => a - b),
+                status: 'active' as const,
+                createdAt: new Date().toISOString(),
+                buyerName: user.username,
+                buyerId: user.id,
+            };
+            transaction.set(newTicketRef, newTicketData);
+        }
+    });
+    // A transação não retorna nada. O cliente é atualizado via onSnapshot.
 };

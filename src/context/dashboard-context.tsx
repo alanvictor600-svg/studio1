@@ -232,7 +232,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             });
 
         } catch (e: any) {
-            if (e.message === "Saldo insuficiente.") {
+            if (e.message.includes("Saldo insuficiente")) {
                 showCreditsDialog();
             } else {
                 console.error("Transaction failed: ", e);
