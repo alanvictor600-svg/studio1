@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 
 interface SellerDashboardProps {
     isLotteryPaused?: boolean;
-    lotteryConfig: LotteryConfig;
     onTicketCreated: (ticket: Ticket) => void;
     userTickets: Ticket[];
     currentUser: User | null;
@@ -29,7 +28,6 @@ const REPORTS_PER_PAGE = 9;
 
 export const SellerDashboard: FC<SellerDashboardProps> = ({ 
     isLotteryPaused,
-    lotteryConfig,
     onTicketCreated,
     userTickets,
     currentUser,
@@ -42,6 +40,9 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     const [hasMore, setHasMore] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [activeTab, setActiveTab] = useState('vendas');
+
+    // Getting the full lottery config from the context
+    const { lotteryConfig } = useAuth();
 
     const fetchHistory = useCallback(async (loadMore = false) => {
         if (!currentUser || currentUser.role !== 'vendedor') {
@@ -97,6 +98,9 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     }, [currentUser, activeTab]);
 
     const currentCycleSummary = useMemo(() => {
+        if (!lotteryConfig) {
+            return { ticketCount: 0, totalRevenue: 0, estimatedCommission: 0 };
+        }
         const activeTickets = userTickets.filter(t => t.status === 'active' || t.status === 'winning');
         const ticketCount = activeTickets.length;
         const totalRevenue = ticketCount * lotteryConfig.ticketPrice;
@@ -129,7 +133,6 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                 <SellerTicketCreationForm
                     isLotteryPaused={isLotteryPaused}
                     onTicketCreated={onTicketCreated}
-                    lotteryConfig={lotteryConfig}
                 />
             </TabsContent>
             

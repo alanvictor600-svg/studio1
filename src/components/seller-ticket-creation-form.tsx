@@ -21,7 +21,6 @@ import { SelectedNumberBadge } from './selected-number-badge';
 
 interface SellerTicketCreationFormProps {
   isLotteryPaused?: boolean;
-  lotteryConfig: LotteryConfig;
   onTicketCreated: (ticket: Ticket) => void;
 }
 
@@ -30,7 +29,6 @@ const MAX_REPETITION = 4;
 
 export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({ 
   isLotteryPaused = false,
-  lotteryConfig,
   onTicketCreated,
 }) => {
   const [currentPicks, setCurrentPicks] = useState<number[]>([]);
@@ -39,7 +37,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentUser, updateCurrentUserCredits } = useAuth();
-  const { setReceiptTickets, showCreditsDialog } = useDashboard();
+  const { setReceiptTickets, showCreditsDialog, isDataLoading } = useDashboard();
 
 
   const numberCounts = countOccurrences(currentPicks);
@@ -103,6 +101,10 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       toast({ title: "Campo Obrigatório", description: "Por favor, insira o nome do comprador.", variant: "destructive" });
       return;
     }
+    if (isDataLoading) {
+      toast({ title: "Aguarde", description: "Os dados da loteria ainda estão carregando. Tente novamente em um instante.", variant: "destructive" });
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -110,7 +112,6 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       const { createdTicket, newBalance } = await createSellerTicketAction({
         sellerId: currentUser.id,
         sellerUsername: currentUser.username,
-        lotteryConfig,
         ticketPicks: currentPicks,
         buyerName: buyerName.trim(),
         buyerPhone: buyerPhone.trim() || undefined,

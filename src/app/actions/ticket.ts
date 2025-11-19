@@ -10,7 +10,6 @@ import { v4 as uuidv4 } from 'uuid';
 interface CreateSellerTicketParams {
     sellerId: string;
     sellerUsername: string;
-    lotteryConfig: LotteryConfig;
     ticketPicks: number[];
     buyerName: string;
     buyerPhone?: string;
@@ -19,7 +18,6 @@ interface CreateSellerTicketParams {
 export const createSellerTicketAction = async ({
     sellerId,
     sellerUsername,
-    lotteryConfig,
     ticketPicks,
     buyerName,
     buyerPhone,
@@ -28,13 +26,16 @@ export const createSellerTicketAction = async ({
     if (ticketPicks.length !== 10) throw new Error("O bilhete deve conter 10 números.");
     if (!buyerName) throw new Error("O nome do comprador é obrigatório.");
 
-    const ticketPrice = lotteryConfig.ticketPrice;
     const userRef = adminDb.collection("users").doc(sellerId);
     
     let createdTicket: Ticket | null = null;
     let newBalance = 0;
 
     await adminDb.runTransaction(async (transaction) => {
+        const configDoc = await transaction.get(adminDb.collection('configs').doc('global'));
+        const lotteryConfig = configDoc.data() as LotteryConfig || { ticketPrice: 2 };
+        const ticketPrice = lotteryConfig.ticketPrice;
+        
         const userDoc = await transaction.get(userRef);
         if (!userDoc.exists) throw new Error("Usuário do vendedor não encontrado.");
         
@@ -70,15 +71,18 @@ export const createSellerTicketAction = async ({
 interface CreateClientTicketsParams {
     user: { id: string; username: string };
     cart: number[][];
-    lotteryConfig: LotteryConfig;
 }
 
-export const createClientTicketsAction = async ({ user, cart, lotteryConfig }: CreateClientTicketsParams): Promise<{ newBalance: number }> => {
-    const totalCost = cart.length * lotteryConfig.ticketPrice;
+export const createClientTicketsAction = async ({ user, cart }: CreateClientTicketsParams): Promise<{ newBalance: number }> => {
     const userRef = adminDb.collection("users").doc(user.id);
     let newBalance = 0;
 
     await adminDb.runTransaction(async (transaction) => {
+        const configDoc = await transaction.get(adminDb.collection('configs').doc('global'));
+        const lotteryConfig = configDoc.data() as LotteryConfig || { ticketPrice: 2 };
+        const ticketPrice = lotteryConfig.ticketPrice;
+        const totalCost = cart.length * ticketPrice;
+        
         const freshUserDoc = await transaction.get(userRef);
         if (!freshUserDoc.exists()) throw new Error("Usuário não encontrado.");
         

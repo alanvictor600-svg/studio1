@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
-import type { User } from '@/types';
+import type { User, LotteryConfig } from '@/types';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -22,6 +22,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   updateCurrentUserCredits: (newCredits: number) => void;
+  lotteryConfig: LotteryConfig | null; // Add lotteryConfig to the context
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig | null>(null); // State for lottery config
   const router = useRouter();
   const { toast } = useToast();
   
@@ -72,11 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoading = authLoading || (!!firebaseUser && isFirestoreLoading);
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let userUnsubscribe: (() => void) | null = null;
     if (firebaseUser) {
         setIsFirestoreLoading(true);
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        unsubscribe = onSnapshot(userDocRef, (doc) => {
+        userUnsubscribe = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
@@ -94,8 +96,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCurrentUser(null);
         setIsFirestoreLoading(false);
     }
+
+    // Listener for lottery configuration
+    const configDocRef = doc(db, 'configs', 'global');
+    const configUnsubscribe = onSnapshot(configDocRef, (doc) => {
+        if (doc.exists()) {
+            setLotteryConfig(doc.data() as LotteryConfig);
+        }
+    });
+
     return () => {
-        if(unsubscribe) unsubscribe();
+        if(userUnsubscribe) userUnsubscribe();
+        configUnsubscribe();
     };
   }, [firebaseUser, isRoleSelectionOpen]);
 
@@ -238,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
   
-  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
+  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits, lotteryConfig };
 
   return (
     <AuthContext.Provider value={value}>

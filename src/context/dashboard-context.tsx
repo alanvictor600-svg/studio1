@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useCallback, useRef, useEffect } from 'react';
@@ -199,6 +198,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             toast({ title: "Carrinho Vazio", description: "Adicione pelo menos um bilhete ao carrinho para comprar.", variant: "destructive" });
             return;
         }
+        if (isDataLoading) {
+            toast({ title: "Aguarde", description: "Os dados da loteria ainda estão carregando. Tente novamente em um instante.", variant: "destructive" });
+            return;
+        }
 
         setIsSubmitting(true);
         
@@ -206,7 +209,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             const { newBalance } = await createClientTicketsAction({
                 user: { id: currentUser.id, username: currentUser.username },
                 cart,
-                lotteryConfig
             });
 
             // Optimistically generate tickets for the receipt before clearing cart

@@ -29,7 +29,6 @@ export default function DashboardPage() {
       cart,
       setCart,
       isSubmitting,
-      lotteryConfig,
       userTickets,
       allDraws,
       isLotteryPaused,
@@ -157,7 +156,6 @@ export default function DashboardPage() {
       {role === 'vendedor' && (
         <SellerDashboard 
             isLotteryPaused={isLotteryPaused}
-            lotteryConfig={lotteryConfig}
             onTicketCreated={handleTicketCreated}
             userTickets={processedUserTickets}
             currentUser={currentUser}
