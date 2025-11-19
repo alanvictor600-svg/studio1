@@ -203,13 +203,6 @@ function LoginPageContent() {
             </CardFooter>
         )}
       </Card>
-      
-      {!isAdminLogin && (
-        <p className="mt-8 text-xs text-center text-muted-foreground max-w-md">
-          Atenção: Este sistema de login é simplificado para fins de prototipagem e armazena dados localmente.
-          Não utilize senhas reais ou informações sensíveis.
-        </p>
-      )}
     </div>
   );
 }
