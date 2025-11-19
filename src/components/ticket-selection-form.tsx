@@ -98,7 +98,8 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
                     disabled={isSubmitting || currentPicks.length !== MAX_PICKS}
                   >
                       <PlusCircle className="mr-2 h-5 w-5" />
-                      <span>Adicionar ao Carrinho</span>
+                      <span className="sm:hidden">Add ao carrinho</span>
+                      <span className="hidden sm:inline">Adicionar ao Carrinho</span>
                   </Button>
               </div>
               <div className="flex justify-center">
