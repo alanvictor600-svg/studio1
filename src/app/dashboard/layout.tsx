@@ -174,7 +174,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 overflow-x-hidden">
-        {/* Mobile Header - REFACTORED FOR PERFECT CENTERING */}
+        {/* Mobile Header */}
         <header className="sticky top-0 z-10 grid h-16 grid-cols-3 items-center border-b bg-secondary px-2 md:hidden">
           <div className="flex justify-start">
             <SidebarTrigger />
@@ -182,7 +182,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="flex justify-center">
             <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2">
               <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-              <span className="hidden sm:inline-block font-semibold">Bolão Potiguar</span>
             </Link>
           </div>
           <div className="flex items-center justify-end">
