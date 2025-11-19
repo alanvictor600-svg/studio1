@@ -1,31 +1,19 @@
-
 {
-  "theme_color": "#16a34a",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "scope": "/",
+  "name": "Bolão Potiguar",
+  "short_name": "Bolão Potiguar",
+  "description": "Sua sorte começa aqui! Acompanhe os resultados e faça suas apostas.",
   "start_url": "/",
-  "name": "Bol\u00e3o Potiguar",
-  "short_name": "Bol\u00e3o Potiguar",
-  "description": "Sua sorte come\u00e7a aqui!",
+  "display": "standalone",
+  "background_color": "#15803d",
+  "theme_color": "#15803d",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/logo-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-256x256.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
+      "src": "/logo-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
