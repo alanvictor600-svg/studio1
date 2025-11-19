@@ -138,10 +138,15 @@ function LoginPageContent() {
                   <span className="ml-2">Entrar com Google</span>
                 </Button>
                 
-                <div className="flex items-center space-x-2">
-                    <Separator className="flex-grow" />
-                    <span className="text-xs text-muted-foreground">OU</span>
-                    <Separator className="flex-grow" />
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                        OU
+                        </span>
+                    </div>
                 </div>
               </>
             )}
