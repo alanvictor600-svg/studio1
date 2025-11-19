@@ -87,24 +87,26 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
               />
             ))}
           </div>
-           <div className="flex justify-between mt-4 gap-2">
-                <Button variant="destructive" onClick={handleClearSelection} className="w-full shadow-md hover:shadow-lg" disabled={isSubmitting || currentPicks.length === 0}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Limpar Seleção
+          <div className="mt-4 space-y-3">
+              <div className="flex justify-between gap-3">
+                  <Button variant="destructive" onClick={handleClearSelection} className="w-full shadow-md hover:shadow-lg h-11 text-base" disabled={isSubmitting || currentPicks.length === 0}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Limpar Seleção
+                  </Button>
+                  <Button onClick={handleAddTicketToCart} className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl text-base h-11" disabled={isSubmitting || currentPicks.length !== MAX_PICKS}>
+                      <PlusCircle className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
+                  </Button>
+              </div>
+              <div className="flex justify-center">
+                <Button variant="outline" size="sm" onClick={handleAutoFill} className="shadow-sm" disabled={isSubmitting}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Surpresinha
                 </Button>
-                <Button onClick={handleAddTicketToCart} className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl text-base py-3" disabled={isSubmitting || currentPicks.length !== MAX_PICKS}>
-                    <PlusCircle className="mr-2 h-5 w-5" /> Adicionar ao Carrinho
-                </Button>
-            </div>
-             <div className="flex justify-center mt-4">
-              <Button variant="outline" size="sm" onClick={handleAutoFill} className="shadow-sm" disabled={isSubmitting}>
-                <Sparkles className="mr-2 h-4 w-4" /> Surpresinha
-              </Button>
-            </div>
+              </div>
+          </div>
         </div>
 
         <div>
           <h3 className="text-lg font-bold text-primary mb-4 text-center">Escolha os Bichos (1-25)</h3>
-          <div className="grid grid-cols-5 md:grid-cols-7 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
+          <div className="grid grid-cols-5 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
             {animalMapping.map(animal => (
               <NumberButton
                 key={animal.number}
