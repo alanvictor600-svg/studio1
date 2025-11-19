@@ -175,25 +175,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
-        <header className="grid grid-cols-3 h-14 items-center border-b bg-secondary px-4 md:px-6 sticky top-0 z-10 md:flex md:justify-between">
-            {/* Left Section */}
-            <div className="flex items-center justify-start md:flex-1">
-                <div className="md:hidden">
-                    <SidebarTrigger />
-                </div>
-                 <span className="font-semibold text-primary hidden md:block">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
+        <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 sticky top-0 z-10 md:hidden">
+            {/* Left Section - Contains the sidebar trigger */}
+            <div className="flex items-center">
+                <SidebarTrigger />
             </div>
 
-            {/* Center Section - Mobile Only */}
-            <div className="flex items-center justify-center md:hidden">
-                <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-1">
+            {/* Center Section - Contains the logo and title */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2">
                     <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-                    <span className="hidden sm:inline-block">Bolão Potiguar</span>
+                    <span className="inline-block font-semibold">Bolão Potiguar</span>
                 </Link>
             </div>
             
-            {/* Right Section */}
-            <div className="flex items-center justify-end gap-2 md:gap-4 md:flex-1">
+            {/* Right Section - Contains actions like cart and theme toggle */}
+            <div className="flex items-center justify-end gap-2">
                 {currentUser.role === 'cliente' && !isDataLoading && (
                     <ShoppingCart 
                         cart={cart}
@@ -207,6 +204,26 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <ThemeToggleButton />
             </div>
         </header>
+
+        {/* Desktop Header */}
+        <header className="hidden md:flex h-14 items-center justify-between border-b bg-secondary px-6 sticky top-0 z-10">
+             <span className="font-semibold text-primary">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
+             <div className="flex items-center justify-end gap-4">
+                {currentUser.role === 'cliente' && !isDataLoading && (
+                    <ShoppingCart 
+                        cart={cart}
+                        currentUser={currentUser}
+                        lotteryConfig={lotteryConfig}
+                        isSubmitting={isSubmitting}
+                        onPurchase={handlePurchaseCart}
+                        onRemoveFromCart={(index) => setCart(cart.filter((_, i) => i !== index))}
+                    />
+                )}
+                <ThemeToggleButton />
+            </div>
+        </header>
+
+
         <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
             {isDataLoading ? (
                 <div className="text-center p-10 text-white">Carregando dados...</div>
