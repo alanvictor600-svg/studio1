@@ -11,7 +11,7 @@ import {
     SidebarProvider, 
     SidebarTrigger, 
     SidebarContent, 
-    SidebarHeader, _
+    SidebarHeader,
     SidebarFooter, 
     SidebarMenu, 
     SidebarMenuItem, 
@@ -173,7 +173,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <div className="relative flex min-h-screen flex-1 flex-col bg-background">
         <header className="relative flex h-16 items-center border-b bg-secondary px-4 sticky top-0 z-10 md:hidden">
             {/* Left Section: Menu Trigger */}
             <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -217,7 +217,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         onRemoveFromCart={(index) => setCart(cart.filter((_, i) => i !== index))}
                     />
                 )}
-                <ThemeToggleButton />
             </div>
         </header>
 
@@ -241,7 +240,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             tickets={receiptTickets}
             lotteryConfig={lotteryConfig}
         />
-      </SidebarInset>
+      </div>
     </>
   );
 }
