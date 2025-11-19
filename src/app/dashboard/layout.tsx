@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useRef } from 'react';
@@ -12,7 +11,7 @@ import {
     SidebarProvider, 
     SidebarTrigger, 
     SidebarContent, 
-    SidebarHeader, 
+    SidebarHeader, _
     SidebarFooter, 
     SidebarMenu, 
     SidebarMenuItem, 
@@ -155,6 +154,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+            <div className="flex items-center justify-center p-2">
+                <ThemeToggleButton />
+            </div>
             <SidebarMenu>
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
@@ -169,9 +171,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                  </SidebarMenuItem>
             </SidebarMenu>
-            <div className="flex items-center justify-end p-2">
-                <ThemeToggleButton />
-            </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -201,7 +200,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         onRemoveFromCart={(index) => setCart(cart.filter((_, i) => i !== index))}
                     />
                 )}
-                <ThemeToggleButton />
             </div>
         </header>
 
@@ -258,5 +256,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-

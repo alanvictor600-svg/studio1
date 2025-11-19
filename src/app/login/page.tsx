@@ -11,8 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/auth-context';
 import { LogIn, UserPlus, ArrowLeft, Eye, EyeOff, KeyRound } from 'lucide-react';
-import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { SuspenseWrapper } from '@/components/suspense-wrapper';
@@ -113,9 +111,6 @@ function LoginPageContent() {
           </Button>
         </Link>
       </div>
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggleButton />
-      </div>
 
       <Card className="w-full max-w-md shadow-xl bg-card/90 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">
@@ -140,7 +135,7 @@ function LoginPageContent() {
                 
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-border" />
+                        <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-card px-2 text-muted-foreground">
