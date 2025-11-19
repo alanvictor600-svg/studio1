@@ -60,16 +60,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const { currentUser, isAuthenticated } = useAuth();
     const { toast } = useToast();
 
-    // New state for centralized data
     const [userTickets, setUserTickets] = useState<Ticket[]>([]);
     const [allDraws, setAllDraws] = useState<Draw[]>([]);
     const [isLotteryPaused, setIsLotteryPaused] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
     
-    // To prevent setting up multiple listeners
     const listenersActive = useRef(false);
 
-    // This effect handles cleaning up state when the user logs out.
     useEffect(() => {
         if (!isAuthenticated) {
             setUserTickets([]);
@@ -88,9 +85,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setReceiptTickets([ticket]);
     }, []);
 
-    // This effect will run whenever draws or tickets change to re-evaluate the lottery pause state.
     useEffect(() => {
-        // A lottery is considered "paused" for new entries if any draws have been made in the current cycle.
         const drawsExist = allDraws.length > 0;
         setIsLotteryPaused(drawsExist);
     }, [allDraws]);
@@ -114,9 +109,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             }
         }
 
-        // 1. Config Listener
         const configDocRef = doc(db, 'configs', 'global');
-        unsubscribes.push(onSnapshot(configDocRef, (configDoc) => {
+        unsubscribes.push(onSnapshot(configDocRef, { includeMetadataChanges: true }, (configDoc) => {
             if (configDoc.exists()) {
                 const data = configDoc.data();
                 setLotteryConfig({
@@ -128,28 +122,30 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             } else {
                  setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
             }
-            configLoaded = true;
-            checkAllDataLoaded();
+            if (!configDoc.metadata.fromCache) {
+                configLoaded = true;
+                checkAllDataLoaded();
+            }
         }, (error) => {
             console.error("Error fetching lottery config: ", error);
             configLoaded = true;
             checkAllDataLoaded();
         }));
 
-        // 2. Draws Listener
         const drawsQuery = query(collection(db, 'draws'));
-        unsubscribes.push(onSnapshot(drawsQuery, (drawsSnapshot) => {
+        unsubscribes.push(onSnapshot(drawsQuery, { includeMetadataChanges: true }, (drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
             setAllDraws(drawsData);
-            drawsLoaded = true;
-            checkAllDataLoaded();
+            if (!drawsSnapshot.metadata.fromCache) {
+                drawsLoaded = true;
+                checkAllDataLoaded();
+            }
         }, (error) => {
             console.error("Error fetching draws: ", error);
             drawsLoaded = true;
             checkAllDataLoaded();
         }));
 
-        // 3. User Tickets Listener
         const ticketsCollectionRef = collection(db, 'tickets');
         let ticketsQuery;
         
@@ -158,17 +154,19 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         } else if (user.role === 'vendedor') {
             ticketsQuery = query(ticketsCollectionRef, where('sellerId', '==', user.id));
         } else {
-            ticketsQuery = null; // No query for other roles like admin on this dashboard
+            ticketsQuery = null;
         }
         
         if (ticketsQuery) {
-            unsubscribes.push(onSnapshot(ticketsQuery, (ticketSnapshot) => {
+            unsubscribes.push(onSnapshot(ticketsQuery, { includeMetadataChanges: true }, (ticketSnapshot) => {
                 const userTicketsData = ticketSnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() } as Ticket))
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 setUserTickets(userTicketsData);
-                ticketsLoaded = true;
-                checkAllDataLoaded();
+                if (!ticketSnapshot.metadata.fromCache) {
+                    ticketsLoaded = true;
+                    checkAllDataLoaded();
+                }
             }, (error) => {
                 console.error("Error fetching user tickets: ", error);
                 ticketsLoaded = true;
@@ -180,15 +178,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             checkAllDataLoaded();
         }
 
-        // Return a cleanup function that calls all unsubscribes
         return () => {
             unsubscribes.forEach(unsub => unsub());
             listenersActive.current = false;
         };
-    }, []); // This useCallback has no dependencies as it's a setup function
+    }, []);
 
      useEffect(() => {
-        // Ensure listeners are always cleaned up on component unmount
         return () => {
             listenersActive.current = false;
         };
@@ -216,9 +212,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 cart,
             });
 
-            // Generate tickets for the receipt before clearing cart
             const ticketsForReceipt: Ticket[] = cart.map(ticketNumbers => ({
-                id: uuidv4(), // Generate a temp ID, the real one is in the DB
+                id: uuidv4(),
                 numbers: ticketNumbers,
                 status: 'active',
                 createdAt: new Date().toISOString(),
