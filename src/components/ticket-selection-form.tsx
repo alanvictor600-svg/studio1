@@ -87,21 +87,25 @@ export const TicketSelectionForm: FC<TicketSelectionFormProps> = ({
               />
             ))}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button variant="destructive" onClick={handleClearSelection} className="h-11 text-base shadow-md" disabled={isSubmitting || currentPicks.length === 0}>
-                  <Trash2 className="mr-2 h-4 w-4" /> Limpar
-              </Button>
-               <Button variant="outline" onClick={handleAutoFill} className="h-11 text-base shadow-sm" disabled={isSubmitting}>
+          <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                  <Button variant="destructive" onClick={handleClearSelection} className="h-11 text-base shadow-md" disabled={isSubmitting || currentPicks.length === 0}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Limpar
+                  </Button>
+                  <Button 
+                    onClick={handleAddTicketToCart} 
+                    className="h-auto py-3 bg-green-600 hover:bg-green-700 text-white shadow-lg text-base flex-wrap" 
+                    disabled={isSubmitting || currentPicks.length !== MAX_PICKS}
+                  >
+                      <PlusCircle className="mr-2 h-5 w-5" />
+                      <span>Adicionar ao Carrinho</span>
+                  </Button>
+              </div>
+              <div className="flex justify-center">
+                 <Button variant="outline" onClick={handleAutoFill} className="h-11 text-base shadow-sm" disabled={isSubmitting}>
                   <Sparkles className="mr-2 h-4 w-4" /> Surpresinha
               </Button>
-              <Button 
-                onClick={handleAddTicketToCart} 
-                className="col-span-2 h-auto py-3 bg-green-600 hover:bg-green-700 text-white shadow-lg text-base flex-wrap" 
-                disabled={isSubmitting || currentPicks.length !== MAX_PICKS}
-              >
-                  <PlusCircle className="mr-2 h-5 w-5" />
-                  <span>Adicionar ao Carrinho</span>
-              </Button>
+              </div>
           </div>
         </div>
 
