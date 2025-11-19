@@ -8,7 +8,7 @@ import { generateAutoFilledTicket, countOccurrences, animalMapping } from '@/lib
 import { NumberButton } from '@/components/number-button';
 import { X, Sparkles, Trash2, PauseCircle, PlusCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { SelectedNumberBadge } from './selected-number-badge';
+import { SelectedNumberBadge } from '@/components/selected-number-badge';
 
 interface TicketSelectionFormProps {
   cart: number[][];
