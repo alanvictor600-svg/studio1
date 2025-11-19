@@ -151,24 +151,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarSeparator className="my-2"/>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
+                        <Link href="/">
+                            <Home /> Página Inicial
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                        <LogOut /> Sair da Conta
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
             </SidebarMenu>
             
             <div className="mt-auto">
-              <SidebarMenu>
-                  <SidebarSeparator className="my-2"/>
-                  <SidebarMenuItem>
-                      <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
-                          <Link href="/">
-                              <Home /> Página Inicial
-                          </Link>
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                      <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                          <LogOut /> Sair da Conta
-                      </SidebarMenuButton>
-                  </SidebarMenuItem>
-              </SidebarMenu>
               <div className="flex items-center justify-center p-2">
                   <ThemeToggleButton />
               </div>
