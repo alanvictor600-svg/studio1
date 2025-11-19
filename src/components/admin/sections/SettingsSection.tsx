@@ -14,8 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
+import { Settings, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
 import { db } from '@/lib/firebase-client';
 import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, where, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
@@ -206,7 +205,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
       <Tabs defaultValue="geral" className="w-full">
         <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 rounded-lg shadow-md bg-card">
           <TabsTrigger value="geral" className="py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
-              <PaletteIcon className="mr-2 h-4 w-4" /> Geral
+              <DollarSign className="mr-2 h-4 w-4" /> Geral
           </TabsTrigger>
           <TabsTrigger value="contas" className="py-2.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
               <Users className="mr-2 h-4 w-4" /> Contas

@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useCallback, useRef, useEffect } from 'react';
@@ -68,7 +67,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [isDataLoading, setIsDataLoading] = useState(true);
     
     const listenersActive = useRef(false);
-    const lastConfigVersion = useRef<number | undefined>(lotteryConfig.configVersion);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -123,13 +121,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || 10,
                     configVersion: data.configVersion || 1,
                 });
-                
-                // Force reload if config version changes
-                if (lastConfigVersion.current && data.configVersion && lastConfigVersion.current < data.configVersion) {
-                    window.location.reload();
-                }
-                lastConfigVersion.current = data.configVersion;
-
             } else {
                  setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
             }
