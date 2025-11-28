@@ -115,11 +115,18 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
 
-  if (isAuthLoading || !isAuthenticated || !currentUser || currentUser.role !== role) {
-    // This will be shown while authentication is checked, before the `loading.tsx` file takes over for data fetching.
+  // Render the skeleton layout immediately. 
+  // The `loading.tsx` file will be shown by Next.js in the `{children}` slot.
+  if (isAuthLoading || !isAuthenticated || !currentUser) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando acesso...</p>
+      <div className="flex min-h-screen bg-background">
+        <div className="hidden md:block w-64 border-r"></div>
+        <div className="flex-1 flex flex-col">
+          <div className="h-14 border-b"></div>
+          <main className="flex-1 flex items-center justify-center">
+             <p className="text-foreground text-xl">Verificando acesso...</p>
+          </main>
+        </div>
       </div>
     );
   }
@@ -246,7 +253,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </header>
 
           <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
-             {isDataLoading ? null : children}
+             {children}
           </main>
         </div>
       </SidebarProvider>
