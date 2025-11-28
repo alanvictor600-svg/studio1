@@ -37,7 +37,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const params = useParams();
     const { role } = params as { role: 'cliente' | 'vendedor' };
-    const cleanupListenersRef = useRef<(() => void) | null>(null);
 
     const {
         cart,
@@ -52,6 +51,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         startDataListeners,
         isDataLoading
     } = useDashboard();
+    
+    const cleanupListenersRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
         if (isAuthLoading) return;

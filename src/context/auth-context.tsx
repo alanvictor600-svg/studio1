@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingGoogleUser, setPendingGoogleUser] = useState<FirebaseUser | null>(null);
 
   const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
-  const isLoading = authLoading || (!!firebaseUser && isFirestoreLoading);
+  const isLoading = authLoading || (!!firebaseUser && !currentUser);
 
   useEffect(() => {
     let userUnsubscribe: (() => void) | null = null;

@@ -499,7 +499,9 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
         {...props}
       >
-        {children}
+        <div className="flex items-center gap-2">
+            {children}
+        </div>
         {isCollapsed && tooltip && typeof tooltip === 'string' && <span className="sr-only">{tooltip}</span>}
       </Comp>
     );

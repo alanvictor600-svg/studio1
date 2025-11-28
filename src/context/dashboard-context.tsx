@@ -66,7 +66,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [isLotteryPaused, setIsLotteryPaused] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
     
-    const listenersActive = useRef(false);
+    const listenersRef = useRef<Unsubscribe[]>([]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -74,7 +74,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             setAllDraws([]);
             setCart([]);
             setIsDataLoading(true);
-            listenersActive.current = false;
+             listenersRef.current.forEach(unsub => unsub());
+             listenersRef.current = [];
         }
     }, [isAuthenticated]);
 
@@ -93,10 +94,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
 
     const startDataListeners = useCallback((user: User): () => void => {
-        if (listenersActive.current || !user) {
-            return () => {};
+        if (listenersRef.current.length > 0) {
+           return () => {};
         }
-        listenersActive.current = true;
+
         setIsDataLoading(true);
 
         const unsubscribes: Unsubscribe[] = [];
@@ -111,7 +112,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
 
         const configDocRef = doc(db, 'configs', 'global');
-        unsubscribes.push(onSnapshot(configDocRef, { includeMetadataChanges: true }, (configDoc) => {
+        const configUnsub = onSnapshot(configDocRef, { includeMetadataChanges: true }, (configDoc) => {
             if (configDoc.exists()) {
                 const data = configDoc.data() as LotteryConfig;
                 setLotteryConfig({
@@ -132,10 +133,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching lottery config: ", error);
             configLoaded = true;
             checkAllDataLoaded();
-        }));
+        });
+        unsubscribes.push(configUnsub);
 
         const drawsQuery = query(collection(db, 'draws'));
-        unsubscribes.push(onSnapshot(drawsQuery, { includeMetadataChanges: true }, (drawsSnapshot) => {
+        const drawsUnsub = onSnapshot(drawsQuery, { includeMetadataChanges: true }, (drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
             setAllDraws(drawsData);
             if (!drawsSnapshot.metadata.fromCache) {
@@ -146,7 +148,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error fetching draws: ", error);
             drawsLoaded = true;
             checkAllDataLoaded();
-        }));
+        });
+        unsubscribes.push(drawsUnsub);
 
         const ticketsCollectionRef = collection(db, 'tickets');
         let ticketsQuery;
@@ -160,7 +163,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         }
         
         if (ticketsQuery) {
-            unsubscribes.push(onSnapshot(ticketsQuery, { includeMetadataChanges: true }, (ticketSnapshot) => {
+            const ticketsUnsub = onSnapshot(ticketsQuery, { includeMetadataChanges: true }, (ticketSnapshot) => {
                 const userTicketsData = ticketSnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() } as Ticket))
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -173,22 +176,26 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 console.error("Error fetching user tickets: ", error);
                 ticketsLoaded = true;
                 checkAllDataLoaded();
-            }));
+            });
+            unsubscribes.push(ticketsUnsub);
         } else {
             setUserTickets([]);
             ticketsLoaded = true;
             checkAllDataLoaded();
         }
 
+        listenersRef.current = unsubscribes;
+
         return () => {
-            unsubscribes.forEach(unsub => unsub());
-            listenersActive.current = false;
+            listenersRef.current.forEach(unsub => unsub());
+            listenersRef.current = [];
         };
     }, []);
 
      useEffect(() => {
         return () => {
-            listenersActive.current = false;
+            listenersRef.current.forEach(unsub => unsub());
+            listenersRef.current = [];
         };
     }, []);
 
