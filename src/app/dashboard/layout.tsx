@@ -156,7 +156,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={usePathname() === dashboardPath} onClick={() => setOpenMobile(false)}>
+                    <SidebarMenuButton asChild isActive={pathname === dashboardPath} onClick={() => setOpenMobile(false)}>
                         <Link href={dashboardPath}>
                             <LayoutDashboard />
                             Meu Painel
@@ -171,27 +171,31 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton onClick={handleForceRefresh} variant="outline" className="h-12 text-base">
-                        <RefreshCw className="mr-2 h-5 w-5" /> Atualizar Bolão
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
-                        <Link href="/">
-                            <Home /> Página Inicial
-                        </Link>
-                    </SidebarMenuButton>
-                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                        <LogOut /> Sair da Conta
-                    </SidebarMenuButton>
-                 </SidebarMenuItem>
             </SidebarMenu>
             
-            <div className="mt-auto flex items-center justify-center p-2">
-              <ThemeToggleButton />
+            <div className="mt-auto space-y-2">
+              <SidebarMenu>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton onClick={handleForceRefresh} variant="outline">
+                          <RefreshCw className="mr-2 h-4 w-4" /> Atualizar Bolão
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                          <Link href="/">
+                              <Home /> Página Inicial
+                          </Link>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                          <LogOut /> Sair da Conta
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+              </SidebarMenu>
+              <div className="flex items-center justify-center p-2">
+                <ThemeToggleButton />
+              </div>
             </div>
         </SidebarContent>
       </Sidebar>
@@ -260,16 +264,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading: isAuthLoading, isAuthenticated } = useAuth();
-
-  if (isAuthLoading || !isAuthenticated) {
-    return (
-       <div className="flex h-screen w-full items-center justify-center bg-background">
-          {/* This content will be replaced by loading.tsx */}
-       </div>
-    );
-  }
-  
   return (
     <SidebarProvider>
       <DashboardProvider>
