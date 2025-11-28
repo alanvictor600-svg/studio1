@@ -142,7 +142,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="flex flex-col flex-1">
+      <div className="flex flex-col flex-1 md:pl-64">
         <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
             <div className="flex items-center gap-2">
                  <SidebarTrigger />
@@ -167,7 +167,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             &copy; {new Date().getFullYear()} Bolão Potiguar - Admin.
             </p>
         </footer>
-      </SidebarInset>
+      </div>
     </>
   );
 }
