@@ -117,7 +117,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (isAuthLoading || !isAuthenticated || !currentUser || currentUser.role !== role) {
     return (
-      <div className="flex justify-center items-center h-full">
+      <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Carregando painel...</p>
       </div>
     );
@@ -246,7 +246,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
         <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
             {isDataLoading ? (
-                <div className="text-center p-10 text-white">Carregando dados...</div>
+                <div className="flex items-center justify-center h-full">
+                    <p className="text-white text-xl">Carregando dados...</p>
+                </div>
             ) : children}
         </main>
       </div>
