@@ -68,10 +68,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     }, [isAuthLoading, isAuthenticated, currentUser, role, router, pathname]);
 
     useEffect(() => {
-        if (isAuthenticated && currentUser && currentUser.role === role) {
-            if (!cleanupListenersRef.current) {
-                cleanupListenersRef.current = startDataListeners(currentUser);
-            }
+        if (isAuthenticated && currentUser && currentUser.role === role && !cleanupListenersRef.current) {
+            cleanupListenersRef.current = startDataListeners(currentUser);
         }
         return () => {
             if (cleanupListenersRef.current) {
@@ -179,7 +177,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
+                            <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
                                 <Link href="/">
                                     <Home /> <span>Página Inicial</span>
                                 </Link>
@@ -269,3 +267,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarProvider>
     );
 }
+
+    

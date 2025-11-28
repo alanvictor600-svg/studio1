@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingGoogleUser, setPendingGoogleUser] = useState<FirebaseUser | null>(null);
 
   const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
-  const isLoading = authLoading || (!!firebaseUser && !currentUser);
+  const isLoading = authLoading || (!!firebaseUser && !currentUser && isFirestoreLoading);
 
   useEffect(() => {
     let userUnsubscribe: (() => void) | null = null;
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
+              // This can happen during sign up process
               if (!isRoleSelectionOpen) {
                   setCurrentUser(null);
               }
@@ -236,3 +237,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    

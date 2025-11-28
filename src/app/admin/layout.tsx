@@ -102,7 +102,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           onClick={() => setOpenMobile(false)}
                         >
                             <Link href={`/admin?section=${item.id}`}>
-                                <item.Icon /> {item.label}
+                                <item.Icon />
+                                <span>{item.label}</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -115,13 +116,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <SidebarMenuItem>
                       <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
                           <Link href="/">
-                              <Home /> <span>Página Inicial</span>
+                              <Home />
+                              <span>Página Inicial</span>
                           </Link>
                       </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                       <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                          <LogOut /> <span>Sair da Conta</span>
+                          <LogOut />
+                          <span>Sair da Conta</span>
                       </SidebarMenuButton>
                   </SidebarMenuItem>
             </SidebarMenu>
@@ -171,3 +174,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </SidebarProvider>
     );
 }
+
+    
