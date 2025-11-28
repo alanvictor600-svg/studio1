@@ -101,7 +101,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           isActive={activeSection === item.id}
                           onClick={() => setOpenMobile(false)}
                         >
-                            <Link href={`/admin?section=${item.id}`} className="flex items-center gap-2">
+                            <Link href={`/admin?section=${item.id}`}>
                                 <item.Icon /> {item.label}
                             </Link>
                         </SidebarMenuButton>
@@ -114,7 +114,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   <SidebarSeparator className="my-2" />
                   <SidebarMenuItem>
                       <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
-                          <Link href="/" className="flex items-center gap-2">
+                          <Link href="/">
                               <Home /> Página Inicial
                           </Link>
                       </SidebarMenuButton>
