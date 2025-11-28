@@ -173,7 +173,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={handleForceRefresh} variant="outline">
-                                <RefreshCw className="mr-2 h-4 w-4" /> Atualizar Bolão
+                                 <RefreshCw className="mr-2 h-4 w-4" /> Atualizar Bolão
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
@@ -185,7 +185,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                <LogOut /> Sair da Conta
+                                 <LogOut /> Sair da Conta
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
