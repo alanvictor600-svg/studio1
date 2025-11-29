@@ -172,10 +172,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={handleForceRefresh} variant="outline">
-                                <div className="flex items-center gap-2">
-                                     <RefreshCw /> 
-                                     <span>Atualizar Bolão</span>
-                                </div>
+                                 <RefreshCw /> 
+                                 <span>Atualizar Bolão</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
@@ -187,9 +185,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                <div className="flex items-center gap-2">
-                                     <LogOut /> <span>Sair da Conta</span>
-                                </div>
+                                 <LogOut /> <span>Sair da Conta</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
