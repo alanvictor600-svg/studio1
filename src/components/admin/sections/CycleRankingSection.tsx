@@ -63,10 +63,9 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
     ]);
 
     const tsvContent = [
-      headers.join('	'),
-      ...rows.map(row => row.join('	'))
-    ].join('
-');
+      headers.join('\t'),
+      ...rows.map(row => row.join('\t'))
+    ].join('\n');
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(tsvContent).then(() => {
