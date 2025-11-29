@@ -239,7 +239,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 </header>
 
                 <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto">
-                    {children}
+                   {isDataLoading ? (
+                        <div className="text-center p-10 text-white">Carregando dados...</div>
+                    ) : children}
                 </main>
             </div>
 

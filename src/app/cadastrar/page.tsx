@@ -55,7 +55,6 @@ function CadastroPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Redirection is now handled by AuthProvider
     if (!authLoading && isAuthenticated && currentUser) {
         const defaultRedirect = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
         router.replace(defaultRedirect);

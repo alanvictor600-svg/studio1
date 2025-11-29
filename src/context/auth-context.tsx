@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -22,7 +23,6 @@ interface AuthContextType {
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  lotteryConfig: LotteryConfig | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
-  const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   
@@ -74,16 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsFirestoreLoading(false);
     }
 
-    const configDocRef = doc(db, 'configs', 'global');
-    const configUnsubscribe = onSnapshot(configDocRef, (doc) => {
-        if (doc.exists()) {
-            setLotteryConfig(doc.data() as LotteryConfig);
-        }
-    });
-
     return () => {
         if(userUnsubscribe) userUnsubscribe();
-        configUnsubscribe();
     };
   }, [firebaseUser, isRoleSelectionOpen]);
 
@@ -215,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router, toast]);
   
-  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, lotteryConfig };
+  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated };
 
   return (
     <AuthContext.Provider value={value}>
