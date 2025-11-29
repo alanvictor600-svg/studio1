@@ -199,15 +199,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </Sidebar>
 
             <div className="flex flex-1 flex-col md:pl-64">
-                <header className="sticky top-0 z-10 grid h-16 grid-cols-3 items-center border-b bg-secondary px-2 md:hidden">
-                    <div className="flex justify-start">
-                        <SidebarTrigger />
+                <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-secondary px-4 md:px-6">
+                    <div className="flex items-center gap-4">
+                        <SidebarTrigger className="md:hidden" />
+                         <span className="hidden md:inline font-semibold text-primary">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
                     </div>
-                    <div className="flex justify-center">
-                        <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2">
-                            <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
-                        </Link>
-                    </div>
+
+                    <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2 md:hidden">
+                        <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
+                    </Link>
+
                     <div className="flex items-center justify-end">
                         {currentUser.role === 'cliente' && (
                             <ShoppingCart
@@ -221,23 +222,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         )}
                     </div>
                 </header>
-
-                <header className="hidden md:flex h-14 items-center justify-between border-b bg-secondary px-6 sticky top-0 z-10">
-                    <span className="font-semibold text-primary">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
-                    <div className="flex items-center justify-end gap-4">
-                        {currentUser.role === 'cliente' && (
-                            <ShoppingCart
-                                cart={cart}
-                                currentUser={currentUser}
-                                lotteryConfig={lotteryConfig}
-                                isSubmitting={isSubmitting}
-                                onPurchase={handlePurchaseCart}
-                                onRemoveFromCart={(index) => setCart(cart.filter((_, i) => i !== index))}
-                            />
-                        )}
-                    </div>
-                </header>
-
+                
                 <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto">
                    {isDataLoading ? (
                         <div className="text-center p-10 text-white">Carregando dados...</div>

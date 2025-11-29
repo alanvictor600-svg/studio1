@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -8,24 +9,6 @@ import { Button } from "@/components/ui/button";
 
 export function ThemeToggleButton() {
   const { theme, setTheme } = useTheme();
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return (
-      <Button
-        variant="secondary"
-        size="icon"
-        disabled
-        className="shadow-lg rounded-full"
-      >
-        <Sun className="h-5 w-5" />
-      </Button>
-    );
-  }
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -39,11 +22,9 @@ export function ThemeToggleButton() {
       aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
       className="shadow-lg rounded-full"
     >
-      {theme === "dark" ? (
-        <Sun className="h-5 w-5" />
-      ) : (
-        <Moon className="h-5 w-5" />
-      )}
+      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
     </Button>
   );
 }
