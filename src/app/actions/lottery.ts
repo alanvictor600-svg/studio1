@@ -1,9 +1,9 @@
 'use server';
 
 import { adminDb } from '@/lib/firebase-admin';
-import { collection, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
-import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry } from '@/types';
-import type { FinancialReport } from '@/lib/reports';
+import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry, Draw } from '@/types';
+import { generateFinancialReport } from '@/lib/reports';
+import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 
 /**
  * Adds a new draw to the 'draws' collection using the admin SDK.
@@ -25,21 +25,39 @@ export const addDrawAction = async (newNumbers: number[], name?: string): Promis
     await adminDb.collection('draws').add(newDrawData);
 };
 
-
-interface StartNewLotteryParams {
-    allUsers: User[];
-    processedTickets: Ticket[];
-    lotteryConfig: LotteryConfig;
-    financialReport: FinancialReport;
-}
 /**
  * Starts a new lottery cycle using the admin SDK.
- * This is a server action that performs all database writes in a single batch.
+ * This server action is self-contained and fetches all necessary data from the database
+ * to ensure consistency and prevent acting on stale client-side data.
+ * It performs all database writes in a single atomic batch operation.
  */
-export const startNewLotteryAction = async ({ allUsers, processedTickets, lotteryConfig, financialReport }: StartNewLotteryParams): Promise<void> => {
+export const startNewLotteryAction = async (): Promise<void> => {
     const batch = adminDb.batch();
+    const endDate = new Date().toISOString();
 
-    // 1. Capture Seller History
+    // --- 1. Fetch all required data directly from the server ---
+    const configDoc = await adminDb.doc('configs/global').get();
+    const lotteryConfig = configDoc.data() as LotteryConfig;
+    if (!lotteryConfig) {
+        throw new Error("Global lottery config not found.");
+    }
+
+    const usersSnapshot = await adminDb.collection('users').get();
+    const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+
+    const ticketsSnapshot = await adminDb.collection('tickets').get();
+    const allTickets = ticketsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+
+    const drawsSnapshot = await adminDb.collection('draws').get();
+    const allDraws = drawsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
+
+    // --- 2. Process data using the same logic as the client ---
+    const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, allDraws);
+    const financialReport = generateFinancialReport(processedTickets, lotteryConfig);
+
+    // --- 3. Generate History Entries based on fresh data ---
+    
+    // Capture Seller History
     const sellers = allUsers.filter(u => u.role === 'vendedor');
     for (const seller of sellers) {
         const sellerTickets = processedTickets.filter(ticket => ticket.status === 'active' && ticket.sellerId === seller.id);
@@ -52,7 +70,7 @@ export const startNewLotteryAction = async ({ allUsers, processedTickets, lotter
             const newEntry: Omit<SellerHistoryEntry, 'id'> = {
                 sellerId: seller.id,
                 sellerUsername: seller.username,
-                endDate: new Date().toISOString(),
+                endDate,
                 activeTicketsCount: activeSellerTicketsCount,
                 totalRevenue: totalRevenueFromActiveTickets,
                 totalCommission: commissionEarned,
@@ -62,10 +80,10 @@ export const startNewLotteryAction = async ({ allUsers, processedTickets, lotter
         }
     }
 
-    // 2. Capture Admin History
+    // Capture Admin History
     if (financialReport && (financialReport.totalRevenue > 0 || financialReport.clientTicketCount > 0 || financialReport.sellerTicketCount > 0)) {
         const newHistoryEntry: Omit<AdminHistoryEntry, 'id'> = {
-            endDate: new Date().toISOString(),
+            endDate,
             totalRevenue: financialReport.totalRevenue || 0,
             totalSellerCommission: financialReport.sellerCommission || 0,
             totalOwnerCommission: financialReport.ownerCommission || 0,
@@ -77,18 +95,19 @@ export const startNewLotteryAction = async ({ allUsers, processedTickets, lotter
         batch.set(newAdminHistoryDocRef, newHistoryEntry);
     }
 
-    // 3. Reset Draws
-    const drawsSnapshot = await adminDb.collection('draws').get();
+    // --- 4. Reset Cycle Data ---
+
+    // Reset Draws (using the snapshot we already have)
     drawsSnapshot.forEach(drawDoc => {
         batch.delete(drawDoc.ref);
     });
 
-    // 4. Reset Tickets
-    const ticketsSnapshot = await adminDb.collection('tickets').where('status', 'in', ['active', 'winning', 'awaiting_payment', 'unpaid']).get();
-    ticketsSnapshot.forEach(ticketDoc => {
+    // Reset relevant Tickets to 'expired' status
+    const activeTicketsSnapshot = await adminDb.collection('tickets').where('status', 'in', ['active', 'winning', 'awaiting_payment', 'unpaid']).get();
+    activeTicketsSnapshot.forEach(ticketDoc => {
         batch.update(ticketDoc.ref, { status: 'expired' });
     });
 
-    // Commit all operations at once
+    // --- 5. Commit all operations at once ---
     await batch.commit();
 };

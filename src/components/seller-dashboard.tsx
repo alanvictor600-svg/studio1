@@ -7,7 +7,6 @@ import { SellerTicketCreationForm } from '@/components/seller-ticket-creation-fo
 import { TicketList } from '@/components/ticket-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, FileText, Loader2, BarChart3, Percent, DollarSign, Ticket as TicketIcon } from 'lucide-react';
-import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
@@ -15,10 +14,10 @@ import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
+import { useDashboard } from '@/context/dashboard-context';
 
 interface SellerDashboardProps {
     isLotteryPaused?: boolean;
-    lotteryConfig: LotteryConfig;
     onTicketCreated: (ticket: Ticket) => void;
     userTickets: Ticket[];
     currentUser: User | null;
@@ -29,7 +28,6 @@ const REPORTS_PER_PAGE = 9;
 
 export const SellerDashboard: FC<SellerDashboardProps> = ({ 
     isLotteryPaused,
-    lotteryConfig,
     onTicketCreated,
     userTickets,
     currentUser,
@@ -42,6 +40,8 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     const [hasMore, setHasMore] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [activeTab, setActiveTab] = useState('vendas');
+
+    const { lotteryConfig, handleGenerateReceipt } = useDashboard();
 
     const fetchHistory = useCallback(async (loadMore = false) => {
         if (!currentUser || currentUser.role !== 'vendedor') {
@@ -97,6 +97,9 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
     }, [currentUser, activeTab]);
 
     const currentCycleSummary = useMemo(() => {
+        if (!lotteryConfig) {
+            return { ticketCount: 0, totalRevenue: 0, estimatedCommission: 0 };
+        }
         const activeTickets = userTickets.filter(t => t.status === 'active' || t.status === 'winning');
         const ticketCount = activeTickets.length;
         const totalRevenue = ticketCount * lotteryConfig.ticketPrice;
@@ -129,7 +132,6 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                 <SellerTicketCreationForm
                     isLotteryPaused={isLotteryPaused}
                     onTicketCreated={onTicketCreated}
-                    lotteryConfig={lotteryConfig}
                 />
             </TabsContent>
             
@@ -140,7 +142,8 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                     </h2>
                     <TicketList 
                       tickets={userTickets} 
-                      draws={allDraws} 
+                      draws={allDraws}
+                      onGenerateReceipt={handleGenerateReceipt}
                     />
                 </section>
             </TabsContent>

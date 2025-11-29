@@ -1,15 +1,16 @@
-
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from 'react';
-import type { User } from '@/types';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import type { User, LotteryConfig } from '@/types';
+import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase-client';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { RoleSelectionDialog } from '@/components/role-selection-dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 interface AuthContextType {
@@ -21,7 +22,7 @@ interface AuthContextType {
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
-  updateCurrentUserCredits: (newCredits: number) => void;
+  lotteryConfig: LotteryConfig | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,72 +31,59 @@ const sanitizeUsernameForEmail = (username: string) => {
     return username.trim().toLowerCase();
 };
 
-// Componente filho para lidar com a lógica de redirecionamento.
-// Ele usa os hooks de navegação e será envolto em Suspense.
-function AuthRedirectHandler() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { isLoading, isAuthenticated, currentUser } = useAuth();
-
-  useEffect(() => {
-    if (isLoading) {
-      return; // Do nothing while loading
-    }
-    
-    if (isAuthenticated && currentUser) {
-      const isAuthPage = pathname === '/login' || pathname === '/cadastrar';
-      if (isAuthPage) {
-        const redirectPath = searchParams.get('redirect');
-        const targetDashboardPath = redirectPath || (currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`);
-        router.replace(targetDashboardPath);
-      }
-    }
-  }, [isLoading, isAuthenticated, currentUser, pathname, router, searchParams]);
-
-  return null; // Este componente não renderiza nada na UI.
-}
-
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   
-  // State for the new user registration flow
   const [isRoleSelectionOpen, setIsRoleSelectionOpen] = useState(false);
   const [pendingGoogleUser, setPendingGoogleUser] = useState<FirebaseUser | null>(null);
 
   const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
-  const isLoading = authLoading || (!!firebaseUser && isFirestoreLoading);
+  const isLoading = authLoading || isFirestoreLoading;
 
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let userUnsubscribe: (() => void) | null = null;
     if (firebaseUser) {
         setIsFirestoreLoading(true);
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        unsubscribe = onSnapshot(userDocRef, (doc) => {
+        userUnsubscribe = onSnapshot(userDocRef, (doc) => {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
-              // This case will now be handled by the role selection flow for new Google users
+              // This can happen during sign up process
               if (!isRoleSelectionOpen) {
                   setCurrentUser(null);
               }
             }
             setIsFirestoreLoading(false);
         }, (error) => {
-            console.error("Error listening to user document:", error);
+            const contextualError = new FirestorePermissionError({
+              operation: 'get',
+              path: userDocRef.path,
+            });
+            console.error("Error listening to user document:", contextualError);
+            errorEmitter.emit('permission-error', contextualError);
             setIsFirestoreLoading(false);
         });
     } else {
         setCurrentUser(null);
         setIsFirestoreLoading(false);
     }
+
+    const configDocRef = doc(db, 'configs', 'global');
+    const configUnsubscribe = onSnapshot(configDocRef, (doc) => {
+        if (doc.exists()) {
+            setLotteryConfig(doc.data() as LotteryConfig);
+        }
+    });
+
     return () => {
-        if(unsubscribe) unsubscribe();
+        if(userUnsubscribe) userUnsubscribe();
+        configUnsubscribe();
     };
   }, [firebaseUser, isRoleSelectionOpen]);
 
@@ -104,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
      try {
         await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
-        // Redirection is now handled by the AuthRedirectHandler component
      } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
@@ -153,7 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-          // If a role is provided (from /cadastrar page), create user directly.
           if (role) {
              const newUser: User = {
                 id: user.uid,
@@ -165,12 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await setDoc(userDocRef, newUser);
             setCurrentUser(newUser);
           } else {
-            // If no role is provided (from /login page), open the role selection dialog.
             setPendingGoogleUser(user);
             setIsRoleSelectionOpen(true);
           }
         }
-        // If user already exists, redirection is handled by the useEffect.
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
             toast({ title: "Erro de Login", description: "Já existe uma conta com este e-mail. Tente fazer login com outro método.", variant: "destructive", duration: 5000 });
@@ -230,21 +214,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
     }
   }, [router, toast]);
-
-  const updateCurrentUserCredits = (newCredits: number) => {
-    setCurrentUser(prevUser => {
-        if (!prevUser) return null;
-        return { ...prevUser, saldo: newCredits };
-    });
-  };
   
-  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, updateCurrentUserCredits };
+  const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated, lotteryConfig };
 
   return (
     <AuthContext.Provider value={value}>
-      <Suspense>
-        <AuthRedirectHandler />
-      </Suspense>
       {children}
        <RoleSelectionDialog
         isOpen={isRoleSelectionOpen}

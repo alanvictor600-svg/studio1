@@ -1,13 +1,13 @@
-
 "use client";
 
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useCallback, useRef, useEffect } from 'react';
 import type { LotteryConfig, User, Ticket, Draw } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
-import { createClientTickets } from '@/lib/services/ticketService';
+import { createClientTicketsAction } from '@/app/actions/ticket';
 import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PublicRankingEntry {
   initials: string;
@@ -38,6 +38,7 @@ interface DashboardContextType {
     isLotteryPaused: boolean;
     isDataLoading: boolean;
     startDataListeners: (user: User) => () => void; // Now returns a cleanup function
+    handleGenerateReceipt: (ticket: Ticket) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -47,6 +48,7 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   sellerCommissionPercentage: 10,
   ownerCommissionPercentage: 5,
   clientSalesCommissionToOwnerPercentage: 10,
+  configVersion: 1
 };
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
@@ -55,26 +57,24 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
     const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
     const [receiptTickets, setReceiptTickets] = useState<Ticket[] | null>(null);
-    const { currentUser, isAuthenticated, updateCurrentUserCredits } = useAuth();
+    const { currentUser, isAuthenticated } = useAuth();
     const { toast } = useToast();
 
-    // New state for centralized data
     const [userTickets, setUserTickets] = useState<Ticket[]>([]);
     const [allDraws, setAllDraws] = useState<Draw[]>([]);
     const [isLotteryPaused, setIsLotteryPaused] = useState(false);
     const [isDataLoading, setIsDataLoading] = useState(true);
     
-    // To prevent setting up multiple listeners
-    const listenersActive = useRef(false);
+    const listenersRef = useRef<Unsubscribe[]>([]);
 
-    // This effect handles cleaning up state when the user logs out.
     useEffect(() => {
         if (!isAuthenticated) {
             setUserTickets([]);
             setAllDraws([]);
             setCart([]);
             setIsDataLoading(true);
-            listenersActive.current = false;
+             listenersRef.current.forEach(unsub => unsub());
+             listenersRef.current = [];
         }
     }, [isAuthenticated]);
 
@@ -82,87 +82,94 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsCreditsDialogOpen(true);
     }, []);
 
-    // This effect will run whenever draws or tickets change to re-evaluate the lottery pause state.
+    const handleGenerateReceipt = useCallback((ticket: Ticket) => {
+        setReceiptTickets([ticket]);
+    }, []);
+
     useEffect(() => {
-        // A lottery is considered "paused" for new entries if any draws have been made in the current cycle.
         const drawsExist = allDraws.length > 0;
         setIsLotteryPaused(drawsExist);
     }, [allDraws]);
 
 
     const startDataListeners = useCallback((user: User): () => void => {
-        if (listenersActive.current || !user) {
-            return () => {};
+        if (listenersRef.current.length > 0) {
+           return () => {};
         }
-        listenersActive.current = true;
+
         setIsDataLoading(true);
+        let loadedCount = 0;
+        const totalListeners = 3;
 
-        const unsubscribes: Unsubscribe[] = [];
+        const checkAllDataLoaded = () => {
+            loadedCount++;
+            if (loadedCount === totalListeners) {
+                setIsDataLoading(false);
+            }
+        };
 
-        // 1. Config Listener
         const configDocRef = doc(db, 'configs', 'global');
-        unsubscribes.push(onSnapshot(configDocRef, (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
+        const configUnsub = onSnapshot(configDocRef, (configDoc) => {
+            if (configDoc.exists()) {
+                const data = configDoc.data() as LotteryConfig;
                 setLotteryConfig({
                     ticketPrice: data.ticketPrice || 2,
                     sellerCommissionPercentage: data.sellerCommissionPercentage || 10,
                     ownerCommissionPercentage: data.ownerCommissionPercentage || 5,
                     clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || 10,
+                    configVersion: data.configVersion || 1,
                 });
+            } else {
+                 setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
             }
+            checkAllDataLoaded();
         }, (error) => {
             console.error("Error fetching lottery config: ", error);
-        }));
+            checkAllDataLoaded();
+        });
 
-        // 2. Draws Listener
         const drawsQuery = query(collection(db, 'draws'));
-        unsubscribes.push(onSnapshot(drawsQuery, (drawsSnapshot) => {
+        const drawsUnsub = onSnapshot(drawsQuery, (drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
             setAllDraws(drawsData);
+            checkAllDataLoaded();
         }, (error) => {
             console.error("Error fetching draws: ", error);
-        }));
+            checkAllDataLoaded();
+        });
 
-        // 3. User Tickets Listener
         const ticketsCollectionRef = collection(db, 'tickets');
-        let ticketsQuery;
+        let ticketsQuery: Query | null = null;
         
         if (user.role === 'cliente') {
             ticketsQuery = query(ticketsCollectionRef, where('buyerId', '==', user.id));
         } else if (user.role === 'vendedor') {
             ticketsQuery = query(ticketsCollectionRef, where('sellerId', '==', user.id));
-        } else {
-            ticketsQuery = null; // No query for other roles like admin on this dashboard
         }
         
+        let ticketsUnsub: Unsubscribe | null = null;
         if (ticketsQuery) {
-            unsubscribes.push(onSnapshot(ticketsQuery, (ticketSnapshot) => {
+            ticketsUnsub = onSnapshot(ticketsQuery, (ticketSnapshot) => {
                 const userTicketsData = ticketSnapshot.docs
                     .map(doc => ({ id: doc.id, ...doc.data() } as Ticket))
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 setUserTickets(userTicketsData);
-                setIsDataLoading(false); // Data is considered loaded after tickets arrive
+                checkAllDataLoaded();
             }, (error) => {
                 console.error("Error fetching user tickets: ", error);
-                setIsDataLoading(false);
-            }));
+                checkAllDataLoaded();
+            });
         } else {
             setUserTickets([]);
-            setIsDataLoading(false);
+            checkAllDataLoaded();
         }
 
-        // Return a cleanup function that calls all unsubscribes
-        return () => {
-            unsubscribes.forEach(unsub => unsub());
-            listenersActive.current = false;
-        };
-    }, []); // This useCallback has no dependencies as it's a setup function
+        const allUnsubscribes = [configUnsub, drawsUnsub, ticketsUnsub].filter(Boolean) as Unsubscribe[];
+        listenersRef.current = allUnsubscribes;
 
-     useEffect(() => {
-        // Ensure listeners are always cleaned up on component unmount
         return () => {
-            listenersActive.current = false;
+            allUnsubscribes.forEach(unsub => unsub());
+            listenersRef.current = [];
         };
     }, []);
 
@@ -175,22 +182,40 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             toast({ title: "Carrinho Vazio", description: "Adicione pelo menos um bilhete ao carrinho para comprar.", variant: "destructive" });
             return;
         }
+        if (isDataLoading) {
+            toast({ title: "Aguarde", description: "Os dados da loteria ainda estão carregando. Tente novamente em um instante.", variant: "destructive" });
+            return;
+        }
 
         setIsSubmitting(true);
         
         try {
-            const { createdTickets, newBalance } = await createClientTickets({
-                user: currentUser,
+            await createClientTicketsAction({
+                user: { id: currentUser.id, username: currentUser.username },
                 cart,
-                lotteryConfig
             });
 
-            updateCurrentUserCredits(newBalance);
+            const ticketsForReceipt: Ticket[] = cart.map(ticketNumbers => ({
+                id: uuidv4(),
+                numbers: ticketNumbers,
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                buyerName: currentUser.username,
+                buyerId: currentUser.id,
+            }));
+
             setCart([]);
-            setReceiptTickets(createdTickets);
+            setReceiptTickets(ticketsForReceipt);
+            
+            toast({
+              title: "Compra Realizada!",
+              description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso. Seu saldo será atualizado em breve.`,
+              className: "bg-primary text-primary-foreground",
+              duration: 4000
+            });
 
         } catch (e: any) {
-            if (e.message === "Saldo insuficiente.") {
+            if (e.message.includes("Saldo insuficiente")) {
                 showCreditsDialog();
             } else {
                 console.error("Transaction failed: ", e);
@@ -219,6 +244,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         isLotteryPaused,
         isDataLoading,
         startDataListeners,
+        handleGenerateReceipt,
     };
 
     return (

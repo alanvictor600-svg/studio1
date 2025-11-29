@@ -12,49 +12,73 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 
-
 interface CycleRankingSectionProps {
   rankedTickets: RankedTicket[];
 }
+
+const fallbackCopyTextToClipboard = (text: string, toast: (options: any) => void) => {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  
+  // Avoid scrolling to bottom
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      toast({ title: "Tabela Copiada!", description: "Os dados estão prontos para serem colados no Excel.", className: "bg-primary text-primary-foreground" });
+    } else {
+      toast({ title: "Falha ao copiar", description: "Não foi possível copiar automaticamente. Por favor, copie manualmente.", variant: "destructive" });
+    }
+  } catch (err) {
+    console.error('Fallback: Oops, unable to copy', err);
+    toast({ title: "Erro ao copiar", description: "Não foi possível copiar os dados. Por favor, copie manualmente.", variant: "destructive" });
+  }
+
+  document.body.removeChild(textArea);
+};
 
 export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTickets }) => {
   const { toast } = useToast();
 
   const handleCopyToClipboard = () => {
     if (rankedTickets.length === 0) {
-      toast({ title: "Nenhum dado para copiar", variant: "destructive" });
+      toast({ title: "Nenhum dado para copiar", description: "Não há bilhetes para copiar.", variant: "destructive" });
       return;
     }
 
-    const headers = ['Comprador', 'Vendedor', '1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º', '10º', 'Acertos'];
+    const headers = ['Comprador', 'Vendedor', ...Array.from({ length: 10 }, (_, i) => `N${i + 1}`), 'Acertos'];
     const rows = rankedTickets.map(ticket => [
-      ticket.buyerName || 'N/A',
+      ticket.buyerName,
       ticket.sellerUsername || '-',
       ...ticket.numbers,
       ticket.matches
     ]);
 
     const tsvContent = [
-      headers.join('\t'),
-      ...rows.map(row => row.join('\t'))
-    ].join('\n');
+      headers.join('	'),
+      ...rows.map(row => row.join('	'))
+    ].join('
+');
 
-    navigator.clipboard.writeText(tsvContent).then(() => {
-      toast({
-        title: "Tabela Copiada!",
-        description: "Os dados estão prontos para serem colados no Excel.",
-        className: "bg-primary text-primary-foreground"
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(tsvContent).then(() => {
+        toast({ title: "Tabela Copiada!", description: "Os dados estão prontos para serem colados no Excel.", className: "bg-primary text-primary-foreground" });
+      }).catch(err => {
+        console.error('Could not copy text using navigator: ', err);
+        fallbackCopyTextToClipboard(tsvContent, toast);
       });
-    }, (err) => {
-      toast({
-        title: "Erro ao Copiar",
-        description: "Não foi possível copiar os dados para a área de transferência.",
-        variant: "destructive"
-      });
-      console.error('Could not copy text: ', err);
-    });
+    } else {
+      fallbackCopyTextToClipboard(tsvContent, toast);
+    }
   };
-
 
   return (
     <section aria-labelledby="cycle-ranking-heading">
@@ -64,7 +88,7 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
       </h2>
       <Card className="w-full mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
-           <div className="flex justify-between items-center">
+           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <CardTitle className="text-xl font-semibold">
                 Placar Geral de Acertos
@@ -73,8 +97,8 @@ export const CycleRankingSection: FC<CycleRankingSectionProps> = ({ rankedTicket
                 Todos os bilhetes ativos ordenados pela quantidade de acertos.
               </CardDescription>
             </div>
-            <Button onClick={handleCopyToClipboard} variant="outline" size="sm" disabled={rankedTickets.length === 0}>
-              <Copy className="mr-2 h-4 w-4" /> Copiar para Excel
+             <Button onClick={handleCopyToClipboard} variant="outline" size="sm">
+                <Copy className="mr-2 h-4 w-4" /> Copiar para Excel
             </Button>
           </div>
         </CardHeader>

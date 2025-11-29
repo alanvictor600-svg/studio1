@@ -3,7 +3,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { firebaseConfig } from '@/firebase/config'; // Import directly from config file
+import { firebaseConfig } from "@/firebase/config"; // Importa a configuração correta
 
 function initializeClientApp(): { app: FirebaseApp; auth: Auth; db: Firestore } {
   if (getApps().length > 0) {
@@ -11,6 +11,7 @@ function initializeClientApp(): { app: FirebaseApp; auth: Auth; db: Firestore } 
     return { app, auth: getAuth(app), db: getFirestore(app) };
   }
   
+  // Usa o firebaseConfig importado para inicializar
   const app = initializeApp(firebaseConfig);
   return { app, auth: getAuth(app), db: getFirestore(app) };
 }

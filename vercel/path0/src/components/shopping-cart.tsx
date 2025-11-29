@@ -28,14 +28,14 @@ export const ShoppingCart: FC<ShoppingCartProps> = ({
     isSubmitting
 }) => {
   
-  const totalCost = cart.length * (lotteryConfig?.ticketPrice || 0);
+  const totalCost = cart.length * lotteryConfig.ticketPrice;
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" className="relative shadow-none h-10 px-2">
           <ShoppingCartIcon className="h-6 w-6" />
-          <span className="ml-1 hidden sm:inline">Meu Carrinho</span>
+          <span className="ml-1">Meu Carrinho</span>
           {cart.length > 0 && (
             <Badge 
               variant="destructive" 
@@ -112,5 +112,3 @@ export const ShoppingCart: FC<ShoppingCartProps> = ({
     </Popover>
   );
 };
-
-    
