@@ -87,7 +87,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
         try {
             if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
+                const registrations = await navigator.service-worker.getRegistrations();
                 for (const registration of registrations) {
                     await registration.unregister();
                 }
