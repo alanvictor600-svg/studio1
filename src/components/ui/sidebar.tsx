@@ -506,7 +506,6 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size, className }))}
         {...props}
       >
-        {/* This div wrapper solves the 'single child' error by ensuring the Comp always has one direct child. */}
         {buttonContent}
         {isCollapsed && tooltip && typeof tooltip === 'string' && <span className="sr-only">{tooltip}</span>}
       </Comp>

@@ -18,7 +18,6 @@ import {
     useSidebar,
     SidebarSeparator
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Coins, Home, LayoutDashboard, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
