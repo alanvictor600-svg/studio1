@@ -197,11 +197,8 @@ function AdminPageContent() {
   };
   
   const handleStartNewLottery = async () => {
-    const usersSnapshot = await getDocs(query(collection(db, 'users')));
-    const allUsersForLottery = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-
     try {
-        await startNewLotteryAction({ allUsers: allUsersForLottery, processedTickets, lotteryConfig, financialReport });
+        await startNewLotteryAction();
         toast({
           title: "Nova Loteria Iniciada!",
           description: "Históricos foram salvos e o ciclo foi resetado com sucesso.",
@@ -323,7 +320,6 @@ function AdminPageContent() {
           <SettingsSection 
             lotteryConfig={lotteryConfig}
             creditRequestConfig={creditRequestConfig}
-            allTickets={allTickets}
             onSaveLotteryConfig={handleSaveLotteryConfig}
             onSaveCreditRequestConfig={handleSaveCreditRequestConfig}
             onOpenCreditDialog={handleOpenCreditDialog}
@@ -383,7 +379,6 @@ function AdminPageContent() {
               isOpen={isUserViewDialogOpen}
               onOpenChange={setIsUserViewDialogOpen}
               user={userToView}
-              allTickets={processedTickets}
               onDelete={() => {
                 if (userToView) {
                   handleConfirmDeleteUser(userToView);

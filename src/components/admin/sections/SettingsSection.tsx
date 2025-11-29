@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
 import { db } from '@/lib/firebase-client';
-import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, where, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { saveLotteryConfig } from '@/lib/services/configService';
 
@@ -43,7 +43,6 @@ function useDebounce(value: string, delay: number) {
 interface SettingsSectionProps {
   lotteryConfig: LotteryConfig;
   creditRequestConfig: CreditRequestConfig;
-  allTickets: Ticket[];
   onSaveLotteryConfig: (newConfig: Partial<LotteryConfig>) => Promise<void>;
   onSaveCreditRequestConfig: (newConfig: CreditRequestConfig) => Promise<void>;
   onOpenCreditDialog: (user: User) => void;
@@ -53,7 +52,6 @@ interface SettingsSectionProps {
 export const SettingsSection: FC<SettingsSectionProps> = ({
   lotteryConfig,
   creditRequestConfig,
-  allTickets,
   onSaveLotteryConfig,
   onSaveCreditRequestConfig,
   onOpenCreditDialog,
@@ -72,47 +70,38 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
 
   // User list state
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [allTickets, setAllTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshingUserId, setRefreshingUserId] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async (searchTerm: string) => {
-    setIsLoadingUsers(true);
-    try {
-        let q: Query<DocumentData>;
-        const usersCollectionRef = collection(db, 'users');
-
-        if (searchTerm) {
-            // Firestore does not support case-insensitive search natively.
-            // A common approach is to search for a range.
-            const endTerm = searchTerm.toLowerCase() + '\uf8ff';
-            q = query(
-                usersCollectionRef, 
-                where("username", ">=", searchTerm),
-                where("username", "<=", endTerm),
-                orderBy("username"), 
-                limit(USERS_PER_PAGE)
-            );
-        } else {
-            // Default query: fetches initial set of users ordered by username
-            q = query(usersCollectionRef, orderBy("username"), limit(USERS_PER_PAGE));
-        }
-        
-        const documentSnapshots = await getDocs(q);
-        const fetchedUsers = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-        setUsers(fetchedUsers);
-
-    } catch (error) {
-        console.error("Error fetching users: ", error);
-        toast({ title: "Erro ao Carregar Usuários", description: "Não foi possível buscar a lista de usuários.", variant: "destructive" });
-    } finally {
-        setIsLoadingUsers(false);
-    }
-  }, [toast]);
-
-  // Effect to trigger fetch when debounced search term changes
   useEffect(() => {
-    fetchUsers(debouncedSearchTerm);
-  }, [debouncedSearchTerm, fetchUsers]);
+      setIsLoading(true);
+      const usersQuery = query(collection(db, 'users'), orderBy('username'));
+      const ticketsQuery = query(collection(db, 'tickets'));
+
+      const unsubscribeUsers = onSnapshot(usersQuery, (querySnapshot) => {
+          const fetchedUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+          setUsers(fetchedUsers);
+          setIsLoading(false);
+      }, (error) => {
+          console.error("Error fetching users:", error);
+          toast({ title: "Erro ao Carregar Usuários", variant: "destructive" });
+          setIsLoading(false);
+      });
+
+      const unsubscribeTickets = onSnapshot(ticketsQuery, (querySnapshot) => {
+          const fetchedTickets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+          setAllTickets(fetchedTickets);
+      }, (error) => {
+          console.error("Error fetching tickets:", error);
+          toast({ title: "Erro ao Carregar Bilhetes", variant: "destructive" });
+      });
+
+      return () => {
+          unsubscribeUsers();
+          unsubscribeTickets();
+      };
+  }, [toast]);
 
   const handleRefreshBalance = async (userId: string) => {
     setRefreshingUserId(userId);
@@ -190,6 +179,14 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
       pixKey: pixKeyInput.trim(),
     });
   };
+  
+  const filteredUsers = useMemo(() => {
+    if (!debouncedSearchTerm) return users;
+    return users.filter(user => 
+        user.username.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+  }, [users, debouncedSearchTerm]);
+
 
   const getUserActiveTicketsCount = useCallback((user: User) => {
     const idField = user.role === 'cliente' ? 'buyerId' : 'sellerId';
@@ -329,7 +326,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
               </CardHeader>
               <CardContent>
               <ScrollArea className="h-96">
-                {isLoadingUsers ? (
+                {isLoading ? (
                   <div className="flex items-center justify-center text-muted-foreground py-10">
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     <span>Carregando usuários...</span>
@@ -346,7 +343,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.length > 0 ? users.map(user => (
+                        {filteredUsers.length > 0 ? filteredUsers.map(user => (
                         <TableRow key={user.id}>
                             <TableCell>
                             <div className="flex items-center gap-3">

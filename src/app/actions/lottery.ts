@@ -51,7 +51,7 @@ export const startNewLotteryAction = async (): Promise<void> => {
     const drawsSnapshot = await adminDb.collection('draws').get();
     const allDraws = drawsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Draw));
 
-    // --- 2. Process data using the same logic as the client ---
+    // --- 2. Process data using utility functions ---
     const processedTickets = updateTicketStatusesBasedOnDraws(allTickets, allDraws);
     const financialReport = generateFinancialReport(processedTickets, lotteryConfig);
 
@@ -60,19 +60,22 @@ export const startNewLotteryAction = async (): Promise<void> => {
     // Capture Seller History
     const sellers = allUsers.filter(u => u.role === 'vendedor');
     for (const seller of sellers) {
-        const sellerTickets = processedTickets.filter(ticket => ticket.status === 'active' && ticket.sellerId === seller.id);
-        const activeSellerTicketsCount = sellerTickets.length;
+        // Consider only tickets that were sold by this seller in the current cycle
+        const sellerTicketsInCycle = processedTickets.filter(ticket => 
+            (ticket.status === 'active' || ticket.status === 'winning') && ticket.sellerId === seller.id
+        );
+        const activeSellerTicketsCount = sellerTicketsInCycle.length;
         
         if (activeSellerTicketsCount > 0) {
-            const totalRevenueFromActiveTickets = activeSellerTicketsCount * lotteryConfig.ticketPrice;
-            const commissionEarned = totalRevenueFromActiveTickets * (lotteryConfig.sellerCommissionPercentage / 100);
+            const totalRevenueFromSeller = activeSellerTicketsCount * lotteryConfig.ticketPrice;
+            const commissionEarned = totalRevenueFromSeller * (lotteryConfig.sellerCommissionPercentage / 100);
             
             const newEntry: Omit<SellerHistoryEntry, 'id'> = {
                 sellerId: seller.id,
                 sellerUsername: seller.username,
                 endDate,
                 activeTicketsCount: activeSellerTicketsCount,
-                totalRevenue: totalRevenueFromActiveTickets,
+                totalRevenue: totalRevenueFromSeller,
                 totalCommission: commissionEarned,
             };
             const newHistoryDocRef = adminDb.collection('sellerHistory').doc();
@@ -97,14 +100,15 @@ export const startNewLotteryAction = async (): Promise<void> => {
 
     // --- 4. Reset Cycle Data ---
 
-    // Reset Draws (using the snapshot we already have)
+    // Delete all draws from the current cycle
     drawsSnapshot.forEach(drawDoc => {
         batch.delete(drawDoc.ref);
     });
 
-    // Reset relevant Tickets to 'expired' status
-    const activeTicketsSnapshot = await adminDb.collection('tickets').where('status', 'in', ['active', 'winning', 'awaiting_payment', 'unpaid']).get();
-    activeTicketsSnapshot.forEach(ticketDoc => {
+    // Set all active-like tickets to 'expired'
+    // This query is more robust than relying on a potentially stale 'processedTickets' array
+    const ticketsToExpireSnapshot = await adminDb.collection('tickets').where('status', 'in', ['active', 'winning', 'awaiting_payment', 'unpaid']).get();
+    ticketsToExpireSnapshot.forEach(ticketDoc => {
         batch.update(ticketDoc.ref, { status: 'expired' });
     });
 

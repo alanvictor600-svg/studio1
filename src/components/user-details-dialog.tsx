@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, type FC, useMemo } from 'react';
+import { useState, type FC, useMemo, useEffect } from 'react';
 import type { User, Ticket } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,12 +18,14 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Label } from '@/components/ui/label';
+import { db } from '@/lib/firebase-client';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+
 
 interface UserDetailsDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   user: User | null;
-  allTickets: Ticket[];
   onDelete: () => void;
   onClose: () => void;
 }
@@ -32,24 +34,40 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   isOpen,
   onOpenChange,
   user,
-  allTickets,
   onDelete,
   onClose,
 }) => {
+  const [userTickets, setUserTickets] = useState<Ticket[]>([]);
 
-  const userTickets = useMemo(() => {
-    if (!user) return { active: [], winning: [], expired: [], unpaid: [] };
+  useEffect(() => {
+    if (!user || !isOpen) {
+      setUserTickets([]);
+      return;
+    }
+
     const idField = user.role === 'cliente' ? 'buyerId' : 'sellerId';
+    const ticketsQuery = query(collection(db, 'tickets'), where(idField, '==', user.id));
+    
+    const unsubscribe = onSnapshot(ticketsQuery, (snapshot) => {
+      const ticketsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket));
+      setUserTickets(ticketsData);
+    });
+
+    return () => unsubscribe();
+  }, [user, isOpen]);
+
+  const ticketSummary = useMemo(() => {
+    if (!user) return { active: 0, winning: 0, expired: 0, unpaid: 0 };
     
     return {
-        active: allTickets.filter(t => t.status === 'active' && t[idField] === user.id),
-        winning: allTickets.filter(t => t.status === 'winning' && t[idField] === user.id),
-        expired: allTickets.filter(t => t.status === 'expired' && t[idField] === user.id),
-        unpaid: allTickets.filter(t => t.status === 'unpaid' && t[idField] === user.id),
+        active: userTickets.filter(t => t.status === 'active').length,
+        winning: userTickets.filter(t => t.status === 'winning').length,
+        expired: userTickets.filter(t => t.status === 'expired').length,
+        unpaid: userTickets.filter(t => t.status === 'unpaid').length,
     };
-  }, [user, allTickets]);
+  }, [user, userTickets]);
   
-  const totalTickets = Object.values(userTickets).reduce((sum, arr) => sum + arr.length, 0);
+  const totalTickets = userTickets.length;
 
   if (!user) {
     return null;
@@ -103,19 +121,19 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
                     <div className="space-y-3">
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Ativos:</span>
-                            <Badge variant="secondary">{userTickets.active.length}</Badge>
+                            <Badge variant="secondary">{ticketSummary.active}</Badge>
                         </div>
                          <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Premiados:</span>
-                            <Badge className="bg-accent text-accent-foreground">{userTickets.winning.length}</Badge>
+                            <Badge className="bg-accent text-accent-foreground">{ticketSummary.winning}</Badge>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Não Pagos:</span>
-                            <Badge variant="destructive">{userTickets.unpaid.length}</Badge>
+                            <Badge variant="destructive">{ticketSummary.unpaid}</Badge>
                         </div>
                          <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Expirados:</span>
-                            <Badge variant="outline">{userTickets.expired.length}</Badge>
+                            <Badge variant="outline">{ticketSummary.expired}</Badge>
                         </div>
                     </div>
                 ) : (
