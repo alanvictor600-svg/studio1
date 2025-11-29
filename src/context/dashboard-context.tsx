@@ -6,15 +6,9 @@ import type { LotteryConfig, User, Ticket, Draw } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { createClientTicketsAction } from '@/app/actions/ticket';
-import { doc, onSnapshot, collection, query, where, Unsubscribe, Query } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase-client';
 import { v4 as uuidv4 } from 'uuid';
-
-interface PublicRankingEntry {
-  initials: string;
-  matches: number;
-  ticketId: string;
-}
 
 interface DashboardContextType {
     cart: number[][];
@@ -33,12 +27,12 @@ interface DashboardContextType {
     receiptTickets: Ticket[] | null;
     setReceiptTickets: Dispatch<SetStateAction<Ticket[] | null>>;
     
-    // New properties for centralized data
+    // Centralized data
     userTickets: Ticket[];
     allDraws: Draw[];
     isLotteryPaused: boolean;
     isDataLoading: boolean;
-    startDataListeners: (user: User) => () => void; // Now returns a cleanup function
+    startDataListeners: (user: User) => () => void;
     handleGenerateReceipt: (ticket: Ticket) => void;
 }
 
@@ -69,7 +63,16 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const listenersRef = useRef<Unsubscribe[]>([]);
 
     useEffect(() => {
+        // Cleanup on unmount or when auth state changes
+        return () => {
+            listenersRef.current.forEach(unsub => unsub());
+            listenersRef.current = [];
+        };
+    }, []);
+    
+    useEffect(() => {
         if (!isAuthenticated) {
+            // Clear all data when user logs out
             setUserTickets([]);
             setAllDraws([]);
             setCart([]);
@@ -88,12 +91,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     useEffect(() => {
-        const drawsExist = allDraws.length > 0;
-        setIsLotteryPaused(drawsExist);
+        // Determine if lottery is paused based on draws existence
+        setIsLotteryPaused(allDraws.length > 0);
     }, [allDraws]);
 
 
     const startDataListeners = useCallback((user: User): () => void => {
+        // Prevent re-initialization if listeners are already active
         if (listenersRef.current.length > 0) {
            return () => {};
         }
@@ -104,31 +108,26 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         const checkAllDataLoaded = () => {
             loadedCount++;
-            if (loadedCount === totalListeners) {
+            if (loadedCount >= totalListeners) {
                 setIsDataLoading(false);
             }
         };
 
+        // 1. Config Listener
         const configDocRef = doc(db, 'configs', 'global');
         const configUnsub = onSnapshot(configDocRef, (configDoc) => {
             if (configDoc.exists()) {
                 const data = configDoc.data() as LotteryConfig;
-                setLotteryConfig({
-                    ticketPrice: data.ticketPrice || 2,
-                    sellerCommissionPercentage: data.sellerCommissionPercentage || 10,
-                    ownerCommissionPercentage: data.ownerCommissionPercentage || 5,
-                    clientSalesCommissionToOwnerPercentage: data.clientSalesCommissionToOwnerPercentage || 10,
-                    configVersion: data.configVersion || 1,
-                });
-            } else {
-                 setLotteryConfig(DEFAULT_LOTTERY_CONFIG);
+                setLotteryConfig(prevConfig => ({ ...prevConfig, ...data }));
             }
             checkAllDataLoaded();
         }, (error) => {
             console.error("Error fetching lottery config: ", error);
+            toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da loteria.", variant: "destructive" });
             checkAllDataLoaded();
         });
 
+        // 2. Draws Listener
         const drawsQuery = query(collection(db, 'draws'));
         const drawsUnsub = onSnapshot(drawsQuery, (drawsSnapshot) => {
             const drawsData = drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw));
@@ -136,12 +135,13 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             checkAllDataLoaded();
         }, (error) => {
             console.error("Error fetching draws: ", error);
+            toast({ title: "Erro nos Sorteios", description: "Não foi possível carregar os dados dos sorteios.", variant: "destructive" });
             checkAllDataLoaded();
         });
 
-        const ticketsCollectionRef = collection(db, 'tickets');
+        // 3. User Tickets Listener
         const idField = user.role === 'cliente' ? 'buyerId' : 'sellerId';
-        const ticketsQuery = query(ticketsCollectionRef, where(idField, '==', user.id));
+        const ticketsQuery = query(collection(db, 'tickets'), where(idField, '==', user.id));
         
         const ticketsUnsub = onSnapshot(ticketsQuery, (ticketSnapshot) => {
             const userTicketsData = ticketSnapshot.docs
@@ -151,17 +151,19 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             checkAllDataLoaded();
         }, (error) => {
             console.error("Error fetching user tickets: ", error);
+            toast({ title: "Erro nos Bilhetes", description: "Não foi possível carregar seus bilhetes.", variant: "destructive" });
             checkAllDataLoaded();
         });
 
-        const allUnsubscribes = [configUnsub, drawsUnsub, ticketsUnsub].filter(Boolean) as Unsubscribe[];
+        const allUnsubscribes = [configUnsub, drawsUnsub, ticketsUnsub];
         listenersRef.current = allUnsubscribes;
 
+        // Return a cleanup function
         return () => {
             allUnsubscribes.forEach(unsub => unsub());
             listenersRef.current = [];
         };
-    }, []);
+    }, [toast]);
 
     const handlePurchaseCart = async () => {
         if (!currentUser) {
@@ -186,7 +188,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             });
 
             const ticketsForReceipt: Ticket[] = cart.map(ticketNumbers => ({
-                id: uuidv4(),
+                id: uuidv4(), // Generate a client-side temporary ID for the receipt
                 numbers: ticketNumbers,
                 status: 'active',
                 createdAt: new Date().toISOString(),

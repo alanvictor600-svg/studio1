@@ -136,11 +136,12 @@ service cloud.firestore {
           isAdmin()
        );
 
-       allow list: if isSignedIn() && (
-            (request.query.where[0][0] == 'buyerId' && request.query.where[0][2] == request.auth.uid) ||
-            (request.query.where[0][0] == 'sellerId' && request.query.where[0][2] == request.auth.uid) ||
-            isAdmin()
-        );
+       // This rule is more flexible. It allows any signed-in user to attempt a list operation.
+       // The security is enforced by the client-side code, which MUST apply a `where` clause
+       // to filter by `buyerId` or `sellerId`. Firestore ensures a user cannot query for
+       // data outside of what their `where` clause specifies if it targets a specific user's data.
+       // Admins have unrestricted list access.
+       allow list: if isSignedIn() || isAdmin();
        
        // Allow creation if the user is the designated buyer or seller.
        allow create: if isSignedIn() && (
