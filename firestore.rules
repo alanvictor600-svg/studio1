@@ -17,7 +17,7 @@
  * - Users can only read and write their own data, unless they are an admin.
  * - Admins can list and update any user profile.
  * - Ticket access is restricted to the buyer or seller, and admins.
- * - Draws can be read by any signed-in user, but only written/deleted by admins.
+ * - - Draws can be read by any signed-in user, but only written/deleted by admins.
  * - History collections are protected, accessible only by the relevant user or an admin.
  * - The root `tickets` collection is queryable by buyer/seller ID or by an admin.
  */
@@ -139,7 +139,7 @@ service cloud.firestore {
        // client-side code which MUST query by buyerId or sellerId. The `get` rule
        // above prevents any unauthorized document reads within that list.
        // Admins can list all tickets without restriction.
-       allow list: if isSignedIn();
+       allow list: if isSignedIn() && (isAdmin() || ((request.query.limit > 0 || request.query.offset != null) && (request.query.where != null && (request.query.where[0][1] == 'buyerId' && request.query.where[0][2] == request.auth.uid || request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid))));
        
        // Allow creation if the user is the designated buyer or seller.
        allow create: if isSignedIn() && (
