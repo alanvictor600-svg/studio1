@@ -135,10 +135,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === dashboardPath} onClick={() => setOpenMobile(false)}>
                         <Link href={dashboardPath}>
-                            <>
+                            <div className="flex items-center gap-2">
                                 <LayoutDashboard />
                                 <span>Meu Painel</span>
-                            </>
+                            </div>
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
@@ -146,10 +146,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base h-12" onClick={() => setOpenMobile(false)}>
                          <Link href="/solicitar-saldo">
-                            <>
+                            <div className="flex items-center gap-2">
                                 <Coins /> 
                                 <span>Adquirir Saldo</span>
-                            </>
+                            </div>
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -161,9 +161,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                  <SidebarMenuItem>
                     <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
                         <Link href="/">
-                            <>
+                            <div className="flex items-center gap-2">
                                 <Home /> <span>Página Inicial</span>
-                            </>
+                            </div>
                         </Link>
                     </SidebarMenuButton>
                  </SidebarMenuItem>
