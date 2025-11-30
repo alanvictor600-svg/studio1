@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogIn, UserPlus, ArrowLeft, LogOut } from 'lucide-react';
+import { LogIn, UserPlus, LayoutDashboard, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import type { Draw } from '@/types';
@@ -36,7 +36,7 @@ const Header = () => {
             ) : isAuthenticated && currentUser ? (
                 <>
                     <Button asChild>
-                        <Link href={dashboardPath}><ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel</Link>
+                        <Link href={dashboardPath}><LayoutDashboard className="mr-2 h-4 w-4" /> Acessar Painel</Link>
                     </Button>
                      <Button variant="outline" onClick={logout}>
                         <LogOut className="mr-2 h-4 w-4" /> Sair

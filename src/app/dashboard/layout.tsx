@@ -54,16 +54,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const cleanupListenersRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isAuthLoading) {
-      return;
-    }
+    if (isAuthLoading) return;
 
     if (!isAuthenticated) {
       router.replace('/login?redirect=' + pathname);
-      return;
-    }
-
-    if (currentUser && currentUser.role !== role) {
+    } else if (currentUser && currentUser.role !== role) {
       const targetRole = currentUser.role === 'admin' ? 'admin' : `dashboard/${currentUser.role}`;
       router.replace(`/${targetRole}`);
     }
@@ -87,11 +82,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
 
   if (isAuthLoading || !isAuthenticated || !currentUser || currentUser.role !== role) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando acesso e carregando dados...</p>
-      </div>
-    );
+    return <DashboardLoading />;
   }
 
   const dashboardPath = `/dashboard/${currentUser.role}`;

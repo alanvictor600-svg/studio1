@@ -44,16 +44,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const activeSection = searchParams.get('section') || 'configuracoes';
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
+    if (isLoading) return;
 
     if (!isAuthenticated) {
       router.replace('/login?redirect=' + pathname);
-      return;
-    }
-
-    if (currentUser && currentUser.role !== 'admin') {
+    } else if (currentUser && currentUser.role !== 'admin') {
       const destination = currentUser.role === 'cliente' ? '/dashboard/cliente' : '/dashboard/vendedor';
       router.replace(destination);
     }

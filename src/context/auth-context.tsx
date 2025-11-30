@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (doc.exists()) {
               setCurrentUser({ id: doc.id, ...doc.data() } as User);
             } else {
-              // This case can happen briefly during registration.
               setCurrentUser(null);
             }
             setIsFirestoreLoading(false);
@@ -95,17 +94,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const user = pendingGoogleUser;
     const userDocRef = doc(db, "users", user.uid);
+    const username = user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`;
+    const emailUsername = sanitizeUsernameForEmail(username);
+    const userCheckRef = doc(db, "users_username_lookup", emailUsername);
+
 
     try {
+        const batch = writeBatch(db);
         const newUser: User = {
             id: user.uid,
-            username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`,
+            username: username,
             role: role,
             createdAt: new Date().toISOString(),
             saldo: 0,
         };
-        await setDoc(userDocRef, newUser);
-        setCurrentUser(newUser); // Immediately update local state
+        batch.set(userDocRef, newUser);
+        batch.set(userCheckRef, { userId: user.uid });
+        await batch.commit();
+
+        setCurrentUser(newUser); 
         toast({ title: "Cadastro Concluído!", description: "Bem-vindo ao Bolão Potiguar!", className: "bg-primary text-primary-foreground" });
     } catch(e) {
         console.error("Error creating new user document:", e);
@@ -128,21 +135,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!userDoc.exists()) {
           if (role) {
+             const username = user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`;
              const newUser: User = {
                 id: user.uid,
-                username: user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`,
+                username: username,
                 role: role,
                 createdAt: new Date().toISOString(),
                 saldo: 0,
             };
-            await setDoc(userDocRef, newUser);
+            const batch = writeBatch(db);
+            batch.set(userDocRef, newUser);
+            batch.set(doc(db, "users_username_lookup", sanitizeUsernameForEmail(username)), { userId: user.uid });
+            await batch.commit();
+
             setCurrentUser(newUser); // Optimistic update
           } else {
             setPendingGoogleUser(user);
             setIsRoleSelectionOpen(true);
           }
         }
-        // If user exists, the onSnapshot will handle setting currentUser
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
             toast({ title: "Erro de Login", description: "Já existe uma conta com este e-mail. Tente fazer login com outro método.", variant: "destructive", duration: 5000 });
@@ -159,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      setCurrentUser(null); // Clear local state immediately
+      setCurrentUser(null);
       router.push('/');
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
     } catch (error) {
@@ -177,7 +188,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const emailUsername = sanitizeUsernameForEmail(originalUsername);
     const fakeEmail = `${emailUsername}@bolao.potiguar`;
     
-    // Prevent race conditions by checking if user exists first in a transaction-like manner
     const userCheckRef = doc(db, "users_username_lookup", emailUsername);
     
     try {
@@ -198,18 +208,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             saldo: 0,
         };
         
-        // Use a batch write to create user and username lookup atomically
         const batch = writeBatch(db);
         batch.set(doc(db, "users", newFirebaseUser.uid), newUser);
-        batch.set(userCheckRef, { userId: newFirebaseUser.uid }); // Create the lookup doc
+        batch.set(userCheckRef, { userId: newFirebaseUser.uid });
         
         await batch.commit();
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
-        await signOut(auth); // Sign out the user so they have to log in
+        await signOut(auth);
         router.push('/login');
     } catch (error: any) {
-        // Don't show toast for errors we've already handled (like username exists)
         if (error.code === 'auth/email-already-in-use') {
              toast({ title: "Erro de Cadastro", description: "Este nome de usuário já está em uso.", variant: "destructive" });
         } else if (error.code === 'auth/weak-password') {

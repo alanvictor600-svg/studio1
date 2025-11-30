@@ -14,6 +14,7 @@ import { LogIn, UserPlus, ArrowLeft, Eye, EyeOff, KeyRound } from 'lucide-react'
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { SuspenseWrapper } from '@/components/suspense-wrapper';
+import DashboardLoading from '../dashboard/loading';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -38,33 +39,22 @@ function LoginPageContent() {
   const redirectPath = searchParams.get('redirect');
 
   useEffect(() => {
-    if (searchParams.get('as') === 'admin') {
-      setIsAdminLogin(true);
-    } else {
-      setIsAdminLogin(false);
-    }
+    setIsAdminLogin(searchParams.get('as') === 'admin');
   }, [searchParams]);
 
   useEffect(() => {
-    // If user is authenticated, redirect them
     if (!isLoading && isAuthenticated && currentUser) {
-      // 1. If there's a specific redirect path in the URL, use it.
-      if (redirectPath) {
-        router.replace(redirectPath);
-      // 2. Otherwise, redirect to their default dashboard.
-      } else {
-        const targetDashboardPath = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
-        router.replace(targetDashboardPath);
-      }
+      const targetPath = redirectPath 
+        ? redirectPath 
+        : currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
+      router.replace(targetPath);
     }
   }, [isLoading, isAuthenticated, currentUser, router, redirectPath]);
 
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     try {
-      // Now we don't pass a role. The auth context will handle asking the user if they are new.
       await signInWithGoogle();
-      // On success, the useEffect above will handle redirection.
     } catch (error) {
       // Error is handled in auth context
     } finally {
@@ -80,10 +70,8 @@ function LoginPageContent() {
     }
     
     setIsSubmitting(true);
-    
     try {
       await login(username, password);
-      // On success, the useEffect above will handle redirection.
     } catch (error) {
        // Error is handled in auth context
     } finally {
@@ -92,11 +80,7 @@ function LoginPageContent() {
   };
   
   if (isLoading || (!isLoading && isAuthenticated)) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-foreground text-xl">Verificando sessão...</p>
-      </div>
-    );
+    return <DashboardLoading />;
   }
   
   const backLink = isAdminLogin ? "/login" : "/";
