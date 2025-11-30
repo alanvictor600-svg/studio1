@@ -63,25 +63,31 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     if (currentUser && currentUser.role !== role) {
+      // If user is logged in but trying to access the wrong role's dashboard,
+      // redirect them to their correct dashboard or admin panel.
       const targetRole = currentUser.role === 'admin' ? 'admin' : `dashboard/${currentUser.role}`;
       router.replace(`/${targetRole}`);
     }
   }, [isAuthLoading, isAuthenticated, currentUser, role, router, pathname]);
 
   useEffect(() => {
+    // Only start listeners if the user is authenticated and correctly authorized for the current dashboard role.
     if (isAuthenticated && currentUser && currentUser.role === role) {
+      // If there are existing listeners, clean them up before starting new ones.
       if (cleanupListenersRef.current) {
         cleanupListenersRef.current();
       }
       cleanupListenersRef.current = startDataListeners(currentUser);
     }
 
+    // Cleanup function to run when the component unmounts or dependencies change.
     return () => {
       if (cleanupListenersRef.current) {
         cleanupListenersRef.current();
-        cleanupListenersRef.current = null;
+        cleanupListenersRef.current = null; // Prevent multiple cleanups
       }
     };
+    // The dependency array ensures this effect re-runs if the user or role changes.
   }, [isAuthenticated, currentUser, role, startDataListeners]);
 
 
@@ -167,17 +173,22 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </SidebarFooter>
       </Sidebar>
+
+      {/* Main content area */}
       <div className="flex flex-1 flex-col md:pl-64">
+        {/* Header for both mobile and desktop */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-secondary px-4 md:px-6">
             <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
                  <span className="hidden md:inline font-semibold text-primary">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
             </div>
 
+             {/* Centered logo on mobile */}
              <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-2 md:hidden">
                 <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
             </Link>
 
+            {/* Right-aligned items, like the shopping cart */}
             <div className="flex items-center justify-end">
                 {currentUser.role === 'cliente' && (
                     <ShoppingCart 
@@ -192,12 +203,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </header>
 
+        {/* This main element will grow to fill the remaining space */}
         <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto">
-            {isDataLoading ? (
-                <div className="flex justify-center items-center h-full text-white">Carregando dados do painel...</div>
-            ) : children}
+            {children}
         </main>
 
+        {/* Dialogs that are part of the layout context */}
         <InsufficientCreditsDialog
             isOpen={isCreditsDialogOpen}
             onOpenChange={(isOpen) => { if(!isOpen) showCreditsDialog(false) }}

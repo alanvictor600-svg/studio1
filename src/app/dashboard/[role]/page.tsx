@@ -14,10 +14,18 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { SellerDashboard } from '@/components/seller-dashboard';
+import DashboardLoading from '../loading';
 
 export default function DashboardPage() {
     const params = useParams();
     const { role } = params as { role: 'cliente' | 'vendedor' };
+    const { isDataLoading } = useDashboard();
+
+    // Show a loading state from the context before rendering the specific role's page.
+    // This ensures all data (tickets, draws, config) is ready.
+    if (isDataLoading) {
+        return <DashboardLoading />;
+    }
     
     if (role === 'cliente') {
         return <ClientePageContent />;
@@ -27,7 +35,8 @@ export default function DashboardPage() {
         return <VendedorPageContent />;
     }
 
-    return <p>Painel desconhecido.</p>;
+    // Fallback in case the role is not recognized, though routing should prevent this.
+    return <p>Painel desconhecido. Verifique o URL.</p>;
 }
 
 function ClientePageContent() {
@@ -47,12 +56,13 @@ function ClientePageContent() {
 
   useEffect(() => {
     if (ticketToRebet) {
+      // Add the numbers from the old ticket to the cart for a new purchase.
       setCart(prevCart => [...prevCart, ticketToRebet]);
-      setTicketToRebet(null); 
-      setActiveTab('aposta');
+      setTicketToRebet(null); // Reset the state after adding.
+      setActiveTab('aposta'); // Switch to the betting tab so the user can see the new ticket in the form.
        toast({
         title: "Bilhete adicionado ao carrinho!",
-        description: "A aposta selecionada está pronta para ser comprada novamente.",
+        description: "A aposta selecionada está pronta para ser comprada novamente no carrinho.",
         duration: 4000
       });
     }
@@ -136,12 +146,13 @@ function VendedorPageContent() {
     // This state is local because it only affects the seller's view of their own tickets.
     const [localTickets, setLocalTickets] = useState<Ticket[]>(userTickets);
 
-    // Keep local state in sync with context
+    // Keep local state in sync with context to reflect real-time updates.
     useEffect(() => {
         setLocalTickets(userTickets);
     }, [userTickets]);
 
-    // When a ticket is created, add it to the top of the local list for immediate feedback.
+    // When a ticket is created via the form, add it to the top of the local list for immediate feedback.
+    // The onSnapshot listener will eventually update this, but this provides a better UX.
     const handleTicketCreated = (newTicket: Ticket) => {
         setLocalTickets(prevTickets => [newTicket, ...prevTickets]);
     };
