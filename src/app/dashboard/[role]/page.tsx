@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams } from 'next/navigation';
@@ -67,8 +68,8 @@ function ClientePageContent() {
   ];
 
   return (
-    <div className="space-y-12">
-      <header>
+    <div className="flex flex-col h-full">
+      <header className="flex-shrink-0">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 text-transparent bg-clip-text">
             Bem-vindo, Apostador!
           </h1>
@@ -77,8 +78,8 @@ function ClientePageContent() {
           </p>
       </header>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full grid-cols-2 h-auto mb-8 bg-card p-1.5 rounded-lg shadow-md`}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-grow flex flex-col mt-8">
+          <TabsList className={`grid w-full grid-cols-2 h-auto mb-8 bg-card p-1.5 rounded-lg shadow-md flex-shrink-0`}>
               {TABS_CONFIG.map(tab => (
                   <TabsTrigger 
                     key={tab.value} 
@@ -90,7 +91,7 @@ function ClientePageContent() {
               ))}
           </TabsList>
           
-          <TabsContent value="aposta">
+          <TabsContent value="aposta" className="flex-grow">
               {isLotteryPaused ? (
                   <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground max-w-2xl mx-auto">
                       <PauseCircle className="h-5 w-5 text-primary" />
@@ -109,7 +110,7 @@ function ClientePageContent() {
               )}
           </TabsContent>
           
-          <TabsContent value="bilhetes">
+          <TabsContent value="bilhetes" className="flex-grow">
               <section>
                   <h2 className="text-2xl font-bold text-center text-white mb-6">
                       Meus Bilhetes
