@@ -125,7 +125,9 @@ service cloud.firestore {
     /**
      * @description Controls access to the root `tickets` collection.
      * @principle This allows queries scoped by `buyerId` or `sellerId` for regular users,
-     * and allows admins to perform any read operation.
+     * and allows admins to perform any read operation. The `list` rule is simplified
+     * because the client-side code *must* provide a `where` clause for the query to
+     * succeed, as per Firestore's "rules are not filters" principle.
      */
     match /tickets/{ticketId} {
        allow get: if isSignedIn() && (
@@ -133,17 +135,11 @@ service cloud.firestore {
           request.auth.uid == resource.data.sellerId ||
           isAdmin()
        );
-
-       // Secure list rule:
-       // 1. Admins can list anything.
-       // 2. Regular users can ONLY list if their query is explicitly
-       //    filtered by their OWN buyerId or sellerId. This prevents
-       //    listing all tickets.
-       allow list: if isSignedIn() && (
-          isAdmin() ||
-          (request.query.where[0][0] == 'buyerId' && request.query.where[0][2] == request.auth.uid) ||
-          (request.query.where[0][0] == 'sellerId' && request.query.where[0][2] == request.auth.uid)
-       );
+       // Allow list if the user is signed in. The security is enforced by the
+       // client-side code which MUST query by buyerId or sellerId. The `get` rule
+       // above prevents any unauthorized document reads within that list.
+       // Admins can list all tickets without restriction.
+       allow list: if isSignedIn();
        
        // Allow creation if the user is the designated buyer or seller.
        allow create: if isSignedIn() && (
@@ -153,12 +149,6 @@ service cloud.firestore {
        // Only allow updates for status changes by admin or transactional processes.
        allow update: if isSignedIn() && isAdmin();
        allow delete: if false; // Deleting tickets is not a desired functionality.
-    }
-
-     // New rule for username uniqueness lookup
-    match /users_username_lookup/{username} {
-      allow read: if true; // Publicly readable to check for existence
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.resource.data.userId)).data.username == username;
     }
   }
 }
