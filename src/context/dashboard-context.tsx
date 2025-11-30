@@ -8,6 +8,7 @@ import { doc, onSnapshot, collection, query, where, orderBy, getDocs, limit, sta
 import { db, auth } from '@/lib/firebase-client';
 import { v4 as uuidv4 } from 'uuid';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
+import { useAuth } from './auth-context';
 
 interface DashboardContextType {
     cart: number[][];
@@ -21,7 +22,7 @@ interface DashboardContextType {
     allDraws: Draw[];
     isLotteryPaused: boolean;
     isDataLoading: boolean;
-    showCreditsDialog: () => void;
+    showCreditsDialog: (show: boolean) => void;
     handleGenerateReceipt: (ticket: Ticket) => void;
     sellerHistory: SellerHistoryEntry[];
     isLoadingHistory: boolean;
@@ -43,6 +44,7 @@ const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
 const REPORTS_PER_PAGE = 9;
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
+    const { currentUser } = useAuth();
     const [cart, setCart] = useState<number[][]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
@@ -67,7 +69,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     };
     
     const startDataListeners = useCallback((user: User) => {
-        if (activeUserRef.current?.id === user.id) {
+        if (activeUserRef.current?.id === user.id && !isDataLoading) {
             return () => {};
         }
 
@@ -76,27 +78,35 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsDataLoading(true);
 
         const newListeners: (() => void)[] = [];
+        let allListenersReady = 0;
+        const totalListeners = user.role === 'vendedor' ? 4 : 3;
+
+        const checkAllDataLoaded = () => {
+            allListenersReady++;
+            if (allListenersReady === totalListeners) {
+                setIsDataLoading(false);
+            }
+        };
 
         try {
             const configUnsub = onSnapshot(doc(db, 'configs', 'global'), (configDoc) => {
                 setLotteryConfig(prev => ({ ...prev, ...configDoc.data() }));
-            });
-            newListeners.push(configUnsub);
+                checkAllDataLoaded();
+            }, () => checkAllDataLoaded());
 
             const drawsUnsub = onSnapshot(collection(db, 'draws'), (drawsSnapshot) => {
                 setAllDraws(drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw)));
-            });
-            newListeners.push(drawsUnsub);
+                checkAllDataLoaded();
+            }, () => checkAllDataLoaded());
             
             const idField = user.role === 'cliente' ? 'buyerId' : 'sellerId';
             const ticketsQuery = query(collection(db, 'tickets'), where(idField, '==', user.id));
             const ticketsUnsub = onSnapshot(ticketsQuery, (ticketSnapshot) => {
                 setRawUserTickets(ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket)).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                setIsDataLoading(false); 
-            }, () => {
-                setIsDataLoading(false);
-            });
-            newListeners.push(ticketsUnsub);
+                checkAllDataLoaded();
+            }, () => checkAllDataLoaded());
+
+            newListeners.push(configUnsub, drawsUnsub, ticketsUnsub);
 
             if (user.role === 'vendedor') {
                 setIsLoadingHistory(true);
@@ -107,10 +117,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
                     setHasMoreHistory(historyData.length === REPORTS_PER_PAGE);
                     setIsLoadingHistory(false);
-                }, () => setIsLoadingHistory(false));
+                    checkAllDataLoaded();
+                }, () => {
+                    setIsLoadingHistory(false);
+                    checkAllDataLoaded();
+                });
                 newListeners.push(historyUnsub);
-            } else {
-                 setIsLoadingHistory(false);
             }
 
         } catch (error) {
@@ -120,11 +132,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
 
         listenersRef.current = newListeners;
 
-        return () => {
-            clearListeners();
-            activeUserRef.current = null;
-        };
-    }, []);
+        return clearListeners;
+    }, [isDataLoading]);
 
     const userTickets = useMemo(() => updateTicketStatusesBasedOnDraws(rawUserTickets, allDraws), [rawUserTickets, allDraws]);
     
@@ -132,12 +141,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         return userTickets.some(t => t.status === 'winning');
     }, [userTickets]);
     
-    const showCreditsDialog = useCallback(() => setIsCreditsDialogOpen(true), []);
+    const showCreditsDialog = useCallback((show: boolean) => setIsCreditsDialogOpen(show), []);
     const handleGenerateReceipt = useCallback((ticket: Ticket) => setReceiptTickets([ticket]), []);
 
     const handlePurchaseCart = async () => {
-        const user = auth.currentUser;
-        if (!user) {
+        if (!currentUser) {
             toast({ title: "Usuário não encontrado", variant: "destructive" });
             return;
         }
@@ -148,15 +156,15 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         
         setIsSubmitting(true);
         try {
-            await createClientTicketsAction({ user: { id: user.id, username: user.displayName || 'Cliente' }, cart });
+            await createClientTicketsAction({ user: { id: currentUser.id, username: currentUser.username }, cart });
 
             const ticketsForReceipt: Ticket[] = cart.map(numbers => ({
                 id: uuidv4(),
                 numbers,
                 status: 'active',
                 createdAt: new Date().toISOString(),
-                buyerName: user.displayName || 'Cliente',
-                buyerId: user.id,
+                buyerName: currentUser.username,
+                buyerId: currentUser.id,
             }));
 
             setCart([]);
@@ -169,7 +177,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             });
         } catch (e: any) {
             if (e.message.includes("Saldo insuficiente")) {
-                showCreditsDialog();
+                showCreditsDialog(true);
             } else {
                 toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
             }
@@ -179,11 +187,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     };
     
     const loadMoreHistory = async () => {
-        const user = auth.currentUser;
-        if (!user || !activeUserRef.current || user.uid !== activeUserRef.current.id || !lastVisibleHistory) return;
+        if (!currentUser || !lastVisibleHistory) return;
         
         setIsLoadingHistory(true);
-        const historyQuery = query(collection(db, 'sellerHistory'), where("sellerId", "==", user.uid), orderBy("endDate", "desc"), startAfter(lastVisibleHistory), limit(REPORTS_PER_PAGE));
+        const historyQuery = query(collection(db, 'sellerHistory'), where("sellerId", "==", currentUser.uid), orderBy("endDate", "desc"), startAfter(lastVisibleHistory), limit(REPORTS_PER_PAGE));
         const docSnaps = await getDocs(historyQuery);
         const newHistory = docSnaps.docs.map(d => ({id: d.id, ...d.data()}) as SellerHistoryEntry);
         
@@ -197,7 +204,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         cart, setCart, handlePurchaseCart,
         isSubmitting, lotteryConfig, receiptTickets, setReceiptTickets,
         userTickets, allDraws, isLotteryPaused, isDataLoading,
-        showCreditsDialog, setIsCreditsDialogOpen, handleGenerateReceipt,
+        showCreditsDialog, handleGenerateReceipt,
         sellerHistory, isLoadingHistory, loadMoreHistory, hasMoreHistory,
         startDataListeners
     };

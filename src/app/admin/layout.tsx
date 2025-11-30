@@ -53,7 +53,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     if (currentUser && currentUser.role !== 'admin') {
-      const destination = currentUser.role === 'cliente' ? '/cliente' : '/vendedor';
+      const destination = currentUser.role === 'cliente' ? '/dashboard/cliente' : '/dashboard/vendedor';
       router.replace(destination);
     }
   }, [isLoading, isAuthenticated, currentUser, router, pathname]);
@@ -94,16 +94,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
                 {menuItems.map(item => (
                     <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton 
-                          asChild
-                          isActive={activeSection === item.id}
-                          onClick={() => setOpenMobile(false)}
-                        >
-                            <Link href={`/admin?section=${item.id}`}>
+                        <Link href={`/admin?section=${item.id}`} passHref>
+                            <SidebarMenuButton 
+                              isActive={activeSection === item.id}
+                              onClick={() => setOpenMobile(false)}
+                            >
                                 <item.Icon />
                                 <span>{item.label}</span>
-                            </Link>
-                        </SidebarMenuButton>
+                            </SidebarMenuButton>
+                        </Link>
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>
@@ -112,12 +111,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
                   <SidebarSeparator className="my-2" />
                   <SidebarMenuItem>
-                        <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
-                            <Link href="/">
+                        <Link href="/" passHref>
+                            <SidebarMenuButton onClick={() => setOpenMobile(false)}>
                                 <Home />
                                 <span>Página Inicial</span>
-                            </Link>
-                        </SidebarMenuButton>
+                            </SidebarMenuButton>
+                        </Link>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                       <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">

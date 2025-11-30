@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import Link from 'next/link';
@@ -41,12 +41,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     handlePurchaseCart, 
     isSubmitting, 
     lotteryConfig,
-    isCreditsDialogOpen,
-    setIsCreditsDialogOpen,
     receiptTickets,
     setReceiptTickets,
     startDataListeners,
-    isDataLoading
+    isDataLoading,
+    showCreditsDialog
   } = useDashboard();
   
   const cleanupListenersRef = useRef<(() => void) | null>(null);
@@ -69,6 +68,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated && currentUser && currentUser.role === role) {
+      if (cleanupListenersRef.current) {
+        cleanupListenersRef.current();
+      }
       cleanupListenersRef.current = startDataListeners(currentUser);
     }
 
@@ -124,21 +126,21 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
             <SidebarMenu>
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === dashboardPath} onClick={() => setOpenMobile(false)}>
-                        <Link href={dashboardPath}>
+                    <Link href={dashboardPath} passHref>
+                        <SidebarMenuButton isActive={pathname === dashboardPath} onClick={() => setOpenMobile(false)}>
                             <LayoutDashboard />
                             <span>Meu Painel</span>
-                        </Link>
-                    </SidebarMenuButton>
+                        </SidebarMenuButton>
+                    </Link>
                  </SidebarMenuItem>
                  
                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base h-12" onClick={() => setOpenMobile(false)}>
-                         <Link href="/solicitar-saldo">
+                    <Link href="/solicitar-saldo" passHref>
+                        <SidebarMenuButton className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base h-12" onClick={() => setOpenMobile(false)}>
                             <Coins /> 
                             <span>Adquirir Saldo</span>
-                        </Link>
-                    </SidebarMenuButton>
+                        </SidebarMenuButton>
+                    </Link>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarContent>
@@ -146,11 +148,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
                  <SidebarSeparator className="my-2" />
                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild onClick={() => setOpenMobile(false)}>
-                        <Link href="/">
+                    <Link href="/" passHref>
+                        <SidebarMenuButton onClick={() => setOpenMobile(false)}>
                             <Home /> <span>Página Inicial</span>
-                        </Link>
-                    </SidebarMenuButton>
+                        </SidebarMenuButton>
+                    </Link>
                  </SidebarMenuItem>
                  <SidebarMenuItem>
                     <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
@@ -196,7 +198,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
         <InsufficientCreditsDialog
             isOpen={isCreditsDialogOpen}
-            onOpenChange={setIsCreditsDialogOpen}
+            onOpenChange={(isOpen) => { if(!isOpen) showCreditsDialog(false) }}
         />
         <TicketReceiptDialog
             isOpen={!!receiptTickets}
@@ -218,7 +220,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <SidebarProvider>
       <DashboardProvider>
-        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        <Suspense>
+          <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        </Suspense>
       </DashboardProvider>
     </SidebarProvider>
   );
