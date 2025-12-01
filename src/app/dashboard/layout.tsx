@@ -54,7 +54,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const cleanupListenersRef = useRef<(() => void) | null>(null);
 
   const handleForceRefresh = () => {
-    router.refresh();
+    window.location.reload();
   };
 
   useEffect(() => {
@@ -153,7 +153,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     <SidebarMenuButton onClick={handleForceRefresh} variant="outline">
                         <span className="flex items-center gap-2">
                             <RefreshCw className="h-4 w-4" /> 
-                            <span>Atualizar Bolão</span>
+                            <span>Atualizar Dados</span>
                         </span>
                     </SidebarMenuButton>
                  </SidebarMenuItem>

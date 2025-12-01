@@ -8,7 +8,7 @@ import { LogIn, UserPlus, LayoutDashboard, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import type { Draw } from '@/types';
-import { collection, query, orderBy, onSnapshot, getFirestore } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { History, Gamepad2, Gift, Lock } from 'lucide-react';
@@ -81,15 +81,14 @@ const HeroSection = () => (
 
 const ResultsSection = () => {
     const { isAuthenticated } = useAuth();
-    const { firebaseApp } = useFirebase();
-    const db = getFirestore(firebaseApp);
+    const { db } = useFirebase();
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         let unsubscribe: (() => void) | null = null;
         
-        if (isAuthenticated) {
+        if (isAuthenticated && db) {
             setIsLoading(true);
             const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
             unsubscribe = onSnapshot(drawsQuery, (querySnapshot) => {

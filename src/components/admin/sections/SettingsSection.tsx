@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useCallback, useMemo, type FC, useEffect } from 'react';
@@ -15,9 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, getFirestore } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { saveLotteryConfig } from '@/lib/services/configService';
 import { useFirebase } from '@/firebase/client-provider';
 
 // Custom hook for debouncing
@@ -56,8 +54,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   onOpenViewUser,
 }) => {
   const { toast } = useToast();
-  const { firebaseApp } = useFirebase();
-  const db = getFirestore(firebaseApp);
+  const { db } = useFirebase();
 
   const [ticketPriceInput, setTicketPriceInput] = useState(lotteryConfig.ticketPrice.toString());
   const [commissionInput, setCommissionInput] = useState(lotteryConfig.sellerCommissionPercentage.toString());
@@ -76,6 +73,10 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   const [refreshingUserId, setRefreshingUserId] = useState<string | null>(null);
 
   useEffect(() => {
+      if (!db) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       const usersQuery = query(collection(db, 'users'), orderBy('username'));
       const ticketsQuery = query(collection(db, 'tickets'));
@@ -105,6 +106,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   }, [toast, db]);
 
   const handleRefreshBalance = async (userId: string) => {
+    if (!db) return;
     setRefreshingUserId(userId);
     try {
         const userDocRef = doc(db, 'users', userId);
@@ -161,7 +163,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   
   const handleForceSync = async () => {
     try {
-        await saveLotteryConfig({ configVersion: new Date().getTime() });
+        await onSaveLotteryConfig({ configVersion: new Date().getTime() });
         toast({
             title: "Sincronização Forçada!",
             description: "Um sinal de atualização foi enviado para todos os dispositivos conectados.",

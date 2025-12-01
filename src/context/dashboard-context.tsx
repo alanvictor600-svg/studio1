@@ -5,7 +5,7 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { LotteryConfig, User, Ticket, Draw, SellerHistoryEntry } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { createClientTicketsAction } from '@/app/actions/ticket';
-import { doc, onSnapshot, collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot, getFirestore } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useAuth } from './auth-context';
@@ -47,8 +47,7 @@ const REPORTS_PER_PAGE = 9;
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const { currentUser } = useAuth();
-    const { firebaseApp } = useFirebase();
-    const db = getFirestore(firebaseApp);
+    const { db } = useFirebase();
 
     const [cart, setCart] = useState<number[][]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,6 +72,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, []);
     
     const startDataListeners = useCallback((user: User) => {
+        if (!db) {
+            toast({ title: "Erro de Conexão", description: "O banco de dados não está disponível.", variant: "destructive" });
+            setIsDataLoading(false);
+            return () => {};
+        }
+
         clearListeners();
         setIsDataLoading(true);
 
@@ -106,7 +111,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         newListeners.push(ticketsUnsub);
 
         const promises = [
-            getDoc(doc(db, 'configs', 'global')),
+            getDocs(doc(db, 'configs', 'global').parent),
             getDocs(collection(db, 'draws')),
             getDocs(ticketsQuery),
         ];
@@ -183,7 +188,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     };
     
     const loadMoreHistory = async () => {
-        if (!currentUser || !lastVisibleHistory || !hasMoreHistory) return;
+        if (!currentUser || !lastVisibleHistory || !hasMoreHistory || !db) return;
         
         setIsLoadingHistory(true);
         const historyQuery = query(collection(db, 'sellerHistory'), where("sellerId", "==", currentUser.id), orderBy("endDate", "desc"), startAfter(lastVisibleHistory), limit(REPORTS_PER_PAGE));

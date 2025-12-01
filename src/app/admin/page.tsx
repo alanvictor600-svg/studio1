@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
@@ -8,8 +9,8 @@ import { CreditManagementDialog } from '@/components/credit-management-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { db } from '@/lib/firebase-client';
 import { collection, onSnapshot, doc, query, orderBy } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/client-provider';
 
 import { addDrawAction, startNewLotteryAction } from '@/app/actions/lottery';
 import { saveLotteryConfig, saveCreditRequestConfig } from '@/lib/services/configService';
@@ -43,6 +44,7 @@ export type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-lo
 
 
 function AdminPageContent() {
+  const { db } = useFirebase();
   const [draws, setDraws] = useState<Draw[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
@@ -77,7 +79,7 @@ function AdminPageContent() {
   }, [isLoading, isAuthenticated, currentUser, router]);
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated) return;
+    if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated || !db) return;
 
     const configDocRef = doc(db, 'configs', 'global');
     const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
@@ -138,7 +140,7 @@ function AdminPageContent() {
         unsubscribeDraws();
         unsubscribeAdminHistory();
     };
-  }, [currentUser, isAuthenticated, toast]);
+  }, [currentUser, isAuthenticated, toast, db]);
 
 
   const processedTickets = useMemo(() => updateTicketStatusesBasedOnDraws(allTickets, draws), [allTickets, draws]);
@@ -214,8 +216,9 @@ function AdminPageContent() {
   };
 
   const handleSaveLotteryConfig = async (newConfig: Partial<LotteryConfig>) => {
+    if (!db) return;
     try {
-        await saveLotteryConfig(newConfig);
+        await saveLotteryConfig(db, newConfig);
         toast({ title: "Configurações Salvas!", description: "As novas configurações da loteria foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
     } catch(e) {
         console.error("Error saving lottery config: ", e);
@@ -224,8 +227,9 @@ function AdminPageContent() {
   };
   
   const handleSaveCreditRequestConfig = async (newConfig: CreditRequestConfig) => {
+    if (!db) return;
     try {
-        await saveCreditRequestConfig(newConfig);
+        await saveCreditRequestConfig(db, newConfig);
         toast({ title: "Configurações Salvas!", description: "As informações de contato foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
     } catch (e) {
         console.error("Error saving credit request config: ", e);
@@ -244,8 +248,9 @@ function AdminPageContent() {
   };
   
   const handleCreditChange = async (user: User, amount: number) => {
+    if (!db) return;
     try {
-        const newBalance = await updateUserCredits(user.id, amount);
+        const newBalance = await updateUserCredits(db, user.id, amount);
         
         if (userToManageCredits && userToManageCredits.id === user.id) {
             setUserToManageCredits(prev => prev ? { ...prev, saldo: newBalance } : null);
@@ -426,3 +431,5 @@ export default function AdminPage() {
     </Suspense>
   );
 }
+
+    

@@ -18,7 +18,7 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Label } from '@/components/ui/label';
-import { collection, query, where, onSnapshot, getFirestore } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from '@/firebase/client-provider';
 
 
@@ -38,11 +38,10 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   onClose,
 }) => {
   const [userTickets, setUserTickets] = useState<Ticket[]>([]);
-  const { firebaseApp } = useFirebase();
-  const db = getFirestore(firebaseApp);
+  const { db } = useFirebase();
 
   useEffect(() => {
-    if (!user || !isOpen) {
+    if (!user || !isOpen || !db) {
       setUserTickets([]);
       return;
     }
@@ -160,3 +159,5 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
     </Dialog>
   );
 };
+
+    

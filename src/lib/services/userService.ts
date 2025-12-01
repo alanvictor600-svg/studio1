@@ -1,17 +1,17 @@
-// src-lib/services/userService.ts
-import { doc, runTransaction, getFirestore } from 'firebase/firestore';
-import { app } from '@/firebase';
-import { deleteUserAction } from '@/app/actions/user';
 
-const db = getFirestore(app);
+// src-lib/services/userService.ts
+import { doc, runTransaction, Firestore } from 'firebase/firestore';
+import { deleteUserAction } from '@/app/actions/user';
 
 /**
  * Updates a user's credit balance. Can be a positive or negative amount.
+ * @param db - The Firestore instance.
  * @param userId - The ID of the user to update.
  * @param amount - The amount to add (positive) or remove (negative) from the balance.
  * @returns The new balance of the user.
  */
-export const updateUserCredits = async (userId: string, amount: number): Promise<number> => {
+export const updateUserCredits = async (db: Firestore, userId: string, amount: number): Promise<number> => {
+    if (!db) throw new Error("Firestore instance is not available.");
     const userRef = doc(db, 'users', userId);
     
     return await runTransaction(db, async (transaction) => {
@@ -37,3 +37,5 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
     // Calling a server action to perform the deletion securely on the server-side.
     await deleteUserAction(userId);
 };
+
+    
