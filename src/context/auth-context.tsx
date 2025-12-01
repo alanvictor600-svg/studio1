@@ -6,10 +6,10 @@ import type { User } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '@/lib/firebase-client';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { RoleSelectionDialog } from '@/components/role-selection-dialog';
+import { useFirebase } from '@/firebase/client-provider';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -29,6 +29,10 @@ const sanitizeUsernameForEmail = (username: string) => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { firebaseApp } = useFirebase(); // Use the provider to get the app instance
+  const auth = getAuth(firebaseApp); // Get auth instance from the app
+  const db = doc(firebaseApp, 'db').firestore; // Get firestore instance
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
   const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
@@ -76,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
         if(userUnsubscribe) userUnsubscribe();
     };
-  }, [firebaseUser, authLoading, toast]);
+  }, [firebaseUser, authLoading, toast, db]);
 
   const login = useCallback(async (username: string, passwordAttempt: string) => {
      const emailUsername = sanitizeUsernameForEmail(username);
@@ -92,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
      }
-  }, [toast]);
+  }, [toast, auth]);
 
   const handleRoleSelectedForNewUser = async (role: 'cliente' | 'vendedor') => {
     if (!pendingGoogleUser) return;
@@ -187,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
     }
-  }, [toast]);
+  }, [toast, auth, db]);
 
   const logout = useCallback(async () => {
     try {
@@ -199,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Error signing out: ", error);
       toast({ title: "Erro ao Sair", description: "Não foi possível fazer o logout. Tente novamente.", variant: "destructive" });
     }
-  }, [toast, router]);
+  }, [toast, router, auth]);
 
   const register = useCallback(async (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => {
     const originalUsername = username.trim();
@@ -250,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
     }
-  }, [router, toast]);
+  }, [router, toast, auth, db]);
   
   const value = { currentUser, firebaseUser, login, signInWithGoogle, logout, register, isLoading, isAuthenticated };
 

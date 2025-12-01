@@ -5,11 +5,11 @@ import { createContext, useContext, useState, ReactNode, Dispatch, SetStateActio
 import type { LotteryConfig, User, Ticket, Draw, SellerHistoryEntry } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { createClientTicketsAction } from '@/app/actions/ticket';
-import { doc, onSnapshot, collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { doc, onSnapshot, collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot, getFirestore } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useAuth } from './auth-context';
+import { useFirebase } from '@/firebase/client-provider';
 
 interface DashboardContextType {
     cart: number[][];
@@ -47,6 +47,9 @@ const REPORTS_PER_PAGE = 9;
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const { currentUser } = useAuth();
+    const { firebaseApp } = useFirebase();
+    const db = getFirestore(firebaseApp);
+
     const [cart, setCart] = useState<number[][]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
@@ -70,62 +73,25 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, []);
     
     const startDataListeners = useCallback((user: User) => {
-        if (listenersRef.current.length > 0) {
-            if (listenersRef.current.some(l => (l as any)._query?.path?.includes(user.id))) {
-                return clearListeners;
-            }
-        }
-        
+        clearListeners();
         setIsDataLoading(true);
-        clearListeners(); 
 
-        let isMounted = true;
         const newListeners: (() => void)[] = [];
-
-        const requiredListeners = user.role === 'vendedor' ? 4 : 3;
-        let loadedCount = 0;
-
-        const checkAllDataLoaded = () => {
-            if (isMounted) {
-                loadedCount++;
-                if (loadedCount >= requiredListeners) {
-                    setIsDataLoading(false);
-                }
-            }
-        };
-
+        
         const configUnsub = onSnapshot(doc(db, 'configs', 'global'), 
             (configDoc) => {
                 const data = configDoc.data();
-                if (isMounted) {
-                    if (data) {
-                        setLotteryConfig(prev => ({ ...prev, ...data }));
-                    }
-                    checkAllDataLoaded();
+                if (data) {
+                    setLotteryConfig(prev => ({ ...prev, ...data }));
                 }
             },
-            () => {
-                if(isMounted) {
-                    toast({ title: "Erro ao carregar configuração", variant: "destructive" });
-                    checkAllDataLoaded();
-                }
-            }
+            () => toast({ title: "Erro ao carregar configuração", variant: "destructive" })
         );
         newListeners.push(configUnsub);
 
         const drawsUnsub = onSnapshot(collection(db, 'draws'), 
-            (drawsSnapshot) => {
-                if (isMounted) {
-                    setAllDraws(drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw)));
-                    checkAllDataLoaded();
-                }
-            },
-            () => {
-                 if(isMounted) {
-                    toast({ title: "Erro ao carregar sorteios", variant: "destructive" });
-                    checkAllDataLoaded();
-                }
-            }
+            (drawsSnapshot) => setAllDraws(drawsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Draw))),
+            () => toast({ title: "Erro ao carregar sorteios", variant: "destructive" })
         );
         newListeners.push(drawsUnsub);
         
@@ -133,47 +99,36 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         const ticketsQuery = query(collection(db, 'tickets'), where(idField, '==', user.id));
         const ticketsUnsub = onSnapshot(ticketsQuery, 
             (ticketSnapshot) => {
-                if (isMounted) {
-                    setRawUserTickets(ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket)).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-                    checkAllDataLoaded();
-                }
+                setRawUserTickets(ticketSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ticket)).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
             },
-            () => {
-                 if(isMounted) {
-                    toast({ title: "Erro ao carregar seus bilhetes", variant: "destructive" });
-                    checkAllDataLoaded();
-                }
-            }
+            () => toast({ title: "Erro ao carregar seus bilhetes", variant: "destructive" })
         );
         newListeners.push(ticketsUnsub);
+
+        const promises = [
+            getDoc(doc(db, 'configs', 'global')),
+            getDocs(collection(db, 'draws')),
+            getDocs(ticketsQuery),
+        ];
 
         if (user.role === 'vendedor') {
             setIsLoadingHistory(true);
             const historyQuery = query(collection(db, 'sellerHistory'), where("sellerId", "==", user.id), orderBy("endDate", "desc"), limit(REPORTS_PER_PAGE));
-            getDocs(historyQuery).then(docSnaps => {
-                if (isMounted) {
-                    const historyData = docSnaps.docs.map(d => ({ id: d.id, ...d.data() } as SellerHistoryEntry));
-                    setSellerHistory(historyData);
-                    setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
-                    setHasMoreHistory(historyData.length === REPORTS_PER_PAGE);
-                }
-            }).catch(() => {
-                if (isMounted) toast({ title: "Erro ao carregar histórico", variant: "destructive" });
-            }).finally(() => {
-                if (isMounted) {
-                    setIsLoadingHistory(false);
-                    checkAllDataLoaded();
-                }
-            });
+            const historyPromise = getDocs(historyQuery).then(docSnaps => {
+                const historyData = docSnaps.docs.map(d => ({ id: d.id, ...d.data() } as SellerHistoryEntry));
+                setSellerHistory(historyData);
+                setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
+                setHasMoreHistory(historyData.length === REPORTS_PER_PAGE);
+            }).finally(() => setIsLoadingHistory(false));
+            promises.push(historyPromise);
         }
-        
+
+        Promise.all(promises).finally(() => setIsDataLoading(false));
+
         listenersRef.current = newListeners;
         
-        return () => {
-            isMounted = false;
-            clearListeners();
-        };
-    }, [clearListeners, toast]);
+        return clearListeners;
+    }, [clearListeners, toast, db]);
 
 
     const userTickets = useMemo(() => updateTicketStatusesBasedOnDraws(rawUserTickets, allDraws), [rawUserTickets, allDraws]);

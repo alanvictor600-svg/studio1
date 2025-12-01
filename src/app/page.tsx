@@ -8,13 +8,13 @@ import { LogIn, UserPlus, LayoutDashboard, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/auth-context';
 import type { Draw } from '@/types';
-import { db } from '@/lib/firebase-client';
-import { collection, query, orderBy, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getFirestore } from 'firebase/firestore';
 import { AdminDrawCard } from '@/components/admin-draw-card';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { History, Gamepad2, Gift, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InstallPwaButton } from '@/components/install-pwa-button';
+import { useFirebase } from '@/firebase/client-provider';
 
 const Header = () => {
   const { currentUser, isLoading, isAuthenticated, logout } = useAuth();
@@ -81,11 +81,13 @@ const HeroSection = () => (
 
 const ResultsSection = () => {
     const { isAuthenticated } = useAuth();
+    const { firebaseApp } = useFirebase();
+    const db = getFirestore(firebaseApp);
     const [lastDraw, setLastDraw] = useState<Draw | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        let unsubscribe: Unsubscribe | null = null;
+        let unsubscribe: (() => void) | null = null;
         
         if (isAuthenticated) {
             setIsLoading(true);
@@ -108,7 +110,7 @@ const ResultsSection = () => {
                 unsubscribe();
             }
         };
-    }, [isAuthenticated]);
+    }, [isAuthenticated, db]);
 
     return (
         <section className="bg-muted/50 py-16 md:py-24">

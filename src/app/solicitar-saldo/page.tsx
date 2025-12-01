@@ -11,8 +11,8 @@ import { ArrowLeft, MessageSquare, Smartphone, Copy, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { CreditRequestConfig } from '@/types';
 import Link from 'next/link';
-import { db } from '@/lib/firebase-client';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getFirestore } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/client-provider';
 
 const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
     whatsappNumber: 'Não configurado',
@@ -23,13 +23,14 @@ const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
 export default function SolicitarSaldoPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { firebaseApp } = useFirebase();
+  const db = getFirestore(firebaseApp);
   const [config, setConfig] = useState<CreditRequestConfig>(DEFAULT_CREDIT_CONFIG);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     
-    // Listen for global lottery config in real-time
     const configDocRef = doc(db, 'configs', 'global');
     const unsubscribe = onSnapshot(configDocRef, (doc) => {
         if (doc.exists()) {
@@ -47,9 +48,8 @@ export default function SolicitarSaldoPage() {
         setConfig(DEFAULT_CREDIT_CONFIG);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, db]);
 
   const handleCopy = (text: string, label: string) => {
     if (!text || text === 'Não configurado') {

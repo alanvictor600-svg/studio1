@@ -1,8 +1,8 @@
 // src/lib/services/lotteryService.ts
-import { db } from '@/lib/firebase-client';
-import { collection, addDoc, writeBatch, getDocs, query, where, doc } from 'firebase/firestore';
-import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry } from '@/types';
-import type { FinancialReport } from '@/lib/reports';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { app } from '@/firebase';
+
+const db = getFirestore(app);
 
 /**
  * Adds a new draw to the 'draws' collection.

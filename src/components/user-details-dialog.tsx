@@ -18,8 +18,8 @@ import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Label } from '@/components/ui/label';
-import { db } from '@/lib/firebase-client';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, getFirestore } from 'firebase/firestore';
+import { useFirebase } from '@/firebase/client-provider';
 
 
 interface UserDetailsDialogProps {
@@ -38,6 +38,8 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   onClose,
 }) => {
   const [userTickets, setUserTickets] = useState<Ticket[]>([]);
+  const { firebaseApp } = useFirebase();
+  const db = getFirestore(firebaseApp);
 
   useEffect(() => {
     if (!user || !isOpen) {
@@ -54,7 +56,7 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
     });
 
     return () => unsubscribe();
-  }, [user, isOpen]);
+  }, [user, isOpen, db]);
 
   const ticketSummary = useMemo(() => {
     if (!user) return { active: 0, winning: 0, expired: 0, unpaid: 0 };

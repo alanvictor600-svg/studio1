@@ -1,7 +1,9 @@
 // src/lib/services/configService.ts
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+import { doc, setDoc, getFirestore } from 'firebase/firestore';
+import { app } from '@/firebase'; // Use the initialized app
 import type { LotteryConfig, CreditRequestConfig } from '@/types';
+
+const db = getFirestore(app);
 
 /**
  * Saves the main lottery configuration to Firestore.

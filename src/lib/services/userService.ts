@@ -1,8 +1,9 @@
-// src/lib/services/userService.ts
-import { doc, updateDoc, deleteDoc, runTransaction } from 'firebase/firestore';
-import { db } from '@/lib/firebase-client';
+// src-lib/services/userService.ts
+import { doc, runTransaction, getFirestore } from 'firebase/firestore';
+import { app } from '@/firebase';
 import { deleteUserAction } from '@/app/actions/user';
 
+const db = getFirestore(app);
 
 /**
  * Updates a user's credit balance. Can be a positive or negative amount.

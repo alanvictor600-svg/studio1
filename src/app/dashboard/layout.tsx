@@ -95,15 +95,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen">
       <Sidebar>
         <SidebarHeader>
-          <Link href="/" onClick={() => setOpenMobile(false)}>
-             <div className="flex items-center gap-3">
-               <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
-               <div className="flex flex-col">
-                  <span className="text-lg font-semibold text-sidebar-foreground">Bolão Potiguar</span>
-                  <span className="text-xs text-sidebar-foreground/80 -mt-1">
-                    Painel de {currentUser.role === 'cliente' ? 'Cliente' : 'Vendedor'}
-                  </span>
-               </div>
+          <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
+             <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
+             <div className="flex flex-col">
+                <span className="text-lg font-semibold text-sidebar-foreground">Bolão Potiguar</span>
+                <span className="text-xs text-sidebar-foreground/80 -mt-1">
+                  Painel de {currentUser.role === 'cliente' ? 'Cliente' : 'Vendedor'}
+                </span>
              </div>
           </Link>
         </SidebarHeader>
@@ -194,7 +192,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
 
             <div className="flex items-center justify-end">
-                {currentUser.role === 'cliente' && (
+                {currentUser && currentUser.role === 'cliente' && (
                     <ShoppingCart 
                         cart={cart}
                         currentUser={currentUser}

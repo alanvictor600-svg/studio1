@@ -15,12 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2, RefreshCcw, Zap } from 'lucide-react';
-import { db } from '@/lib/firebase-client';
-import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, getFirestore } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { saveLotteryConfig } from '@/lib/services/configService';
-
-const USERS_PER_PAGE = 20;
+import { useFirebase } from '@/firebase/client-provider';
 
 // Custom hook for debouncing
 function useDebounce(value: string, delay: number) {
@@ -58,6 +56,9 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   onOpenViewUser,
 }) => {
   const { toast } = useToast();
+  const { firebaseApp } = useFirebase();
+  const db = getFirestore(firebaseApp);
+
   const [ticketPriceInput, setTicketPriceInput] = useState(lotteryConfig.ticketPrice.toString());
   const [commissionInput, setCommissionInput] = useState(lotteryConfig.sellerCommissionPercentage.toString());
   const [ownerCommissionInput, setOwnerCommissionInput] = useState(lotteryConfig.ownerCommissionPercentage.toString());
@@ -101,7 +102,7 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
           unsubscribeUsers();
           unsubscribeTickets();
       };
-  }, [toast]);
+  }, [toast, db]);
 
   const handleRefreshBalance = async (userId: string) => {
     setRefreshingUserId(userId);
