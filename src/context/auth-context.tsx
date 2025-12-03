@@ -10,6 +10,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Go
 import { doc, getDoc, setDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { RoleSelectionDialog } from '@/components/role-selection-dialog';
 import { useFirebase } from '@/firebase/client-provider';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -114,7 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        const batch = writeBatch(db);
         const newUser: User = {
             id: user.uid,
             username: username,
@@ -122,15 +123,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             createdAt: new Date().toISOString(),
             saldo: 0,
         };
+
+        const batch = writeBatch(db);
         batch.set(userDocRef, newUser);
         batch.set(userCheckRef, { userId: user.uid });
-        await batch.commit();
+        
+        await batch.commit().catch(error => {
+            const contextualError = new FirestorePermissionError({
+                path: `/users/${user.uid}`,
+                operation: 'create',
+                requestResourceData: newUser,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            throw error; // Re-throw original error to be caught by outer catch
+        });
 
         setCurrentUser(newUser); 
         toast({ title: "Cadastro Concluído!", description: "Bem-vindo ao Bolão Potiguar!", className: "bg-primary text-primary-foreground" });
     } catch(e) {
         console.error("Error creating new user document:", e);
-        toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta.", variant: "destructive" });
+        toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta. Verifique os logs para mais detalhes.", variant: "destructive" });
         await signOut(auth);
     } finally {
         setIsRoleSelectionOpen(false);
@@ -170,7 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const batch = writeBatch(db);
             batch.set(userDocRef, newUser);
             batch.set(userCheckRef, { userId: user.uid });
-            await batch.commit();
+            await batch.commit().catch(error => {
+                 const contextualError = new FirestorePermissionError({
+                    path: `/users/${user.uid}`,
+                    operation: 'create',
+                    requestResourceData: newUser,
+                });
+                errorEmitter.emit('permission-error', contextualError);
+                throw error;
+            });
 
             setCurrentUser(newUser); // Optimistic update
           } else {
@@ -185,7 +205,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // User closed popup, do nothing.
         } else if (error.message !== "Username already exists") {
             console.error("Google Sign-In Error:", error);
-            toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google. Tente novamente.", variant: "destructive" });
+            // Don't show a generic toast if a contextual error was already emitted
+            if (!error.name?.includes('FirestorePermissionError')) {
+              toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google. Verifique os logs.", variant: "destructive" });
+            }
         }
         throw error;
     }
@@ -214,6 +237,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const userCheckRef = doc(db, "users_username_lookup", emailUsername);
     
+    let newFirebaseUser: FirebaseUser | null = null;
+
     try {
         const userCheckDoc = await getDoc(userCheckRef);
         if (userCheckDoc.exists()) {
@@ -222,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, passwordRaw);
-        const newFirebaseUser = userCredential.user;
+        newFirebaseUser = userCredential.user;
         
         const newUser: User = {
             id: newFirebaseUser.uid,
@@ -233,10 +258,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         
         const batch = writeBatch(db);
-        batch.set(doc(db, "users", newFirebaseUser.uid), newUser);
+        const userDocRef = doc(db, "users", newFirebaseUser.uid);
+        batch.set(userDocRef, newUser);
         batch.set(userCheckRef, { userId: newFirebaseUser.uid });
         
-        await batch.commit();
+        await batch.commit().catch(error => {
+            const contextualError = new FirestorePermissionError({
+                path: `/users/${newFirebaseUser?.uid}`,
+                operation: 'create',
+                requestResourceData: newUser,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            throw error; // Re-throw to be caught by the outer catch
+        });
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
         await signOut(auth);
@@ -248,8 +282,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast({ title: "Erro de Cadastro", description: "A senha é muito fraca. Use pelo menos 6 caracteres.", variant: "destructive" });
         } else if (!["Username already exists", "Invalid username"].includes(error.message)) {
             console.error("Firebase registration error:", error);
-            toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
+            // Don't show a generic toast if a contextual error was already emitted
+            if (!error.name?.includes('FirestorePermissionError')) {
+                toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Verifique os logs para mais detalhes.", variant: "destructive" });
+            }
         }
+        
+        // If user was created in Auth but Firestore failed, roll back Auth user
+        if (newFirebaseUser) {
+            try {
+                await newFirebaseUser.delete();
+            } catch (deleteError) {
+                console.error("Failed to roll back Firebase Auth user creation:", deleteError);
+            }
+        }
+
         throw error;
     }
   }, [router, toast, auth, db]);
@@ -275,3 +322,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
