@@ -1,3 +1,4 @@
+
 'use server';
 
 import admin from 'firebase-admin';
@@ -46,7 +47,7 @@ export const createSellerTicketAction = async ({
         if (!userDoc.exists) throw new Error("Usuário do vendedor não encontrado.");
         
         const currentBalance = userDoc.data()?.saldo || 0;
-        if (currentBalance < ticketPrice) throw new Error("Saldo insuficiente.");
+        if (currentBalance < ticketPrice) throw new Error("Saldo insuficiente");
 
         const newBalance = currentBalance - ticketPrice;
         transaction.update(userRef, { saldo: newBalance });
@@ -101,7 +102,7 @@ export const createClientTicketsAction = async ({ user, cart }: CreateClientTick
         const currentBalance = userDoc.data()?.saldo || 0;
 
         if (currentBalance < totalCost) {
-            throw new Error("Saldo insuficiente.");
+            throw new Error("Saldo insuficiente");
         }
 
         const newBalance = currentBalance - totalCost;
