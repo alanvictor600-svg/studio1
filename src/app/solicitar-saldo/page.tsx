@@ -28,7 +28,6 @@ export default function SolicitarSaldoPage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (!db) return;
     
     const configDocRef = doc(db, 'configs', 'global');
     const unsubscribe = onSnapshot(configDocRef, (doc) => {

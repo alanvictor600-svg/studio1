@@ -72,12 +72,6 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }, []);
     
     const startDataListeners = useCallback((user: User) => {
-        if (!db) {
-            toast({ title: "Erro de Conexão", description: "O banco de dados não está disponível.", variant: "destructive" });
-            setIsDataLoading(false);
-            return () => {};
-        }
-
         clearListeners();
         setIsDataLoading(true);
 

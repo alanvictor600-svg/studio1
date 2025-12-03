@@ -79,7 +79,7 @@ function AdminPageContent() {
   }, [isLoading, isAuthenticated, currentUser, router]);
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated || !db) return;
+    if (!currentUser || currentUser.role !== 'admin' || !isAuthenticated) return;
 
     const configDocRef = doc(db, 'configs', 'global');
     const unsubscribeConfig = onSnapshot(configDocRef, (doc) => {
@@ -216,7 +216,6 @@ function AdminPageContent() {
   };
 
   const handleSaveLotteryConfig = async (newConfig: Partial<LotteryConfig>) => {
-    if (!db) return;
     try {
         await saveLotteryConfig(db, newConfig);
         toast({ title: "Configurações Salvas!", description: "As novas configurações da loteria foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
@@ -227,7 +226,6 @@ function AdminPageContent() {
   };
   
   const handleSaveCreditRequestConfig = async (newConfig: CreditRequestConfig) => {
-    if (!db) return;
     try {
         await saveCreditRequestConfig(db, newConfig);
         toast({ title: "Configurações Salvas!", description: "As informações de contato foram salvas na nuvem.", className: "bg-primary text-primary-foreground", duration: 3000 });
@@ -248,7 +246,6 @@ function AdminPageContent() {
   };
   
   const handleCreditChange = async (user: User, amount: number) => {
-    if (!db) return;
     try {
         const newBalance = await updateUserCredits(db, user.id, amount);
         
@@ -431,5 +428,3 @@ export default function AdminPage() {
     </Suspense>
   );
 }
-
-    

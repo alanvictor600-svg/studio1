@@ -6,8 +6,8 @@ import type { User } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, writeBatch, getFirestore } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { RoleSelectionDialog } from '@/components/role-selection-dialog';
 import { useFirebase } from '@/firebase/client-provider';
 
@@ -29,9 +29,7 @@ const sanitizeUsernameForEmail = (username: string) => {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { firebaseApp } = useFirebase();
-  const auth = getAuth(firebaseApp);
-  const db = getFirestore(firebaseApp);
+  const { auth, db } = useFirebase();
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [firebaseUser, authLoading, authError] = useAuthState(auth);
@@ -277,5 +275,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

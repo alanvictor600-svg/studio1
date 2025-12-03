@@ -41,7 +41,7 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
   const { db } = useFirebase();
 
   useEffect(() => {
-    if (!user || !isOpen || !db) {
+    if (!user || !isOpen) {
       setUserTickets([]);
       return;
     }
@@ -159,5 +159,3 @@ export const UserDetailsDialog: FC<UserDetailsDialogProps> = ({
     </Dialog>
   );
 };
-
-    

@@ -88,7 +88,7 @@ const ResultsSection = () => {
     useEffect(() => {
         let unsubscribe: (() => void) | null = null;
         
-        if (isAuthenticated && db) {
+        if (isAuthenticated) {
             setIsLoading(true);
             const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
             unsubscribe = onSnapshot(drawsQuery, (querySnapshot) => {

@@ -73,10 +73,6 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   const [refreshingUserId, setRefreshingUserId] = useState<string | null>(null);
 
   useEffect(() => {
-      if (!db) {
-        setIsLoading(false);
-        return;
-      }
       setIsLoading(true);
       const usersQuery = query(collection(db, 'users'), orderBy('username'));
       const ticketsQuery = query(collection(db, 'tickets'));
@@ -106,7 +102,6 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
   }, [toast, db]);
 
   const handleRefreshBalance = async (userId: string) => {
-    if (!db) return;
     setRefreshingUserId(userId);
     try {
         const userDocRef = doc(db, 'users', userId);

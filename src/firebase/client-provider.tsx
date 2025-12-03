@@ -2,9 +2,14 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { firebaseConfig } from './config';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
+// Define the shape of the context value
 interface FirebaseContextValue {
   firebaseApp: FirebaseApp;
+  auth: Auth;
+  db: Firestore;
 }
 
 const FirebaseContext = createContext<FirebaseContextValue | undefined>(undefined);
@@ -17,9 +22,14 @@ if (!getApps().length) {
   firebaseApp = getApps()[0];
 }
 
+// Initialize Auth and Firestore services once
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
+
 export const FirebaseClientProvider = ({ children }: { children: ReactNode }) => {
-  // The value is stable because firebaseApp is created only once.
-  const value = { firebaseApp };
+  // The value is stable because firebaseApp and services are created only once.
+  const value = { firebaseApp, auth, db };
   
   return (
     <FirebaseContext.Provider value={value}>
