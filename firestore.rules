@@ -145,16 +145,24 @@ service cloud.firestore {
           request.auth.uid == resource.data.sellerId ||
           isAdmin()
        );
-       // Allow list if the user is signed in. Security is enforced by the `get` rule above,
-       // which checks each document returned by the query. Client-side code MUST query
-       // by buyerId or sellerId for non-admins.
+       
        allow list: if isSignedIn();
        
-       // Allow creation if the user is the designated buyer or seller.
-       allow create: if isSignedIn() && (
-         request.resource.data.buyerId == request.auth.uid || 
-         request.resource.data.sellerId == request.auth.uid
-       );
+      function isValidTicket(ticket) {
+          return ticket.numbers is list && ticket.numbers.size() == 10
+              && ticket.numbers.all(num, num is number && num >= 1 && num <= 25)
+              && ticket.status == 'active'
+              && ticket.createdAt is timestamp
+              && ticket.buyerName is string && ticket.buyerName.size() > 0;
+      }
+
+      allow create: if isSignedIn() && isValidTicket(request.resource.data) && (
+          // Case 1: A seller creates a ticket for a buyer.
+          (request.resource.data.sellerId == request.auth.uid) ||
+          // Case 2: A client creates a ticket for themselves.
+          (request.resource.data.buyerId == request.auth.uid && !('sellerId' in request.resource.data))
+      );
+       
        // Only allow updates for status changes by admin or transactional processes.
        allow update: if isSignedIn() && isAdmin();
        allow delete: if false; // Deleting tickets is not a desired functionality.
