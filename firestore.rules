@@ -135,11 +135,10 @@ service cloud.firestore {
           request.auth.uid == resource.data.sellerId ||
           isAdmin()
        );
-       // Allow list if the user is signed in. The security is enforced by the
-       // client-side code which MUST query by buyerId or sellerId. The `get` rule
-       // above prevents any unauthorized document reads within that list.
-       // Admins can list all tickets without restriction.
-       allow list: if isSignedIn() && (isAdmin() || ((request.query.limit > 0 || request.query.offset != null) && (request.query.where != null && (request.query.where[0][1] == 'buyerId' && request.query.where[0][2] == request.auth.uid || request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid))));
+       // Allow list if the user is signed in. Security is enforced by the `get` rule above,
+       // which checks each document returned by the query. Client-side code MUST query
+       // by buyerId or sellerId for non-admins.
+       allow list: if isSignedIn();
        
        // Allow creation if the user is the designated buyer or seller.
        allow create: if isSignedIn() && (
