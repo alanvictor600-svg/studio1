@@ -59,8 +59,8 @@ service cloud.firestore {
      * @path /users_username_lookup/{username}
      */
     match /users_username_lookup/{username} {
-        // Allow any signed-in user to check if a username exists.
-        allow get: if isSignedIn();
+        // Allow anyone to check if a username exists during signup. This is safe as it only reveals existence.
+        allow get: if true;
         // Allow creation only if the user is creating a lookup for their own user ID.
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
         // Do not allow updates or deletes from the client.
