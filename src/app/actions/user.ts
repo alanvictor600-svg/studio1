@@ -1,11 +1,13 @@
-
 'use server';
 
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
+import { firebaseConfig } from '@/firebase/config';
 
 if (!getApps().length) {
-  admin.initializeApp();
+  admin.initializeApp({
+    projectId: firebaseConfig.projectId,
+  });
 }
 
 const adminDb = admin.firestore();

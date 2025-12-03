@@ -1,4 +1,3 @@
-
 'use server';
 
 import admin from 'firebase-admin';
@@ -6,9 +5,12 @@ import { getApps } from 'firebase-admin/app';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry, Draw } from '@/types';
 import { generateFinancialReport } from '@/lib/reports';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
+import { firebaseConfig } from '@/firebase/config';
 
 if (!getApps().length) {
-  admin.initializeApp();
+  admin.initializeApp({
+    projectId: firebaseConfig.projectId,
+  });
 }
 
 const adminDb = admin.firestore();
