@@ -103,14 +103,16 @@ function ClientePageContent() {
           
           <TabsContent value="aposta" className="flex-grow flex flex-col">
               {isLotteryPaused ? (
-                  <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground max-w-2xl mx-auto">
-                      <PauseCircle className="h-5 w-5 text-primary" />
-                      <AlertTitle className="text-primary font-bold">Apostas Pausadas</AlertTitle>
-                      <AlertDescription className="text-muted-foreground">
-                      O registro de novas apostas está suspenso.
-                      Aguarde o administrador iniciar um novo ciclo para continuar apostando.
-                      </AlertDescription>
-                  </Alert>
+                  <div className="flex items-center justify-center flex-1">
+                    <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground max-w-lg">
+                        <PauseCircle className="h-5 w-5 text-primary" />
+                        <AlertTitle className="text-primary font-bold">Apostas Pausadas</AlertTitle>
+                        <AlertDescription className="text-muted-foreground">
+                        O registro de novas apostas está suspenso.
+                        Aguarde o administrador iniciar um novo ciclo para continuar apostando.
+                        </AlertDescription>
+                    </Alert>
+                  </div>
               ) : (
                 <TicketSelectionForm 
                     cart={cart}

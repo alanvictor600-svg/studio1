@@ -162,7 +162,7 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
                                 )}
                             </ScrollArea>
                         ) : (
-                            <div className="text-center text-muted-foreground bg-card/80 p-10 rounded-lg shadow-inner max-w-2xl mx-auto">
+                            <div className="text-center text-muted-foreground bg-card/80 p-10 rounded-lg shadow-inner">
                                 <h3 className="text-lg font-semibold text-foreground">Nenhum Relatório Encontrado</h3>
                                 <p className="mt-2">
                                     Seu primeiro relatório de ciclo aparecerá aqui após o administrador encerrar a loteria atual.

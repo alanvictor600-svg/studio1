@@ -41,21 +41,23 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
 
   if (isLotteryPaused) {
     return (
-      <Card className="w-full max-w-2xl mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center font-bold text-primary">Registrar Venda de Bilhete</CardTitle>
-        </CardHeader>
-        <CardContent>
-           <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground">
-            <PauseCircle className="h-5 w-5 text-primary" />
-            <AlertTitle className="text-primary font-bold">Vendas Pausadas</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              O registro de novas vendas está suspenso.
-              Aguarde o administrador iniciar um novo ciclo para continuar.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+        <div className="flex items-center justify-center">
+            <Card className="w-full max-w-lg shadow-xl bg-card/80 backdrop-blur-sm">
+                <CardHeader>
+                <CardTitle className="text-2xl text-center font-bold text-primary">Registrar Venda de Bilhete</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground">
+                    <PauseCircle className="h-5 w-5 text-primary" />
+                    <AlertTitle className="text-primary font-bold">Vendas Pausadas</AlertTitle>
+                    <AlertDescription className="text-muted-foreground">
+                    O registro de novas vendas está suspenso.
+                    Aguarde o administrador iniciar um novo ciclo para continuar.
+                    </AlertDescription>
+                </Alert>
+                </CardContent>
+            </Card>
+        </div>
     );
   }
 
@@ -135,7 +137,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
 
   return (
     <>
-      <Card className="w-full max-w-4xl mx-auto shadow-xl bg-card/80 backdrop-blur-sm">
+      <Card className="w-full shadow-xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl text-center font-bold text-primary">Registrar Venda de Bilhete</CardTitle>
           <CardDescription className="text-center text-muted-foreground">
@@ -188,7 +190,7 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
 
           <div>
             <h3 className="text-lg font-bold text-primary mb-4 text-center">Escolha os Bichos (1-25)</h3>
-            <div className="grid grid-cols-5 md:grid-cols-7 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
+            <div className="grid grid-cols-5 md:grid-cols-7 lg:grid-cols-10 xl:grid-cols-13 gap-2 md:gap-3 p-2 rounded-lg bg-background/30">
               {animalMapping.map(animal => (
                 <NumberButton
                   key={animal.number}
