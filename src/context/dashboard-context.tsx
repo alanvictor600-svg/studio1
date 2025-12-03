@@ -121,11 +121,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
                 setHasMoreHistory(historyData.length === REPORTS_PER_PAGE);
             }).catch(error => {
-                // Adiciona o tratamento de erro contextual
                 const contextualError = new FirestorePermissionError({
                     path: `sellerHistory`,
                     operation: 'list',
-                    requestResourceData: { where: `sellerId == ${user.id}` } // Adiciona contexto da query
+                    requestResourceData: { where: `sellerId == ${user.id}` } 
                 });
                 errorEmitter.emit('permission-error', contextualError);
             }).finally(() => setIsLoadingHistory(false));

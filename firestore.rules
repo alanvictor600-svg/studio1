@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview Firestore Security Rules for the Bolão Potiguar app.
  *
@@ -116,9 +115,7 @@ service cloud.firestore {
         );
         // Allow list queries scoped by sellerId for the user, or unrestricted for admins.
         allow list: if isSignedIn() && (
-            (request.query.limit <= 10 && request.query.offset == null || request.query.offset > 0) &&
-            (request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid) || 
-            isAdmin()
+            (request.query.limit <= 10 && request.query.where[0][1] == 'sellerId' && request.query.where[0][2] == request.auth.uid) || isAdmin()
         );
         // Client-side writes are not allowed. These are created by the system when a lottery cycle ends.
         allow write: if false;
