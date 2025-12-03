@@ -49,6 +49,10 @@ export const metadata: Metadata = {
     description: "Sua sorte começa aqui! Escolha seus números e transforme um simples palpite em prêmios incríveis.",
     images: [`${APP_URL}/logo-512.png`],
   },
+  icons: {
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  }
 };
 
 export default function RootLayout({
@@ -60,8 +64,6 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
        <head>
          <meta name="theme-color" content="#15803d" />
-         <link rel="apple-touch-icon" href="/logo.png" />
-         <link rel="shortcut icon" href="/logo.png" />
        </head>
       <body className={`${GeistSans.variable} font-sans antialiased flex flex-col min-h-screen`}>
         <FirebaseClientProvider>
