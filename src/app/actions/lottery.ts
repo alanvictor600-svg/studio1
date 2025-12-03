@@ -1,9 +1,29 @@
+
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
+import { getApps } from 'firebase-admin/app';
+import { firebaseConfig } from '@/firebase/config';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry, Draw } from '@/types';
 import { generateFinancialReport } from '@/lib/reports';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
+
+if (!getApps().length) {
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: firebaseConfig.projectId,
+                clientEmail: `firebase-adminsdk-3y824@${firebaseConfig.projectId}.iam.gserviceaccount.com`,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            })
+        });
+    } catch (e) {
+        console.error("Firebase admin initialization error", e);
+    }
+}
+
+const adminDb = admin.firestore();
+
 
 /**
  * Adds a new draw to the 'draws' collection using the admin SDK.

@@ -1,6 +1,27 @@
+
 'use server';
 
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
+import { getApps } from 'firebase-admin/app';
+import { firebaseConfig } from '@/firebase/config';
+
+if (!getApps().length) {
+    try {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: firebaseConfig.projectId,
+                clientEmail: `firebase-adminsdk-3y824@${firebaseConfig.projectId}.iam.gserviceaccount.com`,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            })
+        });
+    } catch (e) {
+        console.error("Firebase admin initialization error", e);
+    }
+}
+
+const adminDb = admin.firestore();
+const adminAuth = admin.auth();
+
 
 /**
  * Deletes a user account from Firestore and Firebase Auth.
