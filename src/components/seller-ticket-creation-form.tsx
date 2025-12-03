@@ -109,28 +109,32 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
     setIsSubmitting(true);
     
     try {
-      const { createdTicket } = await createSellerTicketAction({
+      const result = await createSellerTicketAction({
         sellerId: currentUser.id,
         sellerUsername: currentUser.username,
         ticketPicks: currentPicks,
         buyerName: buyerName.trim(),
         buyerPhone: buyerPhone.trim() || undefined,
       });
-      
-      setCurrentPicks([]);
-      setBuyerName('');
-      setBuyerPhone('');
-      setReceiptTickets([createdTicket]);
-      onTicketCreated(createdTicket);
 
-      toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado. O saldo será atualizado em breve.", className: "bg-primary text-primary-foreground", duration: 3000 });
+      if (result.success && result.createdTicket) {
+        setCurrentPicks([]);
+        setBuyerName('');
+        setBuyerPhone('');
+        setReceiptTickets([result.createdTicket]);
+        onTicketCreated(result.createdTicket);
 
-    } catch (e: any) {
-       if (e.code === 'INSUFFICIENT_FUNDS') {
+        toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado. O saldo será atualizado em breve.", className: "bg-primary text-primary-foreground", duration: 3000 });
+      } else {
+         if (result.error === 'INSUFFICIENT_FUNDS') {
           showCreditsDialog(true);
         } else {
-          toast({ title: "Erro ao Vender", description: e.message || "Não foi possível registrar a venda.", variant: "destructive" });
+          toast({ title: "Erro ao Vender", description: result.error || "Não foi possível registrar a venda.", variant: "destructive" });
         }
+      }
+    } catch (e: any) {
+        // Fallback for unexpected errors
+        toast({ title: "Erro ao Vender", description: e.message || "Ocorreu um erro inesperado.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }

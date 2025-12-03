@@ -160,31 +160,36 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         
         setIsSubmitting(true);
         try {
-            await createClientTicketsAction({ user: { id: currentUser.id, username: currentUser.username }, cart });
+            const result = await createClientTicketsAction({ user: { id: currentUser.id, username: currentUser.username }, cart });
 
-            const ticketsForReceipt: Ticket[] = cart.map(numbers => ({
-                id: uuidv4(),
-                numbers,
-                status: 'active',
-                createdAt: new Date().toISOString(),
-                buyerName: currentUser.username,
-                buyerId: currentUser.id,
-            }));
+            if (result.success) {
+                const ticketsForReceipt: Ticket[] = cart.map(numbers => ({
+                    id: uuidv4(),
+                    numbers,
+                    status: 'active',
+                    createdAt: new Date().toISOString(),
+                    buyerName: currentUser.username,
+                    buyerId: currentUser.id,
+                }));
 
-            setCart([]);
-            setReceiptTickets(ticketsForReceipt);
-            toast({
-              title: "Compra Realizada!",
-              description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso.`,
-              className: "bg-primary text-primary-foreground",
-              duration: 4000
-            });
-        } catch (e: any) {
-            if (e.code === 'INSUFFICIENT_FUNDS') {
-                showCreditsDialog(true);
+                setCart([]);
+                setReceiptTickets(ticketsForReceipt);
+                toast({
+                  title: "Compra Realizada!",
+                  description: `Sua compra de ${ticketsForReceipt.length} bilhete(s) foi um sucesso.`,
+                  className: "bg-primary text-primary-foreground",
+                  duration: 4000
+                });
             } else {
-                toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
+                if (result.error === 'INSUFFICIENT_FUNDS') {
+                    showCreditsDialog(true);
+                } else {
+                    toast({ title: "Erro na Compra", description: result.error || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
+                }
             }
+        } catch (e: any) {
+            console.error("Failed to purchase cart:", e);
+            toast({ title: "Erro na Compra", description: "Ocorreu um erro inesperado no servidor.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
