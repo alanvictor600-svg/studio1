@@ -162,7 +162,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         try {
             const result = await createClientTicketsAction({ user: { id: currentUser.id, username: currentUser.username }, cart });
 
-            if (result.success) {
+            if (result && result.success) {
                 const ticketsForReceipt: Ticket[] = cart.map(numbers => ({
                     id: uuidv4(),
                     numbers,
@@ -180,12 +180,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                   className: "bg-primary text-primary-foreground",
                   duration: 4000
                 });
+            } else if (result && result.error === 'INSUFFICIENT_FUNDS') {
+                showCreditsDialog(true);
             } else {
-                if (result.error === 'INSUFFICIENT_FUNDS') {
-                    showCreditsDialog(true);
-                } else {
-                    toast({ title: "Erro na Compra", description: result.error || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
-                }
+                toast({ title: "Erro na Compra", description: result?.error || "Não foi possível registrar seus bilhetes.", variant: "destructive" });
             }
         } catch (e: any) {
             console.error("Failed to purchase cart:", e);
