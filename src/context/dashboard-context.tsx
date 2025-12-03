@@ -180,7 +180,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
               duration: 4000
             });
         } catch (e: any) {
-            if (e.message.includes("Saldo insuficiente")) {
+            if (e.code === 'INSUFFICIENT_FUNDS') {
                 showCreditsDialog(true);
             } else {
                 toast({ title: "Erro na Compra", description: e.message || "Não foi possível registrar seus bilhetes.", variant: "destructive" });

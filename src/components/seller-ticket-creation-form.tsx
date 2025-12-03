@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type FC } from 'react';
@@ -125,8 +126,8 @@ export const SellerTicketCreationForm: FC<SellerTicketCreationFormProps> = ({
       toast({ title: "Venda Registrada!", description: "O bilhete foi ativado e o comprovante gerado. O saldo será atualizado em breve.", className: "bg-primary text-primary-foreground", duration: 3000 });
 
     } catch (e: any) {
-       if (e.message === 'Saldo insuficiente.') {
-          showCreditsDialog();
+       if (e.code === 'INSUFFICIENT_FUNDS') {
+          showCreditsDialog(true);
         } else {
           toast({ title: "Erro ao Vender", description: e.message || "Não foi possível registrar a venda.", variant: "destructive" });
         }
