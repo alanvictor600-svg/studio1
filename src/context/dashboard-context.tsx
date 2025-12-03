@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
 import { useAuth } from './auth-context';
 import { useFirebase } from '@/firebase/client-provider';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface DashboardContextType {
     cart: number[][];
@@ -52,7 +54,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const [cart, setCart] = useState<number[][]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
-    const [receiptTickets, setReceiptTickets] = useState<Ticket[] | null>(null);
+    const [receiptTickets, setReceiptTickets] = useState<Ticket[] | null>([]);
     const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false);
     const [rawUserTickets, setRawUserTickets] = useState<Ticket[]>([]);
     const [allDraws, setAllDraws] = useState<Draw[]>([]);
@@ -118,6 +120,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 setSellerHistory(historyData);
                 setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
                 setHasMoreHistory(historyData.length === REPORTS_PER_PAGE);
+            }).catch(error => {
+                // Adiciona o tratamento de erro contextual
+                const contextualError = new FirestorePermissionError({
+                    path: `sellerHistory`,
+                    operation: 'list',
+                    requestResourceData: { where: `sellerId == ${user.id}` } // Adiciona contexto da query
+                });
+                errorEmitter.emit('permission-error', contextualError);
             }).finally(() => setIsLoadingHistory(false));
             promises.push(historyPromise);
         }
@@ -194,6 +204,12 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             setLastVisibleHistory(docSnaps.docs[docSnaps.docs.length - 1] || null);
             setHasMoreHistory(newHistory.length === REPORTS_PER_PAGE);
         } catch (error) {
+             const contextualError = new FirestorePermissionError({
+                path: `sellerHistory`,
+                operation: 'list',
+                requestResourceData: { where: `sellerId == ${currentUser.id}`, after: lastVisibleHistory.id }
+            });
+            errorEmitter.emit('permission-error', contextualError);
             toast({ title: "Erro ao carregar mais histórico", variant: "destructive" });
         } finally {
             setIsLoadingHistory(false);
