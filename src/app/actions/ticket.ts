@@ -4,13 +4,11 @@ import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 import type { Ticket, LotteryConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { firebaseConfig } from '@/firebase/config';
+import { adminOptions } from '@/lib/firebase-admin-config';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-  admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
+  admin.initializeApp(adminOptions);
 }
 
 const adminDb = admin.firestore();

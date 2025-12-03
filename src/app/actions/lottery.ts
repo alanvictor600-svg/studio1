@@ -5,12 +5,10 @@ import { getApps } from 'firebase-admin/app';
 import type { User, Ticket, LotteryConfig, AdminHistoryEntry, SellerHistoryEntry, Draw } from '@/types';
 import { generateFinancialReport } from '@/lib/reports';
 import { updateTicketStatusesBasedOnDraws } from '@/lib/lottery-utils';
-import { firebaseConfig } from '@/firebase/config';
+import { adminOptions } from '@/lib/firebase-admin-config';
 
 if (!getApps().length) {
-  admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
+  admin.initializeApp(adminOptions);
 }
 
 const adminDb = admin.firestore();
