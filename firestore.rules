@@ -152,7 +152,7 @@ service cloud.firestore {
           return ticket.numbers is list && ticket.numbers.size() == 10
               && ticket.numbers.all(num, num is number && num >= 1 && num <= 25)
               && ticket.status == 'active'
-              && ticket.createdAt is timestamp
+              && ticket.createdAt is string
               && ticket.buyerName is string && ticket.buyerName.size() > 0;
       }
 
