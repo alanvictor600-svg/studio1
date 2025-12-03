@@ -108,6 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userDocRef = doc(db, "users", user.uid);
     const userCheckRef = doc(db, "users_username_lookup", emailUsername);
     
+    const newUser: User = {
+        id: user.uid,
+        username: username,
+        role: role,
+        createdAt: new Date().toISOString(),
+        saldo: 0,
+    };
+    
     try {
         const userCheckDoc = await getDoc(userCheckRef);
         if (userCheckDoc.exists()) {
@@ -115,14 +123,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await signOut(auth); // Log out the user to allow them to try again
             return;
         }
-
-        const newUser: User = {
-            id: user.uid,
-            username: username,
-            role: role,
-            createdAt: new Date().toISOString(),
-            saldo: 0,
-        };
 
         const batch = writeBatch(db);
         batch.set(userDocRef, newUser);
@@ -141,8 +141,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCurrentUser(newUser); 
         toast({ title: "Cadastro Concluído!", description: "Bem-vindo ao Bolão Potiguar!", className: "bg-primary text-primary-foreground" });
     } catch(e) {
-        console.error("Error creating new user document:", e);
-        toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta. Verifique os logs para mais detalhes.", variant: "destructive" });
+        // The error is re-thrown from the batch commit, so we check if it's already a permission error
+        // to avoid logging it twice or showing a generic toast.
+        if (e instanceof Error && e.name !== 'FirebaseError') {
+          console.error("Error creating new user document:", e);
+          toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta. Verifique os logs para mais detalhes.", variant: "destructive" });
+        }
         await signOut(auth);
     } finally {
         setIsRoleSelectionOpen(false);
@@ -164,6 +168,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const username = user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`;
           const emailUsername = sanitizeUsernameForEmail(username);
           const userCheckRef = doc(db, "users_username_lookup", emailUsername);
+           const newUser: User = {
+                id: user.uid,
+                username: username,
+                role: role || 'cliente', // Default to client if no role is passed
+                createdAt: new Date().toISOString(),
+                saldo: 0,
+            };
           
           if (role) {
              const userCheckDoc = await getDoc(userCheckRef);
@@ -172,13 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 await signOut(auth);
                 throw new Error("Username already exists");
              }
-             const newUser: User = {
-                id: user.uid,
-                username: username,
-                role: role,
-                createdAt: new Date().toISOString(),
-                saldo: 0,
-            };
+            
             const batch = writeBatch(db);
             batch.set(userDocRef, newUser);
             batch.set(userCheckRef, { userId: user.uid });
@@ -204,10 +209,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (error.code === 'auth/popup-closed-by-user') {
             // User closed popup, do nothing.
         } else if (error.message !== "Username already exists") {
-            console.error("Google Sign-In Error:", error);
-            // Don't show a generic toast if a contextual error was already emitted
-            if (!error.name?.includes('FirestorePermissionError')) {
-              toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google. Verifique os logs.", variant: "destructive" });
+             // Don't show a generic toast if a contextual error was already emitted
+            if (!(error instanceof FirestorePermissionError)) {
+               console.error("Google Sign-In Error:", error);
+               toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google. Verifique os logs.", variant: "destructive" });
             }
         }
         throw error;
@@ -238,6 +243,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userCheckRef = doc(db, "users_username_lookup", emailUsername);
     
     let newFirebaseUser: FirebaseUser | null = null;
+    
+    const newUser: User = {
+        id: '', // Will be set after user creation
+        username: originalUsername, 
+        role,
+        createdAt: new Date().toISOString(),
+        saldo: 0,
+    };
 
     try {
         const userCheckDoc = await getDoc(userCheckRef);
@@ -248,14 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, passwordRaw);
         newFirebaseUser = userCredential.user;
-        
-        const newUser: User = {
-            id: newFirebaseUser.uid,
-            username: originalUsername, 
-            role,
-            createdAt: new Date().toISOString(),
-            saldo: 0,
-        };
+        newUser.id = newFirebaseUser.uid; // Set the correct ID
         
         const batch = writeBatch(db);
         const userDocRef = doc(db, "users", newFirebaseUser.uid);
@@ -281,9 +287,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (error.code === 'auth/weak-password') {
             toast({ title: "Erro de Cadastro", description: "A senha é muito fraca. Use pelo menos 6 caracteres.", variant: "destructive" });
         } else if (!["Username already exists", "Invalid username"].includes(error.message)) {
-            console.error("Firebase registration error:", error);
             // Don't show a generic toast if a contextual error was already emitted
-            if (!error.name?.includes('FirestorePermissionError')) {
+            if (!(error instanceof FirestorePermissionError)) {
+                console.error("Firebase registration error:", error);
                 toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Verifique os logs para mais detalhes.", variant: "destructive" });
             }
         }
