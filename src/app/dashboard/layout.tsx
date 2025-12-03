@@ -180,8 +180,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <div className="flex flex-1 flex-col h-screen md:pl-64">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-secondary px-4 md:px-6">
+      <div className="flex flex-1 flex-col h-screen">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-secondary px-4 md:px-6 md:pl-72">
             <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
                  <span className="hidden md:inline font-semibold text-primary">{currentUser.role === 'cliente' ? 'Painel do Cliente' : 'Painel do Vendedor'}</span>
@@ -205,7 +205,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto md:pl-72">
            {isDataLoading ? <DashboardLoading /> : children}
         </main>
 
