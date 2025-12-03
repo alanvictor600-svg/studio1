@@ -80,7 +80,7 @@ export const createSellerTicketAction = async ({
 
     } catch (e: any) {
         if (e.code === 'INSUFFICIENT_FUNDS') {
-            return { success: false, error: e.code };
+            return { success: false, error: 'INSUFFICIENT_FUNDS' };
         }
         return { success: false, error: e.message || "Erro desconhecido no servidor." };
     }
