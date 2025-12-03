@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch(e) {
         // The error is re-thrown from the batch commit, so we check if it's already a permission error
         // to avoid logging it twice or showing a generic toast.
-        if (e instanceof Error && e.name !== 'FirebaseError') {
+        if (!(e instanceof FirestorePermissionError) && (e as any).name !== 'FirebaseError') {
           console.error("Error creating new user document:", e);
           toast({ title: "Erro no Cadastro", description: "Não foi possível criar sua conta. Verifique os logs para mais detalhes.", variant: "destructive" });
         }
@@ -270,7 +270,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         await batch.commit().catch(error => {
             const contextualError = new FirestorePermissionError({
-                path: `/users/${newFirebaseUser?.uid}`,
+                path: userDocRef.path,
                 operation: 'create',
                 requestResourceData: newUser,
             });
@@ -288,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast({ title: "Erro de Cadastro", description: "A senha é muito fraca. Use pelo menos 6 caracteres.", variant: "destructive" });
         } else if (!["Username already exists", "Invalid username"].includes(error.message)) {
             // Don't show a generic toast if a contextual error was already emitted
-            if (!(error instanceof FirestorePermissionError)) {
+            if (!(error instanceof FirestorePermissionError) && error.name !== 'FirebaseError') {
                 console.error("Firebase registration error:", error);
                 toast({ title: "Erro de Cadastro", description: "Ocorreu um erro inesperado. Verifique os logs para mais detalhes.", variant: "destructive" });
             }
