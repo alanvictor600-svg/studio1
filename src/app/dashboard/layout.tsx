@@ -180,7 +180,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <div className="flex flex-1 flex-col md:pl-64">
+      <div className="flex flex-1 flex-col h-screen md:pl-64">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-secondary px-4 md:px-6">
             <div className="flex items-center gap-4">
                 <SidebarTrigger className="md:hidden" />
