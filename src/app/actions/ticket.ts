@@ -3,23 +3,12 @@
 
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
-import { firebaseConfig } from '@/firebase/config';
 import type { Ticket, LotteryConfig } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-    try {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: firebaseConfig.projectId,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-            })
-        });
-    } catch (e) {
-        console.error("Firebase admin initialization error", e);
-    }
+  admin.initializeApp();
 }
 
 const adminDb = admin.firestore();
