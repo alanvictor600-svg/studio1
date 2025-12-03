@@ -134,7 +134,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <div className="flex flex-col flex-1 md:pl-64">
+      <div className="flex flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
             <div className="flex items-center gap-2">
                  <SidebarTrigger />
