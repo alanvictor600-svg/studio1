@@ -48,7 +48,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && isAdmin(); // Allow admins to list users.
       // Allow creation if the user ID in the path matches the authenticated user's ID.
       // This resolves the race condition during sign-up.
-      allow create: if request.auth.uid == userId && request.resource.data.id == userId;
+      allow create: if request.auth.uid == userId;
       // Allow update if the user is the owner OR the user is an admin.
       allow update: if isSignedIn() && (isOwner() || isAdmin());
       allow delete: if isSignedIn() && (isOwner() || isAdmin());
