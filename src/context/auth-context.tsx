@@ -165,25 +165,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-          const username = user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`;
-          const emailUsername = sanitizeUsernameForEmail(username);
-          const userCheckRef = doc(db, "users_username_lookup", emailUsername);
-           const newUser: User = {
+          // This is a new user
+          if (role) {
+            // Role is provided, so create the user directly
+            const username = user.displayName || user.email?.split('@')[0] || `user_${user.uid.substring(0, 6)}`;
+            const emailUsername = sanitizeUsernameForEmail(username);
+            const userCheckRef = doc(db, "users_username_lookup", emailUsername);
+            const userCheckDoc = await getDoc(userCheckRef);
+            
+            if (userCheckDoc.exists()) {
+              toast({ title: "Erro de Cadastro", description: "Um usuário com um nome similar já existe. Por favor, cadastre-se com e-mail e senha para escolher um nome de usuário único.", variant: "destructive", duration: 7000 });
+              await signOut(auth);
+              throw new Error("Username already exists");
+            }
+            
+            const newUser: User = {
                 id: user.uid,
                 username: username,
-                role: role || 'cliente', // Default to client if no role is passed
+                role: role,
                 createdAt: new Date().toISOString(),
                 saldo: 0,
             };
-          
-          if (role) {
-             const userCheckDoc = await getDoc(userCheckRef);
-             if (userCheckDoc.exists()) {
-                toast({ title: "Erro de Cadastro", description: "Um usuário com um nome similar já existe. Por favor, cadastre-se com e-mail e senha para escolher um nome de usuário único.", variant: "destructive", duration: 7000 });
-                await signOut(auth);
-                throw new Error("Username already exists");
-             }
-            
+
             const batch = writeBatch(db);
             batch.set(userDocRef, newUser);
             batch.set(userCheckRef, { userId: user.uid });
@@ -196,13 +199,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 errorEmitter.emit('permission-error', contextualError);
                 throw error;
             });
-
             setCurrentUser(newUser); // Optimistic update
           } else {
+            // Role is not provided, so open role selection dialog
             setPendingGoogleUser(user);
             setIsRoleSelectionOpen(true);
           }
         }
+        // If userDoc.exists(), the onSnapshot listener will handle setting currentUser.
     } catch (error: any) {
         if (error.code === 'auth/account-exists-with-different-credential') {
             toast({ title: "Erro de Login", description: "Já existe uma conta com este e-mail. Tente fazer login com outro método.", variant: "destructive", duration: 5000 });
