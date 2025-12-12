@@ -1,18 +1,32 @@
 // src/lib/firebase.ts
-"use client";
-
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { firebaseConfig } from "./firebase-client";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
 
 let app: FirebaseApp;
-let auth: ReturnType<typeof getAuth>;
+let auth: Auth;
 let db: Firestore;
 
+// This function ensures Firebase is initialized only once.
 function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    // On the server, we don't initialize Firebase client SDK.
+    // You can either return mock objects or handle this case as needed.
+    // For this app, server-side rendering doesn't strictly need Firebase client instances.
+    return;
+  }
+  
   if (getApps().length === 0) {
-    // Validate that the essential Firebase config values are present.
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       throw new Error(
         "Firebase configuration is incomplete. " +
@@ -27,14 +41,7 @@ function initializeFirebase() {
   db = getFirestore(app);
 }
 
-// Ensure initialization only happens on the client
-if (typeof window !== 'undefined') {
-  initializeFirebase();
-} else {
-  // Provide mock instances for server-side rendering to avoid errors
-  app = null as any;
-  auth = null as any;
-  db = null as any;
-}
+// Call initialization. It's safe because it checks for window object.
+initializeFirebase();
 
 export { app, auth, db };
