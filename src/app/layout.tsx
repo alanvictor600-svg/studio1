@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from '@/context/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import { PWALoader } from '@/components/pwa-loader';
+import { Suspense } from 'react';
 
 const APP_NAME = "Bolão Potiguar";
 const APP_DEFAULT_TITLE = "Bolão Potiguar";
@@ -54,15 +55,22 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
        <head>
-         <meta name="theme-color" content="#228B22" />
+         <meta name="theme-color" content="#15803d" />
          <link rel="manifest" href="/manifest.json" />
          <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
        </head>
       <body className={`${GeistSans.variable} font-sans antialiased flex flex-col min-h-screen`}>
-        <ThemeProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
           <AuthProvider>
             <PWALoader />
-            {children}
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
