@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Settings, Palette as PaletteIcon, Users, Contact, DollarSign, Percent, Search, CreditCard, Eye, Loader2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query } from 'firebase/firestore';
+import { collection, query, orderBy, limit, startAfter, getDocs, QueryDocumentSnapshot, DocumentData, Query, QueryConstraint } from 'firebase/firestore';
 
 const USERS_PER_PAGE = 15;
 
@@ -63,15 +63,17 @@ export const SettingsSection: FC<SettingsSectionProps> = ({
     }
     
     try {
-        let q: Query<DocumentData>;
         const usersCollectionRef = collection(db, 'users');
+        const queryConstraints: QueryConstraint[] = [
+            orderBy("username"),
+            limit(USERS_PER_PAGE)
+        ];
 
         if (loadMore && lastVisible) {
-            q = query(usersCollectionRef, orderBy("username"), startAfter(lastVisible), limit(USERS_PER_PAGE));
-        } else {
-            q = query(usersCollectionRef, orderBy("username"), limit(USERS_PER_PAGE));
+            queryConstraints.push(startAfter(lastVisible));
         }
         
+        const q = query(usersCollectionRef, ...queryConstraints);
         const documentSnapshots = await getDocs(q);
 
         const newUsers = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, FileText, Loader2, BarChart3, Percent, DollarSign, Ticket as TicketIcon } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, limit, startAfter, DocumentData, QueryDocumentSnapshot, QueryConstraint } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SellerHistoryCard } from './seller-history-card';
 import { ScrollArea } from './ui/scroll-area';
@@ -56,7 +56,7 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
         }
         
         try {
-            const historyQueryConstraints = [
+            const historyQueryConstraints: QueryConstraint[] = [
                 where("sellerId", "==", currentUser.id),
                 orderBy("endDate", "desc"),
                 limit(REPORTS_PER_PAGE)
@@ -221,5 +221,3 @@ export const SellerDashboard: FC<SellerDashboardProps> = ({
         </Tabs>
     );
 };
-
-    
