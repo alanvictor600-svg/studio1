@@ -1,19 +1,18 @@
+
 // src/lib/firebase.ts
-"use client"; // Garante que este módulo seja executado apenas no cliente
+"use client"; 
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { firebaseConfig } from "./firebase-client"; // Import from the new client config file
+import { firebaseConfig } from "./firebase-client";
 
 let app: FirebaseApp;
 let auth: ReturnType<typeof getAuth>;
 let db: Firestore;
 
-// A inicialização do Firebase agora só acontece no lado do cliente
-if (typeof window !== 'undefined') {
+function initializeFirebase() {
   if (getApps().length === 0) {
-    // Validate that the essential Firebase config values are present.
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       throw new Error(
         "Firebase configuration is incomplete. " +
@@ -26,13 +25,16 @@ if (typeof window !== 'undefined') {
   }
   auth = getAuth(app);
   db = getFirestore(app);
+}
+
+// Ensure initialization only happens on the client
+if (typeof window !== 'undefined') {
+  initializeFirebase();
 } else {
-  // No servidor, exportamos placeholders ou nulos para evitar erros.
-  // O código que os utiliza deve ser executado apenas no cliente.
+  // Provide mock instances for server-side rendering to avoid errors
   app = null as any;
   auth = null as any;
   db = null as any;
 }
-
 
 export { app, auth, db };
