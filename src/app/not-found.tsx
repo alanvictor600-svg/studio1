@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { NotFoundClient } from "@/components/not-found-client";
+import Client404 from "@/app/404/Client";
 
 // This is the Next.js convention for a custom 404 page.
 // It wraps a client component in Suspense to allow the use of client-side hooks like useSearchParams
@@ -9,7 +9,7 @@ import { NotFoundClient } from "@/components/not-found-client";
 export default function NotFound() {
   return (
     <Suspense fallback={<div>Carregando...</div>}>
-      <NotFoundClient />
+      <Client404 />
     </Suspense>
   );
 }
