@@ -1,3 +1,4 @@
+
 // Server Component Wrapper
 import CadastroClient from "./CadastroClient";
 

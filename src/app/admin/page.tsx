@@ -1,3 +1,4 @@
+
 // src/app/admin/page.tsx
 import AdminClient from "./AdminClient";
 import type { AdminSection } from './AdminClient';
