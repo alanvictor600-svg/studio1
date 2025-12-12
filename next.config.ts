@@ -1,6 +1,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverActions: true,
   /* config options here */
   typescript: {
     ignoreBuildErrors: false,
