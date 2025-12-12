@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import type { User, LotteryConfig } from '@/types';
 import Link from 'next/link';
@@ -37,15 +36,11 @@ const menuItems: { id: string; label: string; Icon: React.ElementType }[] = [
   { id: 'bilhetes-premiados', label: 'Bilhetes Premiados', Icon: Trophy },
 ];
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+function AdminLayoutContent({ activeSection, children }: { activeSection: string, children: React.ReactNode }) {
   const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { setOpenMobile } = useSidebar();
   
-  const activeSection = searchParams.get('section') || 'configuracoes';
-
   useEffect(() => {
     // This effect handles redirection for users who are not authenticated admins
     // after the initial authentication check is complete.
@@ -163,10 +158,18 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ 
+    children,
+    ...props
+}: { 
+    children: React.ReactNode,
+    params: {},
+    searchParams: { [key: string]: string | string[] | undefined }
+}) {
+    const activeSection = typeof props.searchParams.section === 'string' ? props.searchParams.section : 'configuracoes';
     return (
         <SidebarProvider>
-            <AdminLayoutContent>{children}</AdminLayoutContent>
+            <AdminLayoutContent activeSection={activeSection}>{children}</AdminLayoutContent>
         </SidebarProvider>
     );
 }

@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,37 +25,27 @@ const GoogleIcon = () => (
 );
 
 
-export default function LoginPage() {
+function LoginPageContent({ isAdminLogin, redirectParam }: { isAdminLogin: boolean, redirectParam: string | null }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, signInWithGoogle, isLoading, isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get('as') === 'admin') {
-      setIsAdminLogin(true);
-    } else {
-      setIsAdminLogin(false);
-    }
-  }, [searchParams]);
 
   // If the user is already authenticated, redirect them away from the login page.
   useEffect(() => {
     if (!isLoading && isAuthenticated && currentUser) {
         const defaultRedirect = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
-        router.replace(defaultRedirect);
+        router.replace(redirectParam || defaultRedirect);
     }
-  }, [isLoading, isAuthenticated, currentUser, router]);
+  }, [isLoading, isAuthenticated, currentUser, router, redirectParam]);
 
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     try {
-      await signInWithGoogle('cliente');
+      await signInWithGoogle('cliente', redirectParam);
     } catch (error) {
       setIsSubmitting(false);
     }
@@ -72,7 +61,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     
     try {
-      await login(username, password, isAdminLogin ? 'admin' : undefined);
+      await login(username, password, isAdminLogin ? 'admin' : undefined, redirectParam);
     } catch (error) {
        setIsSubmitting(false);
     }
@@ -199,4 +188,12 @@ export default function LoginPage() {
   );
 }
 
-    
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const isAdminLogin = searchParams?.as === 'admin';
+  const redirectParam = typeof searchParams?.redirect === 'string' ? searchParams.redirect : null;
+  return <LoginPageContent isAdminLogin={isAdminLogin} redirectParam={redirectParam} />;
+}

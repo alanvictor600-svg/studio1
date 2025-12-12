@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
@@ -33,26 +32,17 @@ const GoogleIcon = () => (
     </svg>
 );
 
-export default function CadastroPage() {
+function CadastroPageContent({ initialRole }: { initialRole: 'cliente' | 'vendedor' | null }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState<'cliente' | 'vendedor' | null>(null);
+  const [role, setRole] = useState<'cliente' | 'vendedor' | null>(initialRole);
   const { register, signInWithGoogle, isLoading: authLoading, currentUser, isAuthenticated } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-
-  useEffect(() => {
-    const roleFromQuery = searchParams.get('role');
-    if (roleFromQuery === 'cliente' || roleFromQuery === 'vendedor') {
-      setRole(roleFromQuery);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && currentUser) {
@@ -270,4 +260,15 @@ export default function CadastroPage() {
       </p>
     </div>
   );
+}
+
+
+export default function CadastroPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const roleFromQuery = searchParams?.role;
+  const initialRole = roleFromQuery === 'cliente' || roleFromQuery === 'vendedor' ? roleFromQuery : null;
+  return <CadastroPageContent initialRole={initialRole} />;
 }

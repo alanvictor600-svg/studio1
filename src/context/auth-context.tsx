@@ -1,9 +1,8 @@
-
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { User } from '@/types';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
@@ -13,8 +12,8 @@ import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, passwordAttempt: string, loginAs?: 'admin') => Promise<void>;
-  signInWithGoogle: (role: 'cliente' | 'vendedor') => Promise<void>;
+  login: (username: string, passwordAttempt: string, loginAs?: 'admin', redirectPath?: string | null) => Promise<void>;
+  signInWithGoogle: (role: 'cliente' | 'vendedor', redirectPath?: string | null) => Promise<void>;
   logout: () => void;
   register: (username: string, passwordRaw: string, role: 'cliente' | 'vendedor') => Promise<void>;
   isLoading: boolean;
@@ -32,7 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const isAuthenticated = !isLoading && !!currentUser;
@@ -76,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [toast]);
 
 
-  const login = useCallback(async (username: string, passwordAttempt: string, loginAs?: 'admin') => {
+  const login = useCallback(async (username: string, passwordAttempt: string, loginAs?: 'admin', redirectPath?: string | null) => {
      const emailUsername = sanitizeUsernameForEmail(username);
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
 
@@ -98,8 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
            
-           const redirectPath = searchParams.get('redirect');
-           
            if (redirectPath && redirectPath !== '/') {
              router.replace(redirectPath);
            } else {
@@ -118,9 +114,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         throw error;
      }
-  }, [toast, router, searchParams]);
+  }, [toast, router]);
 
-  const signInWithGoogle = useCallback(async (role: 'cliente' | 'vendedor') => {
+  const signInWithGoogle = useCallback(async (role: 'cliente' | 'vendedor', redirectPath?: string | null) => {
     const provider = new GoogleAuthProvider();
     try {
         const result = await signInWithPopup(auth, provider);
@@ -149,8 +145,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             toast({ title: "Conta criada com sucesso!", description: "Bem-vindo(a) ao Bolão Potiguar!", className: "bg-primary text-primary-foreground", duration: 3000 });
         }
         
-        const redirectPath = searchParams.get('redirect');
-        
         if (redirectPath && redirectPath !== '/') {
             router.replace(redirectPath);
         } else {
@@ -168,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         throw error;
     }
-  }, [router, toast, searchParams]);
+  }, [router, toast]);
 
 
   const logout = useCallback(async () => {

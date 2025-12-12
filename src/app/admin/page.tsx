@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -9,7 +7,7 @@ import { UserDetailsDialog } from '@/components/user-details-dialog';
 import { CreditManagementDialog } from '@/components/credit-management-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/context/auth-context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, query, orderBy, getDocs } from 'firebase/firestore';
 
@@ -44,15 +42,13 @@ const DEFAULT_CREDIT_CONFIG: CreditRequestConfig = {
 export type AdminSection = 'configuracoes' | 'cadastrar-sorteio' | 'controles-loteria' | 'historico-sorteios' | 'bilhetes-premiados' | 'relatorios' | 'ranking-ciclo';
 
 
-export default function AdminPage() {
+function AdminPageContent({ activeSection }: { activeSection: AdminSection }) {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [allTickets, setAllTickets] = useState<Ticket[]>([]);
   const [lotteryConfig, setLotteryConfig] = useState<LotteryConfig>(DEFAULT_LOTTERY_CONFIG);
   const [creditRequestConfig, setCreditRequestConfig] = useState<CreditRequestConfig>(DEFAULT_CREDIT_CONFIG);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-
-  const [activeSection, setActiveSection] = useState<AdminSection>('configuracoes');
   
   const [allUsers, setAllUsers] = useState<User[]>([]); // Used for StartNewLottery & Credit Dialog
   const [userToView, setUserToView] = useState<User | null>(null);
@@ -65,16 +61,7 @@ export default function AdminPage() {
   const [adminHistory, setAdminHistory] = useState<AdminHistoryEntry[]>([]);
   const { currentUser, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Read section from URL on load
-  useEffect(() => {
-    const section = searchParams.get('section') as AdminSection;
-    if (section) {
-        setActiveSection(section);
-    }
-  }, [searchParams]);
-
+  
   // Initial client-side mount
   useEffect(() => {
     setIsClient(true);
@@ -452,4 +439,16 @@ export default function AdminPage() {
   );
 }
 
-    
+export default function AdminPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const section = searchParams?.section;
+  const activeSection: AdminSection = 
+    (typeof section === 'string' && ['configuracoes', 'cadastrar-sorteio', 'controles-loteria', 'historico-sorteios', 'bilhetes-premiados', 'relatorios', 'ranking-ciclo'].includes(section)) 
+    ? section as AdminSection 
+    : 'configuracoes';
+  
+  return <AdminPageContent activeSection={activeSection} />;
+}
