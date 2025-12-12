@@ -27,6 +27,6 @@ function toSection(value: string | undefined): AdminSection {
 }
 
 export default function AdminPage({ searchParams }: PageProps) {
-  const activeSection = toSection(getParam(searchParams, "section"));
-  return <AdminClient activeSection={activeSection} />;
+  const section = toSection(getParam(searchParams, "section"));
+  return <AdminClient initialSection={section} />;
 }
