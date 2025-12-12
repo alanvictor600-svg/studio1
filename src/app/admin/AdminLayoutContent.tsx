@@ -2,14 +2,13 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import type { User, LotteryConfig } from '@/types';
+import type { User } from '@/types';
 import Link from 'next/link';
 
 import { 
-    Sidebar, 
-    SidebarProvider, 
+    Sidebar,
     SidebarTrigger, 
     SidebarContent, 
     SidebarHeader, 
@@ -22,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Coins, Ticket, Home, User as UserIcon, Settings, PlusCircle, ShieldCheck, PieChart, History, Trophy, TrendingUp } from 'lucide-react';
+import { LogOut, Home, Settings, PlusCircle, ShieldCheck, PieChart, History, Trophy, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
@@ -37,32 +36,25 @@ const menuItems: { id: string; label: string; Icon: React.ElementType }[] = [
   { id: 'bilhetes-premiados', label: 'Bilhetes Premiados', Icon: Trophy },
 ];
 
-function AdminLayoutContent({ activeSection, children }: { activeSection: string, children: React.ReactNode }) {
+export default function AdminLayoutContent({ activeSection, children }: { activeSection: string, children: React.ReactNode }) {
   const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
   
   useEffect(() => {
-    // This effect handles redirection for users who are not authenticated admins
-    // after the initial authentication check is complete.
     if (!isLoading && (!isAuthenticated || currentUser?.role !== 'admin')) {
       router.replace('/login?redirect=/admin');
     }
   }, [isLoading, isAuthenticated, currentUser, router]);
 
-
-  // While loading, or if the user is not authenticated yet, show a loading screen.
-  // This prevents content from flashing before the redirect logic in useEffect runs.
   if (isLoading || !isAuthenticated || !currentUser) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-emerald-800">
         <p className="text-white text-xl">Verificando sessão de Admin...</p>
       </div>
     );
   }
 
-  // After loading, if the user is still not an admin, return null.
-  // The useEffect will handle the redirection, so we don't need to render anything.
   if (currentUser.role !== 'admin') {
     return null;
   }
@@ -157,16 +149,4 @@ function AdminLayoutContent({ activeSection, children }: { activeSection: string
       </SidebarInset>
     </>
   );
-}
-
-// O layout agora tem a assinatura de tipo correta, recebendo apenas `children`.
-// A responsabilidade de ler os `searchParams` é da página.
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    // A página (`page.tsx`) agora será responsável por renderizar o `AdminLayoutContent`
-    // e passar a seção ativa para ele e para o `AdminClient`.
-    return (
-        <SidebarProvider>
-            {children}
-        </SidebarProvider>
-    );
 }
