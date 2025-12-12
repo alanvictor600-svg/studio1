@@ -1,38 +1,34 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+// src/lib/firebase.ts
+"use client"; // Garante que este módulo seja executado apenas no cliente
+
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { firebaseConfig } from "./firebase-client"; // Import from the new client config file
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-// Initialize Firebase
 let app: FirebaseApp;
+let auth: ReturnType<typeof getAuth>;
 let db: Firestore;
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
-try {
+// A inicialização do Firebase agora só acontece no lado do cliente
+if (typeof window !== 'undefined') {
+  if (getApps().length === 0) {
+    if (!firebaseConfig.apiKey) {
+      throw new Error("Firebase API Key is missing. Check your environment variables.");
+    }
+    app = initializeApp(firebaseConfig);
+  } else {
+    app = getApp();
+  }
+  auth = getAuth(app);
   db = getFirestore(app);
-} catch (e) {
-  console.error("Firestore could not be initialized (likely server-side):", e);
-  // Assign a dummy object or handle as needed for server-side rendering
+} else {
+  // No servidor, exportamos placeholders ou nulos para evitar erros.
+  // O código que os utiliza deve ser executado apenas no cliente.
+  app = null as any;
+  auth = null as any;
+  db = null as any;
 }
 
-
-const auth = getAuth(app);
 
 export { app, auth, db };
-
-    

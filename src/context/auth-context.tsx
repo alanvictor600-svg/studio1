@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -8,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 
@@ -31,46 +30,51 @@ const sanitizeUsernameForEmail = (username: string) => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [firebaseUser, authLoading, authError] = useAuthState(auth);
-  const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   
-  const isAuthenticated = !authLoading && !!firebaseUser && !!currentUser;
-  const isLoading = authLoading || isFirestoreLoading;
-
+  const isAuthenticated = !isLoading && !!currentUser;
+  
   useEffect(() => {
-    if (authError) {
-      console.error("Firebase Auth Hook Error:", authError);
-    }
-  }, [authError]);
-
-  useEffect(() => {
-    if (firebaseUser) {
-        setIsFirestoreLoading(true);
+    // This effect runs only on the client side.
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // If a Firebase user is detected, listen for their data in Firestore.
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        const unsubscribe = onSnapshot(userDocRef, (doc) => {
-            if (doc.exists()) {
-              setCurrentUser({ id: doc.id, ...doc.data() } as User);
-            } else {
-              // This can happen briefly during logout or if user is deleted from Firestore but not Auth.
-              setCurrentUser(null);
-            }
-            setIsFirestoreLoading(false);
+        const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            setCurrentUser({ id: doc.id, ...doc.data() } as User);
+          } else {
+            // User exists in Auth but not Firestore, likely an error or deleted user.
+            setCurrentUser(null);
+          }
+          setIsLoading(false);
         }, (error) => {
-            console.error("Error listening to user document:", error);
-            toast({ title: "Erro de Conexão", description: "Não foi possível sincronizar seus dados.", variant: "destructive" });
-            setIsFirestoreLoading(false);
+          console.error("Error listening to user document:", error);
+          toast({ title: "Erro de Conexão", description: "Não foi possível sincronizar seus dados.", variant: "destructive" });
+          setCurrentUser(null);
+          setIsLoading(false);
         });
 
-        return () => unsubscribe();
-    } else {
-        // If there's no Firebase user, ensure local state is also cleared
+        // Return the snapshot listener's unsubscribe function to be called on cleanup.
+        return () => unsubscribeSnapshot();
+      } else {
+        // No Firebase user, so clear our local state.
         setCurrentUser(null);
-        setIsFirestoreLoading(false);
-    }
-  }, [firebaseUser, toast]);
+        setIsLoading(false);
+      }
+    }, (error) => {
+        console.error("Firebase Auth State Error:", error);
+        setCurrentUser(null);
+        setIsLoading(false);
+    });
+
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
+  }, [toast]);
+
 
   const login = useCallback(async (username: string, passwordAttempt: string, loginAs?: 'admin') => {
      const emailUsername = sanitizeUsernameForEmail(username);
@@ -80,8 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
         const fbUser = userCredential.user;
         
-        // After signIn, the useEffect hook will run and set the currentUser.
-        // We need to fetch the document directly here to get the role for immediate redirection.
         const userDocRef = doc(db, "users", fbUser.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -89,24 +91,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = { id: userDoc.id, ...userDoc.data() } as User;
           
           if(loginAs === 'admin' && userData.role !== 'admin') {
-            await signOut(auth); // Sign out if trying to log in as admin without permission
+            await signOut(auth);
             toast({ title: "Acesso Negado", description: "Este usuário não tem permissões de administrador.", variant: "destructive" });
             return;
           }
 
            toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
            
-           // Handle redirection logic inside the successful login
            const redirectPath = searchParams.get('redirect');
            
            if (redirectPath && redirectPath !== '/') {
              router.replace(redirectPath);
            } else {
-             // Default redirection based on role
              router.replace(userData.role === 'admin' ? '/admin' : `/dashboard/${userData.role}`);
            }
         } else {
-          // This case should be rare if user creation is robust
           await signOut(auth);
           toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
         }
@@ -117,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
              console.error("Firebase login error:", error.code, error.message);
              toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
         }
-        // Rethrow to allow component to stop loading state
         throw error;
      }
   }, [toast, router, searchParams]);
@@ -168,7 +166,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Google Sign-In Error:", error);
             toast({ title: "Erro de Login", description: "Não foi possível fazer login com o Google. Tente novamente.", variant: "destructive" });
         }
-         // Rethrow to allow component to stop loading state
         throw error;
     }
   }, [router, toast, searchParams]);
@@ -177,7 +174,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       await signOut(auth);
-      // Let the useEffect handle state changes, but force a redirect to be safe.
       router.push('/');
       toast({ title: "Logout realizado", description: "Até logo!", duration: 3000 });
     } catch (error) {
@@ -211,7 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(doc(db, "users", newFirebaseUser.uid), newUser);
 
         toast({ title: "Cadastro realizado!", description: "Você já pode fazer login.", className: "bg-primary text-primary-foreground", duration: 3000 });
-        await signOut(auth); // Sign out the new user so they have to log in
+        await signOut(auth);
         router.push('/login');
 
     } catch (error: any) {
@@ -228,7 +224,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const updateCurrentUserCredits = (newCredits: number) => {
-    // Directly update the state to ensure UI is always in sync.
     setCurrentUser(prevUser => {
         if (!prevUser) return null;
         return { ...prevUser, saldo: newCredits };
@@ -247,5 +242,3 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-    

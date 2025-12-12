@@ -54,6 +54,8 @@ export const CreditManagementDialog: FC<CreditManagementDialogProps> = ({
     }
     
     onSave(user, creditsChange);
+    // After saving, close the dialog
+    handleDialogClose(false);
   };
   
   const handleDialogClose = (open: boolean) => {
