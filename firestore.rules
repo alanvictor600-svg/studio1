@@ -21,9 +21,10 @@ service cloud.firestore {
     }
 
     // Users can only read/write their own data. Admins can read/write anything.
+    // A user can only create their own user document.
     match /users/{userId} {
       allow read, update, delete: if isUserId(userId) || isAdmin();
-      allow create: if isAuth();
+      allow create: if request.auth.uid == userId;
     }
     
     // Configs: global config is readable by auth users, writable by admin.
