@@ -1,8 +1,10 @@
-
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
-import { BodyContent } from '@/components/body-content';
+import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/context/auth-context';
+import { Toaster } from '@/components/ui/toaster';
+import { PWALoader } from '@/components/pwa-loader';
 
 const APP_NAME = "Bolão Potiguar";
 const APP_DEFAULT_TITLE = "Bolão Potiguar";
@@ -21,7 +23,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: APP_DEFAULT_TITLE,
-    // startUpImage: [],
   },
   formatDetection: {
     telephone: false,
@@ -58,7 +59,13 @@ export default function RootLayout({
          <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
        </head>
       <body className={`${GeistSans.variable} font-sans antialiased flex flex-col min-h-screen`}>
-        <BodyContent>{children}</BodyContent>
+        <ThemeProvider>
+          <AuthProvider>
+            <PWALoader />
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
