@@ -1,0 +1,284 @@
+
+"use client";
+
+import { Suspense } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
+import { useToast } from "@/hooks/use-toast";
+import Link from 'next/link';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { UserPlus, LogIn, ArrowLeft, Eye, EyeOff, User as UserIcon, ShoppingCart as SellerIcon, RefreshCw } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { SuspenseWrapper } from '@/components/suspense-wrapper';
+
+const GoogleIcon = () => (
+    <svg xmlns="http://wwww.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        <path fill="none" d="M1 1h22v22H1z"/>
+    </svg>
+);
+
+function CadastroPageContent() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [role, setRole] = useState<'cliente' | 'vendedor' | null>(null);
+  const { register, signInWithGoogle, isLoading: authLoading, currentUser, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+  useEffect(() => {
+    const roleFromQuery = searchParams.get('role');
+    if (roleFromQuery === 'cliente' || roleFromQuery === 'vendedor') {
+      setRole(roleFromQuery);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && currentUser) {
+        const defaultRedirect = currentUser.role === 'admin' ? '/admin' : `/dashboard/${currentUser.role}`;
+        router.replace(defaultRedirect);
+    }
+  }, [authLoading, isAuthenticated, currentUser, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!role) {
+      toast({ title: "Erro de Cadastro", description: "O tipo de conta não foi definido.", variant: "destructive" });
+      return;
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+         toast({ title: "Erro de Cadastro", description: "Nome de usuário inválido. Use apenas letras (a-z, A-Z), números (0-9) e os caracteres: . - _", variant: "destructive" });
+         return;
+    }
+    if (password !== confirmPassword) {
+      toast({ title: "Erro de Cadastro", description: "As senhas não coincidem.", variant: "destructive" });
+      return;
+    }
+    if (!username || !password) {
+       toast({ title: "Erro de Cadastro", description: "Todos os campos são obrigatórios.", variant: "destructive" });
+      return;
+    }
+    if (password.length < 6) {
+        toast({ title: "Erro de Cadastro", description: "A senha deve ter pelo menos 6 caracteres.", variant: "destructive" });
+        return;
+    }
+    
+    setIsSubmitting(true);
+    await register(username, password, role);
+    setIsSubmitting(false);
+  };
+  
+  const handleGoogleSignIn = async (selectedRole: 'cliente' | 'vendedor') => {
+      setIsSubmitting(true);
+      try {
+          await signInWithGoogle(selectedRole);
+      } catch (e) {
+          setIsSubmitting(false);
+      }
+  }
+  
+  if (authLoading || (!authLoading && isAuthenticated)) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <p className="text-foreground text-xl">Verificando autenticação...</p>
+      </div>
+    );
+  }
+
+  const handleSelectRole = (selectedRole: 'cliente' | 'vendedor') => {
+    setRole(selectedRole);
+    router.push(`/cadastrar?role=${selectedRole}`, { scroll: false });
+  }
+
+  if (!role) {
+    return (
+      <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center">
+        <Dialog open={true} onOpenChange={() => router.push('/')}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-center text-2xl">Escolha seu Perfil</DialogTitle>
+                    <DialogDescription className="text-center">
+                        Você quer apostar e concorrer a prêmios ou quer vender bilhetes e ganhar comissões?
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                    <Button variant="outline" className="h-28 flex flex-col gap-2" onClick={() => handleSelectRole('cliente')}>
+                        <UserIcon className="h-8 w-8 text-primary" />
+                        <span className="font-semibold">Sou um Cliente</span>
+                    </Button>
+                    <Button variant="outline" className="h-28 flex flex-col gap-2" onClick={() => handleSelectRole('vendedor')}>
+                        <SellerIcon className="h-8 w-8 text-accent" />
+                        <span className="font-semibold">Sou um Vendedor</span>
+                    </Button>
+                </div>
+                <DialogFooter className="justify-center">
+                    <p className="text-sm text-muted-foreground">Já tem uma conta? <Link href="/login" className="text-primary hover:underline">Faça login</Link></p>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col items-center justify-center relative">
+      <div className="absolute top-6 left-6 z-50">
+        <Link href="/" passHref>
+          <Button variant="outline" className="h-10 w-10 p-0 sm:w-auto sm:px-3 sm:py-2 flex items-center justify-center sm:justify-start shadow-md">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline-block sm:ml-2">Voltar</span>
+          </Button>
+        </Link>
+      </div>
+
+      <Card className="w-full max-w-md shadow-xl bg-card/90 backdrop-blur-sm border-border/50">
+        <CardHeader className="text-center">
+            <Image src="/logo.png" alt="Logo Bolão Potiguar" width={80} height={80} className="mx-auto mb-4" />
+          <CardTitle className="text-3xl font-bold text-primary">Crie sua Conta de {role === 'cliente' ? 'Cliente' : 'Vendedor'}</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Rápido e fácil. Escolha seu método preferido abaixo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <Button variant="outline" className="w-full h-12 text-base" onClick={() => handleGoogleSignIn(role)} disabled={isSubmitting}>
+              <GoogleIcon />
+              <span className="ml-2">Continuar com Google</span>
+            </Button>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    OU
+                    </span>
+                </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="username">Nome de Usuário</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Escolha um nome de usuário"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="h-11"
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-muted-foreground">Apenas letras (a-z, A-Z), números (0-9) e os caracteres . - _</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                 <div className="relative">
+                    <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Crie uma senha (mínimo 6 caracteres)"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="h-11 pr-10"
+                        disabled={isSubmitting}
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isSubmitting}
+                    >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                 <div className="relative">
+                    <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Confirme sua senha"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className="h-11 pr-10"
+                        disabled={isSubmitting}
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        disabled={isSubmitting}
+                    >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </Button>
+                </div>
+              </div>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-12" disabled={isSubmitting}>
+                 <UserPlus className="mr-2 h-5 w-5" />
+                {isSubmitting ? 'Registrando...' : 'Registrar com E-mail'}
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col items-center space-y-4 pt-6">
+           <div className="flex items-center space-x-1">
+                <p className="text-sm text-muted-foreground">Quer trocar de perfil?</p>
+                 <Button variant="link" className="text-primary h-auto py-1 px-2" onClick={() => handleSelectRole(role === 'cliente' ? 'vendedor' : 'cliente')}>
+                   <RefreshCw className="mr-2 h-4 w-4" /> Mudar para {role === 'cliente' ? 'Vendedor' : 'Cliente'}
+                </Button>
+           </div>
+           <div className="flex items-center space-x-1">
+                <p className="text-sm text-muted-foreground">Já tem uma conta?</p>
+                <Link href="/login" passHref>
+                    <Button variant="link" className="text-primary h-auto py-1 px-2">
+                    <LogIn className="mr-2 h-4 w-4" /> Faça login aqui
+                    </Button>
+                </Link>
+           </div>
+        </CardFooter>
+      </Card>
+      <p className="mt-8 text-xs text-center text-muted-foreground max-w-md">
+        Ao se registrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+      </p>
+    </div>
+  );
+}
+
+
+export default function CadastroPage() {
+  return (
+    <SuspenseWrapper>
+      <CadastroPageContent />
+    </SuspenseWrapper>
+  );
+}

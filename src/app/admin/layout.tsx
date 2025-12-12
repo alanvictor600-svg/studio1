@@ -1,0 +1,176 @@
+
+"use client";
+
+import { useEffect, Fragment, Suspense } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
+import Link from 'next/link';
+
+import { 
+    Sidebar, 
+    SidebarProvider, 
+    SidebarTrigger, 
+    SidebarContent, 
+    SidebarHeader, 
+    SidebarFooter, 
+    SidebarMenu, 
+    SidebarMenuItem, 
+    SidebarMenuButton, 
+    useSidebar,
+    SidebarSeparator
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { LogOut, Home, Settings, PlusCircle, ShieldCheck, PieChart, History, Trophy, TrendingUp } from 'lucide-react';
+import Image from 'next/image';
+import { ThemeToggleButton } from '@/components/theme-toggle-button';
+
+const menuItems = [
+  { id: 'configuracoes', label: 'Configurações', Icon: Settings },
+  { id: 'cadastrar-sorteio', label: 'Cadastrar Sorteio', Icon: PlusCircle },
+  { id: 'controles-loteria', label: 'Controles', Icon: ShieldCheck },
+  { id: 'ranking-ciclo', label: 'Ranking do Ciclo', Icon: TrendingUp },
+  { id: 'relatorios', label: 'Relatórios', Icon: PieChart },
+  { id: 'historico-sorteios', label: 'Resultados', Icon: History },
+  { id: 'bilhetes-premiados', label: 'Bilhetes Premiados', Icon: Trophy },
+];
+
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const { currentUser, logout, isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { setOpenMobile } = useSidebar();
+  
+  const activeSection = searchParams.get('section') || 'configuracoes';
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace('/login?redirect=' + pathname);
+    } else if (currentUser && currentUser.role !== 'admin') {
+      const destination = currentUser.role === 'cliente' ? '/dashboard/cliente' : '/dashboard/vendedor';
+      router.replace(destination);
+    }
+  }, [isLoading, isAuthenticated, currentUser, router, pathname]);
+
+  if (isLoading || !isAuthenticated || !currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <p className="text-foreground text-xl">Verificando permissões de Admin...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen">
+      <Sidebar>
+        <SidebarHeader>
+          <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-3">
+             <Image src="/logo.png" alt="Logo Bolão Potiguar" width={40} height={40} />
+             <div className="flex flex-col">
+                <span className="text-lg font-semibold text-sidebar-foreground">Bolão Potiguar</span>
+                <span className="text-xs text-sidebar-foreground/80 -mt-1">
+                  Painel de Administrador
+                </span>
+             </div>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+            <div className="mb-4 p-3 rounded-lg bg-sidebar-accent/50 text-sidebar-accent-foreground">
+                <div className="text-sm font-medium">Administrador:</div>
+                <div className="text-lg font-bold flex items-center gap-2">
+                    <Avatar className="h-7 w-7">
+                        <AvatarFallback>{currentUser.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{currentUser.username}</span>
+                </div>
+            </div>
+
+            <SidebarMenu>
+                {menuItems.map(item => (
+                    <SidebarMenuItem key={item.id}>
+                        <Link href={`/admin?section=${item.id}`} passHref legacyBehavior>
+                           <SidebarMenuButton 
+                              as="a"
+                              isActive={activeSection === item.id}
+                              onClick={() => setOpenMobile(false)}
+                            >
+                               <span className="flex items-center gap-2">
+                                <item.Icon />
+                                <span>{item.label}</span>
+                               </span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                ))}
+            </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+            <SidebarMenu>
+                  <SidebarSeparator className="my-2" />
+                  <SidebarMenuItem>
+                        <Link href="/" passHref legacyBehavior>
+                            <SidebarMenuButton as="a" onClick={() => setOpenMobile(false)}>
+                                <span className="flex items-center gap-2">
+                                  <Home />
+                                  <span>Página Inicial</span>
+                                </span>
+                            </SidebarMenuButton>
+                        </Link>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                      <SidebarMenuButton onClick={() => { logout(); setOpenMobile(false); }} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                          <span className="flex items-center gap-2">
+                            <LogOut />
+                            <span>Sair da Conta</span>
+                          </span>
+                      </SidebarMenuButton>
+                  </SidebarMenuItem>
+            </SidebarMenu>
+            <div className="flex items-center justify-center p-2">
+                  <ThemeToggleButton />
+            </div>
+        </SidebarFooter>
+      </Sidebar>
+
+      <div className="flex flex-1 flex-col">
+        <header className="flex h-14 items-center justify-between border-b bg-secondary px-4 md:hidden sticky top-0 z-10">
+            <div className="flex items-center gap-2">
+                 <SidebarTrigger />
+                 <Link href="/" onClick={() => setOpenMobile(false)} className="flex items-center gap-1 md:hidden">
+                    <Image src="/logo.png" alt="Logo Bolão Potiguar" width={32} height={32} />
+                    <span className="sm:inline-block">Bolão Potiguar</span>
+                </Link>
+            </div>
+            <span className="font-semibold text-primary">Painel do Admin</span>
+        </header>
+        <main className="flex-1 p-4 md:p-8 bg-gradient-to-b from-emerald-700 to-emerald-900 overflow-y-auto">
+            <div className="mb-6">
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight text-center">
+                    Área Administrativa
+                </h1>
+                <p className="text-lg text-white/80 mt-2 text-center">Gerenciamento de Sorteios, Bilhetes e Configurações</p>
+            </div>
+            {children}
+        </main>
+        <footer className="py-8 text-center border-t border-border/50 bg-secondary">
+            <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Bolão Potiguar - Admin.
+            </p>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <SidebarProvider>
+            <Suspense>
+                <AdminLayoutContent>{children}</AdminLayoutContent>
+            </Suspense>
+        </SidebarProvider>
+    );
+}

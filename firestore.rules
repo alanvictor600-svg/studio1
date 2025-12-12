@@ -1,0 +1,116 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- FUNÇÕES DE AJUDA GLOBAIS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Usar 'exists' para evitar erros se o documento do usuário ainda não existir.
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // --- COLEÇÃO /users/{userId} ---
+    match /users/{userId} {
+      function isOwner() {
+        return request.auth.uid == userId;
+      }
+
+      allow get: if isOwner() || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(); // Simplificado: Apenas o dono pode criar seu próprio doc.
+      allow update: if isOwner() || isAdmin();
+      allow delete: if isOwner() || isAdmin();
+    }
+
+    // --- COLEÇÃO /users_username_lookup/{username} ---
+    match /users_username_lookup/{username} {
+      allow get: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Ninguém pode alterar ou deletar pelo cliente.
+      allow update, delete: if false;
+    }
+
+    // --- COLEÇÃO LEGADA (Apenas leitura para dono/admin) ---
+    match /users/{userId}/tickets/{ticketId} {
+      function isOwner() {
+        return request.auth.uid == userId;
+      }
+      allow get, list: if isOwner() || isAdmin();
+      allow create, update, delete: if false; // Bloqueado para escrita.
+    }
+
+    // --- COLEÇÃO /tickets/{ticketId} ---
+    match /tickets/{ticketId} {
+      function isValidTicket(ticket) {
+        return ticket.numbers is list && ticket.numbers.size() == 10
+               && ticket.numbers.all(num, num is number && num >= 1 && num <= 25)
+               && ticket.buyerName is string && ticket.buyerName.size() > 0
+               && ticket.createdAt is string 
+               && ticket.status == 'active';
+      }
+
+      // GET: Permite leitura se for comprador, vendedor ou admin.
+      allow get: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid ||
+        resource.data.sellerId == request.auth.uid ||
+        isAdmin()
+      );
+
+      // LIST: Regra simplificada e corrigida.
+      // Permite a listagem se a consulta filtrar EXATAMENTE por buyerId OU sellerId.
+      allow list: if isSignedIn() && (
+        (request.query.where.keys().hasOnly(['buyerId']) && request.query.where.buyerId == request.auth.uid) ||
+        (request.query.where.keys().hasOnly(['sellerId']) && request.query.where.sellerId == request.auth.uid) ||
+        isAdmin()
+      );
+      
+      // CREATE: Permite criar se for o comprador ou se for um vendedor autenticado.
+      // Valida que o buyerId (se existir) é o próprio usuário.
+      allow create: if isSignedIn() && 
+                     (request.resource.data.buyerId == request.auth.uid || request.resource.data.sellerId == request.auth.uid) &&
+                     isValidTicket(request.resource.data);
+                     
+      // UPDATE: Apenas admin pode atualizar.
+      allow update: if isAdmin();
+      
+      // DELETE: Ninguém pode deletar pelo cliente.
+      allow delete: if false;
+    }
+
+    // --- COLEÇÃO /draws/{drawId} ---
+    match /draws/{drawId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- COLEÇÃO /configs/{configId} ---
+    match /configs/{configId} {
+      allow get: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- COLEÇÃO /sellerHistory/{historyId} ---
+    match /sellerHistory/{historyId} {
+      allow get, read: if isSignedIn() && (
+                         resource.data.sellerId == request.auth.uid ||
+                         isAdmin()
+                       );
+      // LIST: Garante que a consulta está filtrando pelo sellerId do usuário autenticado.
+      allow list: if isSignedIn() && 
+                   (request.query.where.keys().hasAll(['sellerId']) && request.query.where.sellerId == request.auth.uid) ||
+                   isAdmin();
+
+      allow write: if false; // Protegido contra escrita pelo cliente.
+    }
+
+    // --- COLEÇÃO /adminHistory/{historyId} ---
+    match /adminHistory/{historyId} {
+      allow read, get, list: if isAdmin();
+      allow write: if false; // Protegido contra escrita pelo cliente.
+    }
+  }
+}

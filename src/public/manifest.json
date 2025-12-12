@@ -1,0 +1,10 @@
+{
+  "name": "Bolão Potiguar",
+  "short_name": "Bolão Potiguar",
+  "description": "Sua sorte começa aqui!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2E8B57",
+  "theme_color": "#2E8B57",
+  "icons": []
+}
