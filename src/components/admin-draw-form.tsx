@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, RotateCcw, LockKeyhole, AlertTriangle, Edit3 } from 'lucide-react';
+import { PlusCircle, RotateCcw, Lock, AlertTriangle, Edit3 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AdminDrawFormProps {
@@ -75,7 +75,7 @@ export const AdminDrawForm: FC<AdminDrawFormProps> = ({ onAddDraw, hasWinningTic
       <CardHeader>
         <CardTitle className={`text-xl text-center font-bold ${hasWinningTickets ? 'text-foreground' : 'text-primary'}`}>
           {hasWinningTickets ? (
-            <span className="flex items-center justify-center"><LockKeyhole className="mr-2 h-5 w-5" /> Cadastro de Sorteio Bloqueado</span>
+            <span className="flex items-center justify-center"><Lock className="mr-2 h-5 w-5" /> Cadastro de Sorteio Bloqueado</span>
           ) : (
             'Cadastrar Novo Sorteio'
           )}
