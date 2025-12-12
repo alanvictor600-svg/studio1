@@ -13,15 +13,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Validate that the essential Firebase config values are present.
-// This is crucial for preventing runtime errors due to misconfiguration.
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  console.error(
-    "Firebase configuration is incomplete. " +
-    "Please ensure that NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID are set in your environment variables."
-  );
-  // In a real application, you might throw an error here during the build process
-  // to fail fast if the configuration is missing.
-}
+// Validation will be performed in firebase.ts inside a client-only check.
 
 export { firebaseConfig };
