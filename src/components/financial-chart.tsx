@@ -75,7 +75,9 @@ export function FinancialChart({ data }: FinancialChartProps) {
                     {tooltipData.map((p, i) => (
                       <div key={i} className="flex justify-between gap-4">
                         <span style={{ color: p.color }}>{p.name}:</span>
-                        <span>R$ {p.value?.toFixed(2).replace('.', ',')}</span>
+                        <span>
+                          R$ {typeof p.value === 'number' ? p.value.toFixed(2).replace('.', ',') : p.value}
+                        </span>
                       </div>
                     ))}
                   </div>
