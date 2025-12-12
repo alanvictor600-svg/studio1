@@ -32,7 +32,7 @@ const GoogleIcon = () => (
     </svg>
 );
 
-function CadastroPageContent({ initialRole }: { initialRole: 'cliente' | 'vendedor' | null }) {
+function CadastroClient({ initialRole }: { initialRole: 'cliente' | 'vendedor' | null }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -262,13 +262,18 @@ function CadastroPageContent({ initialRole }: { initialRole: 'cliente' | 'vended
   );
 }
 
-
-export default function CadastroPage({
-  searchParams,
-}: {
+// Server Component Wrapper
+type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const roleFromQuery = searchParams?.role;
+};
+
+function getParam(sp: PageProps["searchParams"], key: string) {
+  const v = sp?.[key];
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export default function CadastrarPage({ searchParams }: PageProps) {
+  const roleFromQuery = getParam(searchParams, "role");
   const initialRole = roleFromQuery === 'cliente' || roleFromQuery === 'vendedor' ? roleFromQuery : null;
-  return <CadastroPageContent initialRole={initialRole} />;
+  return <CadastroClient initialRole={initialRole} />;
 }
