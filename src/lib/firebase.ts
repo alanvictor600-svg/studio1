@@ -1,6 +1,5 @@
-
 // src/lib/firebase.ts
-"use client"; 
+"use client";
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -13,6 +12,7 @@ let db: Firestore;
 
 function initializeFirebase() {
   if (getApps().length === 0) {
+    // Validate that the essential Firebase config values are present.
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       throw new Error(
         "Firebase configuration is incomplete. " +
