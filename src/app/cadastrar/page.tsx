@@ -1,9 +1,8 @@
-
 // Server Component Wrapper
 import CadastroClient from "./CadastroClient";
 
 type PageProps = {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: { [key: string]: string | string[] | undefined };
 };
 
 function getParam(sp: PageProps["searchParams"], key: string) {
