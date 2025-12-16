@@ -8,7 +8,7 @@ body {
 
 @layer base {
   :root {
-    --background: 224 71.4% 4.1%; /* Deep blue */
+    --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
 
     --card: 224 71.4% 4.1%;
@@ -17,19 +17,19 @@ body {
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 142.1 76.2% 36.3%; /* Forest Green */
+    --primary: 142.1 76.2% 36.3%;
     --primary-foreground: 142.1 76.2% 96.3%;
 
-    --secondary: 43 74% 49%; /* Gold */
-    --secondary-foreground: 222 84% 4.9%;
+    --secondary: 215 27.9% 16.9%;
+    --secondary-foreground: 210 20% 98%;
     
     --muted: 215 27.9% 16.9%;
     --muted-foreground: 217.9 10.6% 64.9%;
 
-    --accent: 43 74% 49%; /* Gold */
-    --accent-foreground: 222 84% 4.9%;
+    --accent: 215 27.9% 16.9%;
+    --accent-foreground: 210 20% 98%;
 
-    --destructive: 0 62.8% 30.6%; /* Crimson Red */
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
 
     --border: 215 27.9% 16.9%;
@@ -55,7 +55,7 @@ body {
   }
 
   .dark {
-    --background: 210 20% 98%; /* Almost white */
+    --background: 210 20% 98%;
     --foreground: 224 71.4% 4.1%;
 
     --card: 0 0% 100%;
@@ -64,19 +64,19 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
 
-    --primary: 142.1 76.2% 36.3%; /* Forest Green */
+    --primary: 142.1 76.2% 36.3%;
     --primary-foreground: 142.1 76.2% 96.3%;
 
-    --secondary: 43 74% 49%; /* Gold */
-    --secondary-foreground: 222 84% 4.9%;
+    --secondary: 210 20% 96.1%;
+    --secondary-foreground: 224 71.4% 4.1%;
 
     --muted: 210 20% 96.1%;
     --muted-foreground: 215 27.9% 46.9%;
     
-    --accent: 43 74% 49%; /* Gold */
-    --accent-foreground: 222 84% 4.9%;
+    --accent: 210 20% 96.1%;
+    --accent-foreground: 224 71.4% 4.1%;
     
-    --destructive: 0 62.8% 30.6%; /* Crimson */
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
 
     --border: 215 20.2% 91%;
