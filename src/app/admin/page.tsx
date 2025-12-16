@@ -4,7 +4,7 @@ import AdminLayoutContent from './AdminLayoutContent';
 import type { AdminSection } from './AdminClient';
 import AdminClient from './AdminClient';
 
-// Tipo correto para props de página no Next.js 15+ App Router
+// Tipo para as props da página no Next.js 15, que trata searchParams como uma Promise
 type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
 };
