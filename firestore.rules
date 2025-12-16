@@ -1,43 +1,51 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
 
-    // Config e sorteios: só leitura para logado
+    // Config global (o app lê em tempo real)
     match /configs/{id} {
       allow read: if signedIn();
       allow write: if false;
     }
 
+    // Sorteios (o app lê em tempo real)
     match /draws/{id} {
       allow read: if signedIn();
       allow write: if false;
     }
 
-    // Usuário: cada um lê o próprio doc. Admins leem via Admin SDK.
+    // Usuário (o app faz getDoc em /users/{uid})
     match /users/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if false; // Escrita apenas pelo servidor
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid);
+      allow update, delete: if false; // saldo/alterações só no servidor (Admin)
     }
 
-    // Tickets: usuário só lê os tickets em que participa
+    // Lookup de username (no cadastro você usa /users_username_lookup/{username})
+    match /users_username_lookup/{username} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Bilhetes (o app faz query: where participants array-contains user.id)
     match /tickets/{ticketId} {
-      // Um usuário logado pode ler um bilhete se seu UID estiver na lista de 'participants'
       allow read: if signedIn() && (request.auth.uid in resource.data.participants);
-      allow create, update, delete: if false; // Ações apenas via servidor
+      allow create, update, delete: if false; // criação só via server action (Admin)
     }
 
-    // Histórico do Vendedor:
+    // Histórico vendedor (se o app usar)
     match /sellerHistory/{id} {
-      allow read: if signedIn() && request.auth.uid == resource.data.sellerId;
+      allow read: if signedIn();
       allow write: if false;
     }
 
-    // Histórico do Admin: Acesso apenas via Admin SDK (nenhuma regra de cliente)
     match /adminHistory/{id} {
-        allow read, write, create, delete: if false;
+      allow read: if signedIn();
+      allow write: if false;
     }
   }
 }
