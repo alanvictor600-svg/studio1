@@ -4,11 +4,6 @@ import AdminLayoutContent from './AdminLayoutContent';
 import type { AdminSection } from './AdminClient';
 import AdminClient from './AdminClient';
 
-// Tipo para as props da página no Next.js 15, que trata searchParams como uma Promise
-type PageProps = {
-  searchParams?: { [key: string]: string | string[] | undefined };
-};
-
 const VALID_SECTIONS: Set<AdminSection> = new Set([
   'configuracoes', 
   'cadastrar-sorteio', 
@@ -24,8 +19,8 @@ function toSection(value: string | string[] | undefined): AdminSection {
   return VALID_SECTIONS.has(v as AdminSection) ? (v as AdminSection) : "configuracoes";
 }
 
-// A página agora é um Server Component `async` para lidar com searchParams
-export default function AdminPage({ searchParams }: PageProps) {
+// A página agora é um Server Component `async` que lida corretamente com searchParams.
+export default async function AdminPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined }}) {
   const section = toSection(searchParams?.['section']);
   
   return (
