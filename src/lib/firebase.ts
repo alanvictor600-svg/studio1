@@ -1,6 +1,5 @@
-// src/lib/firebase.ts
-"use client";
 
+// src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
@@ -14,10 +13,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Singleton pattern to ensure Firebase is only initialized once.
+// This function is the single source of truth for the Firebase app instance.
+// It ensures that Firebase is initialized only once.
 function getFirebaseApp(): FirebaseApp {
   if (getApps().length === 0) {
-     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+    // This check will now only run in the browser, inside a useEffect,
+    // where the environment variables are guaranteed to be available.
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       throw new Error(
         "Firebase configuration is incomplete. " +
         "Please ensure that NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_PROJECT_ID are set in your environment variables."
@@ -28,7 +30,10 @@ function getFirebaseApp(): FirebaseApp {
   return getApp();
 }
 
-// Export functions that retrieve the services, ensuring the app is initialized first.
+// We are no longer exporting the instances directly to prevent
+// module-level execution. Instead, the AuthProvider will manage this.
+// These functions are kept here in case other client components need them,
+// but for now, they are not used directly.
 function getFirebaseAuth(): Auth {
     return getAuth(getFirebaseApp());
 }
@@ -37,7 +42,9 @@ function getFirebaseFirestore(): Firestore {
     return getFirestore(getFirebaseApp());
 }
 
-// Export the service getters
-export const auth = getFirebaseAuth();
-export const db = getFirebaseFirestore();
-export const app = getFirebaseApp();
+// Re-exporting for potential use in other client components.
+export const app = getFirebaseApp; // Exporting the function itself
+export const db = getFirebaseFirestore;
+export const auth = getFirebaseAuth;
+
+      
