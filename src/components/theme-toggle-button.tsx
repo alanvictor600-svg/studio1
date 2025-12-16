@@ -1,21 +1,20 @@
-
 "use client";
 
 import type { FC } from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/components/theme-provider';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 
 export const ThemeToggleButton: FC = () => {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Avoid rendering the button content on the server to prevent hydration mismatch
+  // Evita a renderização do botão no servidor para prevenir erros de hidratação
   if (!isMounted) {
     return (
       <Button
@@ -30,6 +29,7 @@ export const ThemeToggleButton: FC = () => {
   }
   
   const isCurrentlyDark = resolvedTheme === 'dark';
+  const toggleTheme = () => setTheme(isCurrentlyDark ? 'light' : 'dark');
 
   return (
     <Button
