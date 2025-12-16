@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
@@ -90,7 +91,7 @@ export default function DashboardRolePageClient() {
   const clientTab = role === 'cliente' ? activeTab : 'vendas';
   
   return (
-    <>
+    <div className="p-4 md:p-8 bg-gradient-to-b from-emerald-700 to-emerald-900">
     {role === 'cliente' && (
       <Tabs value={clientTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 h-auto mb-8 bg-card p-1.5 rounded-lg shadow-md">
@@ -109,37 +110,4 @@ export default function DashboardRolePageClient() {
                       <AlertDescription className="text-muted-foreground">
                       O registro de novas apostas está suspenso.
                       Aguarde o administrador iniciar um novo ciclo para continuar apostando.
-                      </AlertDescription>
-                  </Alert>
-              ) : (
-                  <TicketSelectionForm
-                      cart={cart}
-                      onCartChange={setCart}
-                      isSubmitting={isSubmitting}
-                  />
-              )}
-          </TabsContent>
-          <TabsContent value="bilhetes">
-               <section>
-                  <h2 className="text-2xl font-bold text-center text-white mb-6">
-                      Meus Bilhetes
-                  </h2>
-                  <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />
-              </section>
-          </TabsContent>
-      </Tabs>
-    )}
-
-    {role === 'vendedor' && (
-       <SellerDashboard 
-          isLotteryPaused={isLotteryPaused}
-          lotteryConfig={lotteryConfig}
-          onTicketCreated={handleTicketCreated}
-          userTickets={processedUserTickets}
-          currentUser={currentUser}
-          allDraws={allDraws}
-       />
-    )}
-    </>
-  );
-}
+                      </Aler

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from 'react';
@@ -21,7 +20,6 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Home, Settings, PlusCircle, ShieldCheck, PieChart, History, Trophy, TrendingUp } from 'lucide-react';
-import { ThemeToggleButton } from '@/components/theme-toggle-button';
 
 const menuItems: { id: string; label: string; Icon: React.ElementType }[] = [
   { id: 'configuracoes', label: 'Configurações', Icon: Settings },

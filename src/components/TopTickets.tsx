@@ -15,6 +15,7 @@ import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { History, Gamepad2, Gift, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useDashboard } from '@/context/dashboard-context';
 
 const Header = () => {
   const { currentUser, isLoading, isAuthenticated } = useAuth();
@@ -196,7 +197,6 @@ const Footer = () => (
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
             <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
             <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
-            <ThemeToggleButton />
         </div>
     </div>
   </footer>

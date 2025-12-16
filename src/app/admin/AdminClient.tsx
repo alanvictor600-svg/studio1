@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -78,13 +77,13 @@ function AdminClientContent({ initialSection }: { initialSection: AdminSection }
       case "controles-loteria":
         return <ControlsSection {...fakeProps} />;
       case "historico-sorteios":
-        return <DrawHistorySection {...fakeProps} />;
+        return <DrawHistorySection draws={[]} />;
       case "bilhetes-premiados":
-        return <WinningTicketsSection {...fakeProps} />;
+        return <WinningTicketsSection winningTickets={[]} draws={[]} />;
       case "relatorios":
-        return <ReportsSection {...fakeProps} />;
+        return <ReportsSection financialReport={fakeProps.financialReport} adminHistory={[]} />;
       case "ranking-ciclo":
-        return <CycleRankingSection {...fakeProps} />;
+        return <CycleRankingSection rankedTickets={[]} draws={[]} />;
       default:
         return <SettingsSection {...fakeProps} />;
     }
