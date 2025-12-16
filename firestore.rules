@@ -24,8 +24,9 @@ service cloud.firestore {
     // This is crucial for the isAdmin() function to work correctly.
     match /users/{userId} {
       allow read: if isUserId(userId) || isAdmin();
-      allow update, delete: if isUserId(userId) || isAdmin();
-      allow create: if request.auth.uid == userId;
+      allow update: if isUserId(userId) || isAdmin(); // Admin can update user (e.g., add credits)
+      allow delete: if isAdmin(); // Only admin can delete users
+      allow create: if request.auth.uid == userId; // User can create their own document on signup
     }
     
     // Configs: global config is readable by auth users, writable by admin.
@@ -41,14 +42,19 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
     
-    // Tickets can be created by authenticated users.
-    // Read/update/delete is restricted to the buyer, seller, or an admin.
+    // Tickets:
+    // - Create: Only an authenticated user can create a ticket.
+    //   - If it's a client ticket, the buyerId must be their own UID.
+    //   - If it's a seller ticket, the sellerId must be their own UID.
+    // - Read/Update/Delete: Restricted to the buyer, seller, or an admin.
     match /tickets/{ticketId} {
-      allow create: if isAuth();
+      allow create: if isAuth() && 
+                      ( (request.resource.data.buyerId == request.auth.uid && !('sellerId' in request.resource.data)) ||
+                        (request.resource.data.sellerId == request.auth.uid && 'buyerName' in request.resource.data) );
       allow read, update, delete: if isAuth() && 
-                                (isUserId(resource.data.buyerId) || 
-                                 isUserId(resource.data.sellerId) ||
-                                 isAdmin());
+                                ( ('buyerId' in resource.data && isUserId(resource.data.buyerId)) || 
+                                 ('sellerId' in resource.data && isUserId(resource.data.sellerId)) ||
+                                 isAdmin() );
     }
 
     // History: Only readable by the user it belongs to, or an admin.
