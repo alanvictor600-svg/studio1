@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -30,6 +30,26 @@ if (getApps().length === 0) {
 
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
+
+// Habilita a persistência offline.
+// Isso ajuda em ambientes com conectividade de rede restrita (como contêineres de desenvolvimento)
+// e melhora a experiência do usuário em conexões instáveis.
+try {
+    enableIndexedDbPersistence(db)
+      .catch((err) => {
+        if (err.code == 'failed-precondition') {
+            // Múltiplas abas abertas, o que pode causar conflitos.
+            // A persistência funcionará na primeira aba, então isso geralmente não é um erro crítico.
+            console.warn('Firebase persistence failed: multiple tabs open.');
+        } else if (err.code == 'unimplemented') {
+            // O navegador não suporta a persistência.
+            console.warn('Firebase persistence is not available in this browser.');
+        }
+    });
+} catch (e) {
+    console.error("Failed to enable Firebase persistence", e);
+}
+
 
 // Exporta as instâncias inicializadas para uso em toda a aplicação cliente.
 export { db, auth, app };
