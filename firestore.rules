@@ -20,12 +20,10 @@ service cloud.firestore {
       return isAuth() && getUserData(request.auth.uid).role == 'admin';
     }
 
-    // CORREÇÃO APLICADA AQUI:
-    // Separa a permissão de leitura para que um usuário sempre possa ler seu próprio perfil.
-    // Isso é crucial para a função getUserData() (e, por consequência, isAdmin()) funcionar.
-    // As permissões de escrita (update, delete) continuam protegidas pela lógica original.
+    // A user can read their own profile, or an admin can read any profile.
+    // This is crucial for the isAdmin() function to work correctly.
     match /users/{userId} {
-      allow read: if isUserId(userId);
+      allow read: if isUserId(userId) || isAdmin();
       allow update, delete: if isUserId(userId) || isAdmin();
       allow create: if request.auth.uid == userId;
     }
