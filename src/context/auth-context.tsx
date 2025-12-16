@@ -46,38 +46,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !isLoading && !!currentUser;
 
   useEffect(() => {
-    // onAuthStateChanged é seguro de ser chamado aqui porque a importação de `auth`
-    // vem de um módulo que é garantido de rodar apenas no cliente.
+    // onAuthStateChanged é a fonte única e confiável para o estado de autenticação.
+    // Ele garante que a conexão com o Firebase esteja estável antes de prosseguir.
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
+        // Se há um usuário no Auth, começamos a escutar seu documento no Firestore.
         const userDocRef = doc(db, "users", firebaseUser.uid);
         const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
-            setCurrentUser({ id: doc.id, ...doc.data() } as User);
+            // Documento encontrado, atualiza o estado do nosso aplicativo.
+            const userData = { id: doc.id, ...doc.data() } as User;
+            setCurrentUser(userData);
           } else {
-            // O usuário existe no Auth mas não no Firestore, desloga para evitar inconsistência.
+            // Inconsistência: usuário no Auth, mas não no Firestore.
+            // Força o logout para evitar um estado quebrado.
             signOut(auth);
             setCurrentUser(null);
           }
           setIsLoading(false);
         }, (error) => {
+          // Erro ao escutar o documento.
           console.error("Error listening to user document:", error);
           signOut(auth);
           setCurrentUser(null);
           setIsLoading(false);
         });
         
+        // Retorna a função de limpeza para o listener do snapshot.
         return () => unsubscribeSnapshot();
       } else {
+        // Nenhum usuário no Auth, estado limpo.
         setCurrentUser(null);
         setIsLoading(false);
       }
     }, (error) => {
+        // Erro no próprio listener do Auth.
         console.error("Firebase Auth State Error:", error);
         setCurrentUser(null);
         setIsLoading(false);
     });
     
+    // Retorna a função de limpeza para o listener do Auth.
     return () => unsubscribe();
   }, []);
 
@@ -86,34 +95,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      const fakeEmail = `${emailUsername}@bolao.potiguar`;
 
      try {
+        // A função de login agora SÓ faz o login.
+        // O onAuthStateChanged cuidará de buscar os dados do usuário.
         const userCredential = await signInWithEmailAndPassword(auth, fakeEmail, passwordAttempt);
         const fbUser = userCredential.user;
         
+        // Verificação antecipada do papel do admin para feedback rápido
         const userDocRef = doc(db, "users", fbUser.uid);
         const userDoc = await getDoc(userDocRef);
-
         if (userDoc.exists()) {
-          const userData = { id: userDoc.id, ...userDoc.data() } as User;
-          
-          if(loginAs === 'admin' && userData.role !== 'admin') {
-            await signOut(auth);
-            toast({ title: "Acesso Negado", description: "Este usuário não tem permissões de administrador.", variant: "destructive" });
-            return;
-          }
-
-           toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
-           
-           const targetPath = redirectPath && redirectPath !== pathname ? redirectPath : (userData.role === 'admin' ? '/admin' : `/dashboard/${userData.role}`);
-           router.replace(targetPath);
+            const userData = userDoc.data() as User;
+            if(loginAs === 'admin' && userData.role !== 'admin') {
+              await signOut(auth); // Desloga imediatamente se não for admin
+              toast({ title: "Acesso Negado", description: "Este usuário não tem permissões de administrador.", variant: "destructive" });
+              return;
+            }
+             toast({ title: `Login como ${userData.username} bem-sucedido!`, description: "Redirecionando...", className: "bg-primary text-primary-foreground", duration: 2000 });
+             const targetPath = redirectPath && redirectPath !== pathname ? redirectPath : (userData.role === 'admin' ? '/admin' : `/dashboard/${userData.role}`);
+             router.replace(targetPath);
         } else {
-          await signOut(auth);
-          toast({ title: "Erro de Login", description: "Dados do usuário não encontrados após autenticação.", variant: "destructive" });
+           // Se o doc não existe, o listener do Auth já vai deslogar.
+           throw new Error("Dados do usuário não encontrados.");
         }
      } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-email') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
         } else {
-             // Generic error for other cases, including connectivity issues like 'unavailable'
+             // Erro genérico para outros casos, como conectividade.
              toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.", variant: "destructive" });
         }
         throw error;
@@ -234,3 +242,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    
