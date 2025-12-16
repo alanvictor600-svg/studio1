@@ -1,14 +1,6 @@
-
-"use client";
-
-import { SidebarProvider } from '@/components/ui/sidebar';
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    // This layout is now just a simple wrapper for the SidebarProvider.
-    // All logic is handled by the page and AdminLayoutContent.
-    return (
-        <SidebarProvider>
-            {children}
-        </SidebarProvider>
-    );
+import type React from "react";
+import AdminLayoutClient from "./AdminLayoutClient";
+export default function Layout(props: any) {
+  const { children } = props as { children: React.ReactNode };
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

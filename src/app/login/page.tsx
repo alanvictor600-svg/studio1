@@ -1,12 +1,2 @@
-
-import LoginClient from "./LoginClient";
-import { Suspense } from 'react';
-
-// Este componente permanece um Server Component para facilitar a leitura de searchParams.
-export default async function LoginPage() {
-  return (
-    <Suspense fallback={<div className="flex justify-center items-center min-h-screen">Carregando...</div>}>
-      <LoginClient />
-    </Suspense>
-  );
-}
+import LoginPageClient from "./LoginPageClient";
+export default function Page(_props: any) { return <LoginPageClient />; }
