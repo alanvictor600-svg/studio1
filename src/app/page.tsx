@@ -2,7 +2,6 @@
 import { Header } from '@/components/landing/header';
 import { HeroSection } from '@/components/landing/hero-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
-import { ResultsSection } from '@/components/landing/results-section';
 import { Footer } from '@/components/landing/footer';
 
 export default function LandingPage() {
@@ -11,7 +10,6 @@ export default function LandingPage() {
       <Header />
       <main className="flex-1">
         <HeroSection />
-        <ResultsSection />
         <HowItWorksSection />
       </main>
       <Footer />
