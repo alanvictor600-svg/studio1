@@ -9,7 +9,7 @@ export const HowItWorksSection = () => (
         <p className="mt-3 text-lg text-muted-foreground">É fácil participar. Siga os três passos abaixo:</p>
         </div>
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-5xl mx-auto">
-        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow bg-secondary">
             <div className="flex flex-col items-center">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
                 <UserPlus size={32} />
@@ -18,7 +18,7 @@ export const HowItWorksSection = () => (
                 <p className="text-muted-foreground mt-2">Crie sua conta de cliente de forma rápida e segura.</p>
             </div>
         </Card>
-        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow bg-secondary">
             <div className="flex flex-col items-center">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
                 <Gamepad2 size={32} />
@@ -27,7 +27,7 @@ export const HowItWorksSection = () => (
                 <p className="text-muted-foreground mt-2">Escolha seus 10 números da sorte, de 1 a 25. Pode repetir!</p>
             </div>
         </Card>
-        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow">
+        <Card className="p-8 shadow-lg hover:shadow-xl transition-shadow bg-secondary">
             <div className="flex flex-col items-center">
                 <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground mb-6 shadow-lg">
                 <Gift size={32} />
