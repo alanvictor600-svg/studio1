@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -29,7 +30,7 @@ export const Header = () => {
                 </Button>
             ) : (
                 <>
-                    <Button asChild variant="outline">
+                    <Button asChild variant="default" className="shadow-md bg-blue-500 hover:bg-blue-600 text-white">
                         <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Entrar</Link>
                     </Button>
                     <Button asChild>
