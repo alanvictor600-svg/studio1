@@ -3,7 +3,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { SettingsSection } from "@/components/admin/sections/SettingsSection";
 import { NewDrawSection } from "@/components/admin/sections/NewDrawSection";
 import { DrawHistorySection } from "@/components/admin/sections/DrawHistorySection";
