@@ -4,8 +4,6 @@
 import { useRouter } from "next/navigation";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { AdminDrawForm } from "@/components/admin-draw-form";
-import { AdminDrawList } from "@/components/admin-draw-list";
 import { SettingsSection } from "@/components/admin/sections/SettingsSection";
 import { NewDrawSection } from "@/components/admin/sections/NewDrawSection";
 import { DrawHistorySection } from "@/components/admin/sections/DrawHistorySection";
@@ -23,14 +21,16 @@ export type AdminSection =
   | "relatorios" 
   | "ranking-ciclo";
 
+// Este componente agora recebe a seção inicial como uma prop
 function AdminClientContent({ initialSection }: { initialSection: AdminSection }) {
   const router = useRouter();
   const [section, setSection] = useState<AdminSection>(initialSection);
 
-  function go(next: AdminSection) {
+  // Esta função não é mais necessária para a renderização inicial, mas pode ser usada para navegação interna
+  function navigate(next: AdminSection) {
     setSection(next);
-    // Usamos router.replace para evitar adicionar ao histórico do navegador para simples mudanças de UI.
-    router.replace(`/admin?section=${next}`);
+    // Usamos router.push (ou replace) para atualizar a URL se necessário, sem recarregar a página
+    router.push(`/admin?section=${next}`);
   }
 
   // Renderiza o conteúdo baseado na seção ativa
@@ -64,6 +64,7 @@ function AdminClientContent({ initialSection }: { initialSection: AdminSection }
   );
 }
 
+// O componente principal agora apenas envolve o Suspense
 export default function AdminClient({ initialSection }: { initialSection: AdminSection }) {
     return (
         <Suspense fallback={<div>Carregando...</div>}>
