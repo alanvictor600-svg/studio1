@@ -1,5 +1,3 @@
-
-
 // src/lib/services/ticketService.ts
 import { db } from '@/lib/firebase';
 import { doc, runTransaction, collection, serverTimestamp, writeBatch } from 'firebase/firestore';
@@ -61,6 +59,9 @@ export const createSellerTicket = async ({
         transaction.update(userRef, { saldo: newBalance });
         
         const newTicketRef = doc(collection(db, "tickets"));
+        
+        const participants: string[] = [seller.id];
+
         const newTicketData: Omit<Ticket, 'buyerPhone'> & { buyerPhone?: string } = {
           id: newTicketRef.id,
           numbers: [...ticketPicks].sort((a,b) => a-b),
@@ -69,6 +70,7 @@ export const createSellerTicket = async ({
           buyerName: buyerName,
           sellerId: seller.id,
           sellerUsername: seller.username,
+          participants: participants,
         };
 
         if (buyerPhone) {
@@ -115,6 +117,7 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
         // Create tickets within the same transaction
         cart.forEach(ticketNumbers => {
             const newTicketRef = doc(collection(db, "tickets"));
+            const participants : string[] = [user.id];
             const newTicketData: Ticket = {
                 id: newTicketRef.id,
                 numbers: ticketNumbers.sort((a, b) => a - b),
@@ -122,6 +125,7 @@ export const createClientTickets = async ({ user, cart, lotteryConfig }: CreateC
                 createdAt: new Date().toISOString(),
                 buyerName: user.username,
                 buyerId: user.id,
+                participants: participants,
             };
             transaction.set(newTicketRef, newTicketData);
             createdTickets.push(newTicketData);

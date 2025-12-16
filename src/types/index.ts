@@ -10,6 +10,7 @@ export interface Ticket {
   sellerUsername?: string | null; // The username of the seller who created the ticket. Null for client tickets.
   buyerId?: string; // Firestore document ID of the user who bought it (if they are a registered client)
   sellerId?: string; // Firestore document ID of the user who sold it
+  participants: string[];
 }
 
 export interface Draw {

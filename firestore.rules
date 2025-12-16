@@ -3,68 +3,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function isAuth() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+
+    // Config e sorteios: só leitura para logado
+    match /configs/{id} {
+      allow read: if signedIn();
+      allow write: if false;
     }
 
-    function isUserId(userId) {
-      return isAuth() && request.auth.uid == userId;
+    match /draws/{id} {
+      allow read: if signedIn();
+      allow write: if false;
     }
 
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
+    // Usuário: cada um lê o próprio doc. Admins leem via Admin SDK.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false; // Escrita apenas pelo servidor
     }
 
-    function isAdmin() {
-      return isAuth() && getUserData(request.auth.uid).role == 'admin';
-    }
-
-    // A user can read their own profile, or an admin can read any profile.
-    // This is crucial for the isAdmin() function to work correctly.
-    match /users/{userId} {
-      allow read: if isUserId(userId) || isAdmin();
-      allow update: if isUserId(userId) || isAdmin(); // Admin can update user (e.g., add credits)
-      allow delete: if isAdmin(); // Only admin can delete users
-      allow create: if request.auth.uid == userId; // User can create their own document on signup
-    }
-    
-    // Configs: global config is readable by auth users, writable by admin.
-    // publicRanking is also readable by auth users.
-    match /configs/{docId} {
-       allow read: if isAuth();
-       allow write: if isAdmin();
-    }
-
-    // Draws: Readable by any authenticated user, writable only by admin.
-    match /draws/{drawId} {
-      allow read: if isAuth();
-      allow create, update, delete: if isAdmin();
-    }
-    
-    // Tickets:
-    // - Create: Only an authenticated user can create a ticket.
-    //   - If it's a client ticket, the buyerId must be their own UID.
-    //   - If it's a seller ticket, the sellerId must be their own UID.
-    // - Read/Update/Delete: Restricted to the buyer, seller, or an admin.
+    // Tickets: usuário só lê os tickets em que participa
     match /tickets/{ticketId} {
-      allow create: if isAuth() && 
-                      ( (request.resource.data.buyerId == request.auth.uid && !('sellerId' in request.resource.data)) ||
-                        (request.resource.data.sellerId == request.auth.uid && 'buyerName' in request.resource.data) );
-      allow read, update, delete: if isAuth() && 
-                                ( ('buyerId' in resource.data && isUserId(resource.data.buyerId)) || 
-                                 ('sellerId' in resource.data && isUserId(resource.data.sellerId)) ||
-                                 isAdmin() );
+      // Um usuário logado pode ler um bilhete se seu UID estiver na lista de 'participants'
+      allow read: if signedIn() && (request.auth.uid in resource.data.participants);
+      allow create, update, delete: if false; // Ações apenas via servidor
     }
 
-    // History: Only readable by the user it belongs to, or an admin.
-    match /sellerHistory/{historyId} {
-        allow read: if isAuth() && (isUserId(resource.data.sellerId) || isAdmin());
-        allow create, update, delete: if isAdmin();
+    // Histórico do Vendedor:
+    match /sellerHistory/{id} {
+      allow read: if signedIn() && request.auth.uid == resource.data.sellerId;
+      allow write: if false;
     }
 
-    match /adminHistory/{historyId} {
-        allow read, create, update, delete: if isAdmin();
+    // Histórico do Admin: Acesso apenas via Admin SDK (nenhuma regra de cliente)
+    match /adminHistory/{id} {
+        allow read, write, create, delete: if false;
     }
   }
 }
