@@ -35,6 +35,11 @@ export default function LoginClient() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const isAdminLogin = searchParams.get('as') === 'admin';
   const redirectParam = searchParams.get('redirect');
@@ -73,7 +78,7 @@ export default function LoginClient() {
     }
   };
   
-  if (isLoading || (!isLoading && isAuthenticated)) {
+  if (!isMounted || isLoading || (!isLoading && isAuthenticated)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando sessão...</p>

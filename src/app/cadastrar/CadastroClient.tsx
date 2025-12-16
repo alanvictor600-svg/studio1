@@ -44,6 +44,11 @@ export default function CadastroClient({ initialRole }: { initialRole: 'cliente'
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && currentUser) {
@@ -89,7 +94,7 @@ export default function CadastroClient({ initialRole }: { initialRole: 'cliente'
       }
   }
   
-  if (authLoading || (!authLoading && isAuthenticated)) {
+  if (!isMounted || authLoading || (!authLoading && isAuthenticated)) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background">
         <p className="text-foreground text-xl">Verificando autenticação...</p>
