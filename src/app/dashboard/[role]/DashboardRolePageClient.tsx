@@ -91,66 +91,55 @@ export default function DashboardRolePageClient() {
   
   return (
     <>
-    <div className="space-y-12">
-      <header>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-center bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 text-transparent bg-clip-text">
-            {role === 'cliente' ? 'Bem-vindo, Apostador!' : 'Painel do Vendedor'}
-          </h1>
-          <p className="text-lg text-white/80 mt-2 text-center">
-             {role === 'cliente' ? 'Sua sorte começa aqui. Escolha seus números e boa sorte!' : 'Gerencie suas vendas e acompanhe seus resultados.'}
-          </p>
-      </header>
-      
-      {role === 'cliente' && (
-        <Tabs value={clientTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto mb-8 bg-card p-1.5 rounded-lg shadow-md">
-                <TabsTrigger value="aposta" className="py-2.5 text-sm sm:text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
-                    <TicketIcon className="mr-2 h-5 w-5" /> Fazer Aposta
-                </TabsTrigger>
-                <TabsTrigger value="bilhetes" className="py-2.5 text-sm sm:text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
-                    <ShoppingBag className="mr-2 h-5 w-5" /> Meus Bilhetes
-                </TabsTrigger>
-            </TabsList>
-            <TabsContent value="aposta">
-                {isLotteryPaused ? (
-                    <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground max-w-2xl mx-auto">
-                        <PauseCircle className="h-5 w-5 text-primary" />
-                        <AlertTitle className="text-primary font-bold">Apostas Pausadas</AlertTitle>
-                        <AlertDescription className="text-muted-foreground">
-                        O registro de novas apostas está suspenso.
-                        Aguarde o administrador iniciar um novo ciclo para continuar apostando.
-                        </AlertDescription>
-                    </Alert>
-                ) : (
-                    <TicketSelectionForm
-                        cart={cart}
-                        onCartChange={setCart}
-                        isSubmitting={isSubmitting}
-                    />
-                )}
-            </TabsContent>
-            <TabsContent value="bilhetes">
-                 <section>
-                    <h2 className="text-2xl font-bold text-center text-white mb-6">
-                        Meus Bilhetes
-                    </h2>
-                    <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />
-                </section>
-            </TabsContent>
-        </Tabs>
-      )}
+    {role === 'cliente' && (
+      <Tabs value={clientTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-auto mb-8 bg-card p-1.5 rounded-lg shadow-md">
+              <TabsTrigger value="aposta" className="py-2.5 text-sm sm:text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
+                  <TicketIcon className="mr-2 h-5 w-5" /> Fazer Aposta
+              </TabsTrigger>
+              <TabsTrigger value="bilhetes" className="py-2.5 text-sm sm:text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-200">
+                  <ShoppingBag className="mr-2 h-5 w-5" /> Meus Bilhetes
+              </TabsTrigger>
+          </TabsList>
+          <TabsContent value="aposta">
+              {isLotteryPaused ? (
+                  <Alert variant="default" className="border-primary/50 bg-card/90 text-foreground max-w-2xl mx-auto">
+                      <PauseCircle className="h-5 w-5 text-primary" />
+                      <AlertTitle className="text-primary font-bold">Apostas Pausadas</AlertTitle>
+                      <AlertDescription className="text-muted-foreground">
+                      O registro de novas apostas está suspenso.
+                      Aguarde o administrador iniciar um novo ciclo para continuar apostando.
+                      </AlertDescription>
+                  </Alert>
+              ) : (
+                  <TicketSelectionForm
+                      cart={cart}
+                      onCartChange={setCart}
+                      isSubmitting={isSubmitting}
+                  />
+              )}
+          </TabsContent>
+          <TabsContent value="bilhetes">
+               <section>
+                  <h2 className="text-2xl font-bold text-center text-white mb-6">
+                      Meus Bilhetes
+                  </h2>
+                  <TicketList tickets={processedUserTickets} draws={allDraws} onRebet={handleRebet} />
+              </section>
+          </TabsContent>
+      </Tabs>
+    )}
 
-      {role === 'vendedor' && (
-         <SellerDashboard 
-            isLotteryPaused={isLotteryPaused}
-            lotteryConfig={lotteryConfig}
-            onTicketCreated={handleTicketCreated}
-            userTickets={processedUserTickets}
-            currentUser={currentUser}
-            allDraws={allDraws}
-         />
-      )}
-    </div>
+    {role === 'vendedor' && (
+       <SellerDashboard 
+          isLotteryPaused={isLotteryPaused}
+          lotteryConfig={lotteryConfig}
+          onTicketCreated={handleTicketCreated}
+          userTickets={processedUserTickets}
+          currentUser={currentUser}
+          allDraws={allDraws}
+       />
+    )}
     </>
   );
 }
