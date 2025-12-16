@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 export type AdminSection = 
   | "configuracoes" 
@@ -12,7 +14,7 @@ export type AdminSection =
   | "relatorios" 
   | "ranking-ciclo";
 
-export default function AdminClient({ initialSection }: { initialSection: AdminSection }) {
+function AdminClientContent({ initialSection }: { initialSection: AdminSection }) {
   const router = useRouter();
   const [section, setSection] = useState<AdminSection>(initialSection);
 
@@ -21,7 +23,7 @@ export default function AdminClient({ initialSection }: { initialSection: AdminS
     // We use router.replace to avoid adding to the browser's history stack for simple UI changes.
     router.replace(`/admin?section=${next}`);
   }
-
+  
   // A simple demonstration of the Server/Client architecture.
   // The full implementation would be re-integrated here, but without
   // the need for `useSearchParams` as the initial state is provided by the server.
@@ -57,4 +59,12 @@ export default function AdminClient({ initialSection }: { initialSection: AdminS
       </main>
     </div>
   );
+}
+
+export default function AdminClient({ initialSection }: { initialSection: AdminSection }) {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <AdminClientContent initialSection={initialSection} />
+        </Suspense>
+    );
 }
