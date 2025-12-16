@@ -4,6 +4,15 @@
 import { useRouter } from "next/navigation";
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { AdminDrawForm } from "@/components/admin-draw-form";
+import { AdminDrawList } from "@/components/admin-draw-list";
+import { SettingsSection } from "@/components/admin/sections/SettingsSection";
+import { NewDrawSection } from "@/components/admin/sections/NewDrawSection";
+import { DrawHistorySection } from "@/components/admin/sections/DrawHistorySection";
+import { WinningTicketsSection } from "@/components/admin/sections/WinningTicketsSection";
+import { ReportsSection } from "@/components/admin/sections/ReportsSection";
+import { ControlsSection } from "@/components/admin/sections/ControlsSection";
+import { CycleRankingSection } from "@/components/admin/sections/CycleRankingSection";
 
 export type AdminSection = 
   | "configuracoes" 
@@ -20,43 +29,37 @@ function AdminClientContent({ initialSection }: { initialSection: AdminSection }
 
   function go(next: AdminSection) {
     setSection(next);
-    // We use router.replace to avoid adding to the browser's history stack for simple UI changes.
+    // Usamos router.replace para evitar adicionar ao histórico do navegador para simples mudanças de UI.
     router.replace(`/admin?section=${next}`);
   }
-  
-  // A simple demonstration of the Server/Client architecture.
-  // The full implementation would be re-integrated here, but without
-  // the need for `useSearchParams` as the initial state is provided by the server.
+
+  // Renderiza o conteúdo baseado na seção ativa
+  const renderSection = () => {
+    switch (section) {
+      case "configuracoes":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Configurações</div>; // Placeholder
+      case "cadastrar-sorteio":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo para Cadastrar Sorteio</div>; // Placeholder
+      case "controles-loteria":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo dos Controles</div>; // Placeholder
+      case "historico-sorteios":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo do Histórico de Sorteios</div>; // Placeholder
+      case "bilhetes-premiados":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Bilhetes Premiados</div>; // Placeholder
+      case "relatorios":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Relatórios</div>; // Placeholder
+      case "ranking-ciclo":
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo do Ranking do Ciclo</div>; // Placeholder
+      default:
+        return <div className="mt-4 p-4 border rounded-lg">Conteúdo Padrão</div>;
+    }
+  }
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh", color: "white" }}>
-      <aside style={{ padding: 16, borderRight: "1px solid #4A5568" }}>
-        <h2>Painel (Exemplo)</h2>
-
-        <nav style={{ display: "grid", gap: 8, marginTop: 12 }}>
-          <button onClick={() => go("configuracoes")} aria-current={section === "configuracoes"}>
-            Configurações
-          </button>
-          <button onClick={() => go("cadastrar-sorteio")} aria-current={section === "cadastrar-sorteio"}>
-            Cadastrar Sorteio
-          </button>
-          <button onClick={() => go("controles-loteria")} aria-current={section === "controles-loteria"}>
-            Controles
-          </button>
-           <button onClick={() => go("ranking-ciclo")} aria-current={section === "ranking-ciclo"}>
-            Ranking do Ciclo
-          </button>
-        </nav>
-      </aside>
-
-      <main style={{ padding: 16 }}>
-        <p className="text-lg font-semibold">Seção Ativa: <span className="text-primary font-bold">{section}</span></p>
-        <p className="text-muted-foreground mt-2">O conteúdo completo para esta seção seria renderizado aqui.</p>
-        
-        {section === "configuracoes" && <div className="mt-4 p-4 border rounded-lg">Conteúdo de Configurações</div>}
-        {section === "cadastrar-sorteio" && <div className="mt-4 p-4 border rounded-lg">Conteúdo para Cadastrar Sorteio</div>}
-        {section === "controles-loteria" && <div className="mt-4 p-4 border rounded-lg">Conteúdo dos Controles</div>}
-        {section === "ranking-ciclo" && <div className="mt-4 p-4 border rounded-lg">Conteúdo do Ranking do Ciclo</div>}
-      </main>
+    <div style={{ color: "white" }}>
+      <p className="text-lg font-semibold">Seção Ativa: <span className="text-primary font-bold">{section}</span></p>
+      <p className="text-muted-foreground mt-2">O conteúdo completo para esta seção seria renderizado aqui.</p>
+      {renderSection()}
     </div>
   );
 }
