@@ -147,9 +147,7 @@ export default function CadastroClient({ initialRole }: { initialRole: 'cliente'
           </Button>
         </Link>
       </div>
-      <div className="absolute top-6 right-6 z-50">
-        <ThemeToggleButton />
-      </div>
+      
 
       <Card className="w-full max-w-md shadow-xl bg-card/90 backdrop-blur-sm border-border/50">
         <CardHeader className="text-center">

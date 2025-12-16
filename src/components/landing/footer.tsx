@@ -8,7 +8,7 @@ export const Footer = () => (
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
             <Link href="#" className="hover:text-primary">Termos de Serviço</Link>
             <Link href="#" className="hover:text-primary">Política de Privacidade</Link>
-            <ThemeToggleButton />
+            
         </div>
     </div>
   </footer>
