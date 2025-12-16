@@ -119,9 +119,9 @@ export default function LoginClient() {
                 </Button>
                 
                 <div className="flex items-center space-x-2">
-                    <Separator className="flex-grow" />
+                    <Separator className="flex-1" />
                     <span className="text-xs text-muted-foreground">OU</span>
-                    <Separator className="flex-grow" />
+                    <Separator className="flex-1" />
                 </div>
               </>
             )}
