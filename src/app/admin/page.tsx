@@ -19,8 +19,8 @@ function toSection(value: string | string[] | undefined): AdminSection {
   return VALID_SECTIONS.has(v as AdminSection) ? (v as AdminSection) : "configuracoes";
 }
 
-// A página agora é um Server Component `async` que lida corretamente com searchParams.
-export default async function AdminPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined }}) {
+// Corrigindo a tipagem de searchParams para ser um objeto síncrono.
+export default function AdminPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const section = toSection(searchParams?.['section']);
   
   return (
