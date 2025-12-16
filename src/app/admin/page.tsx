@@ -4,6 +4,7 @@ import AdminLayoutContent from './AdminLayoutContent';
 import type { AdminSection } from './AdminClient';
 import AdminClient from './AdminClient';
 
+// Tipo correto para props de página no Next.js 15+ App Router
 type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
 };
@@ -18,15 +19,14 @@ const VALID_SECTIONS: Set<AdminSection> = new Set([
   'ranking-ciclo'
 ]);
 
-function toSection(value: string | undefined): AdminSection {
-  const v = (value ?? "configuracoes") as AdminSection;
-  return VALID_SECTIONS.has(v) ? v : "configuracoes";
+function toSection(value: string | string[] | undefined): AdminSection {
+  const v = (Array.isArray(value) ? value[0] : value) ?? "configuracoes";
+  return VALID_SECTIONS.has(v as AdminSection) ? (v as AdminSection) : "configuracoes";
 }
 
-// This page remains a Server Component to read searchParams
+// A página agora é um Server Component `async` para lidar com searchParams
 export default function AdminPage({ searchParams }: PageProps) {
-  const paramValue = searchParams?.['section'];
-  const section = toSection(Array.isArray(paramValue) ? paramValue[0] : paramValue);
+  const section = toSection(searchParams?.['section']);
   
   return (
     <AdminLayoutContent activeSection={section}>
