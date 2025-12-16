@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef } from 'react';
@@ -22,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Coins, Home, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
-import { ThemeToggleButton } from '@/components/theme-toggle-button';
 import { Separator } from '@/components/ui/separator';
 import { ShoppingCart } from '@/components/shopping-cart';
 import { DashboardProvider, useDashboard } from '@/context/dashboard-context';
@@ -166,9 +166,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                  </SidebarMenuItem>
             </SidebarMenu>
-            <div className="flex items-center justify-end p-2">
-                <ThemeToggleButton />
-            </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
@@ -194,7 +191,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         onRemoveFromCart={(index) => setCart(cart.filter((_, i) => i !== index))}
                     />
                 )}
-                <ThemeToggleButton />
             </div>
         </header>
         <main className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">

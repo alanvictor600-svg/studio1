@@ -34,30 +34,64 @@ function AdminClientContent({ initialSection }: { initialSection: AdminSection }
 
   // Renderiza o conteúdo baseado na seção ativa
   const renderSection = () => {
+    // Fake props for demonstration. In a real app, these would come from state or context.
+    const fakeProps = {
+      draws: [],
+      winningTickets: [],
+      rankedTickets: [],
+      allTickets: [],
+      adminHistory: [],
+      financialReport: {
+        totalRevenue: 0,
+        sellerCommission: 0,
+        ownerCommission: 0,
+        prizePool: 0,
+        clientRevenue: 0,
+        sellerRevenue: 0,
+        clientTicketCount: 0,
+        sellerTicketCount: 0,
+      },
+      lotteryConfig: {
+        ticketPrice: 2,
+        sellerCommissionPercentage: 10,
+        ownerCommissionPercentage: 5,
+        clientSalesCommissionToOwnerPercentage: 10,
+      },
+       creditRequestConfig: {
+        whatsappNumber: '',
+        pixKey: '',
+      },
+      onAddDraw: () => {},
+      onStartNewLottery: async () => {},
+      onSaveLotteryConfig: async () => {},
+      onSaveCreditRequestConfig: async () => {},
+      onOpenCreditDialog: () => {},
+      onOpenViewUser: () => {},
+      hasWinningTickets: false,
+    };
+
     switch (section) {
       case "configuracoes":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Configurações</div>; // Placeholder
+        return <SettingsSection {...fakeProps} />;
       case "cadastrar-sorteio":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo para Cadastrar Sorteio</div>; // Placeholder
+        return <NewDrawSection {...fakeProps} />;
       case "controles-loteria":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo dos Controles</div>; // Placeholder
+        return <ControlsSection {...fakeProps} />;
       case "historico-sorteios":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo do Histórico de Sorteios</div>; // Placeholder
+        return <DrawHistorySection {...fakeProps} />;
       case "bilhetes-premiados":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Bilhetes Premiados</div>; // Placeholder
+        return <WinningTicketsSection {...fakeProps} />;
       case "relatorios":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo de Relatórios</div>; // Placeholder
+        return <ReportsSection {...fakeProps} />;
       case "ranking-ciclo":
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo do Ranking do Ciclo</div>; // Placeholder
+        return <CycleRankingSection {...fakeProps} />;
       default:
-        return <div className="mt-4 p-4 border rounded-lg">Conteúdo Padrão</div>;
+        return <SettingsSection {...fakeProps} />;
     }
   }
 
   return (
     <div style={{ color: "white" }}>
-      <p className="text-lg font-semibold">Seção Ativa: <span className="text-primary font-bold">{section}</span></p>
-      <p className="text-muted-foreground mt-2">O conteúdo completo para esta seção seria renderizado aqui.</p>
       {renderSection()}
     </div>
   );

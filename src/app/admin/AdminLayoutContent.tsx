@@ -118,9 +118,6 @@ export default function AdminLayoutContent({ activeSection, children }: { active
                     </SidebarMenuButton>
                  </SidebarMenuItem>
             </SidebarMenu>
-            <div className="flex items-center justify-end p-2">
-                <ThemeToggleButton />
-            </div>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="flex flex-col flex-1 min-h-screen">
@@ -133,7 +130,6 @@ export default function AdminLayoutContent({ activeSection, children }: { active
                 </Link>
             </div>
             <span className="font-semibold text-primary">Painel do Admin</span>
-            <ThemeToggleButton />
         </header>
         <div className="p-4 md:p-8 flex-1 bg-gradient-to-b from-emerald-700 to-emerald-900">
             <div className="mb-6">
