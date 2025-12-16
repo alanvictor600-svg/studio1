@@ -113,8 +113,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-email') {
             toast({ title: "Erro de Login", description: "Usuário ou senha incorretos.", variant: "destructive" });
         } else {
-             console.error("Firebase login error:", error.code, error.message);
-             toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Tente novamente.", variant: "destructive" });
+             // Generic error for other cases, including connectivity issues like 'unavailable'
+             toast({ title: "Erro de Login", description: "Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.", variant: "destructive" });
         }
         throw error;
      }
