@@ -2,10 +2,10 @@
 // src/app/admin/page.tsx
 import AdminClient from "./AdminClient";
 import type { AdminSection } from './AdminClient';
-import AdminLayoutContent from './AdminLayoutContent'; // Componente de cliente importado.
+import AdminLayoutContent from './AdminLayoutContent';
 
 type PageProps = {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams?: { [key: string]: string | string[] | undefined };
 };
 
 function getParam(sp: PageProps["searchParams"], key: string) {

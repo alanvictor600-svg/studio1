@@ -2,7 +2,7 @@
 import LoginClient from "./LoginClient";
 
 type PageProps = {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams?: { [key: string]: string | string[] | undefined };
 };
 
 function getParam(sp: PageProps["searchParams"], key: string) {
