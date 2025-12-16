@@ -110,4 +110,36 @@ export default function DashboardRolePageClient() {
                       <AlertDescription className="text-muted-foreground">
                       O registro de novas apostas está suspenso.
                       Aguarde o administrador iniciar um novo ciclo para continuar apostando.
-                      </Aler
+                      </AlertDescription>
+                  </Alert>
+              ) : (
+                  <TicketSelectionForm 
+                      cart={cart}
+                      onCartChange={setCart}
+                      isSubmitting={isSubmitting}
+                  />
+              )}
+          </TabsContent>
+          <TabsContent value="bilhetes">
+              <TicketList 
+                  tickets={processedUserTickets}
+                  draws={allDraws}
+                  onRebet={handleRebet}
+              />
+          </TabsContent>
+      </Tabs>
+    )}
+
+    {role === 'vendedor' && (
+        <SellerDashboard
+            isLotteryPaused={isLotteryPaused}
+            lotteryConfig={lotteryConfig}
+            onTicketCreated={handleTicketCreated}
+            userTickets={processedUserTickets}
+            currentUser={currentUser}
+            allDraws={allDraws}
+        />
+    )}
+</div>
+  );
+}
