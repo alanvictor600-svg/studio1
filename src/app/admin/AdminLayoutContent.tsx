@@ -4,8 +4,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import type { User } from '@/types';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import { 
     Sidebar,
@@ -19,12 +19,9 @@ import {
     SidebarInset,
     useSidebar
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Home, Settings, PlusCircle, ShieldCheck, PieChart, History, Trophy, TrendingUp } from 'lucide-react';
-import Image from 'next/image';
 import { ThemeToggleButton } from '@/components/theme-toggle-button';
-import { Separator } from '@/components/ui/separator';
 
 const menuItems: { id: string; label: string; Icon: React.ElementType }[] = [
   { id: 'configuracoes', label: 'Configurações', Icon: Settings },
@@ -55,8 +52,14 @@ export default function AdminLayoutContent({ activeSection, children }: { active
     );
   }
 
+  // This check is important. It prevents rendering the admin panel for non-admins
+  // while the redirect is in progress.
   if (currentUser.role !== 'admin') {
-    return null;
+    return (
+         <div className="flex justify-center items-center min-h-screen bg-emerald-800">
+            <p className="text-white text-xl">Acesso negado. Redirecionando...</p>
+        </div>
+    );
   }
 
   return (

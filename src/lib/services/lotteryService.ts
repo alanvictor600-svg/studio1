@@ -90,7 +90,7 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     });
 
     // 4. Reset Tickets
-    const ticketsSnapshot = await getDocs(query(collection(db, 'tickets'), where('status', 'in', ['active', 'winning', 'unpaid'])));
+    const ticketsSnapshot = await getDocs(query(collection(db, 'tickets'), where('status', 'in', ['active', 'winning', 'awaiting_payment', 'unpaid'])));
     ticketsSnapshot.forEach(ticketDoc => {
         batch.update(ticketDoc.ref, { status: 'expired' });
     });
@@ -98,5 +98,3 @@ export const startNewLottery = async ({ allUsers, processedTickets, lotteryConfi
     // Commit all operations at once
     await batch.commit();
 };
-
-    

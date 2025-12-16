@@ -35,10 +35,4 @@ export const updateUserCredits = async (userId: string, amount: number): Promise
 export const deleteUserAccount = async (userId: string): Promise<void> => {
     // Calling a server action to perform the deletion securely on the server-side.
     await deleteUserAction(userId);
-
-    // Delete from Firestore - this part is now handled in the server action.
-    // const userDocRef = doc(db, 'users', userId);
-    // await deleteDoc(userDocRef);
 };
-
-    

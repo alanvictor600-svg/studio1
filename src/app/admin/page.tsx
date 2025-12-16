@@ -1,17 +1,12 @@
 
-// src/app/admin/page.tsx
-import AdminClient from "./AdminClient";
-import type { AdminSection } from './AdminClient';
+import { Suspense } from 'react';
 import AdminLayoutContent from './AdminLayoutContent';
+import type { AdminSection } from './AdminClient';
+import AdminClient from './AdminClient';
 
 type PageProps = {
   searchParams?: { [key: string]: string | string[] | undefined };
 };
-
-function getParam(sp: PageProps["searchParams"], key: string) {
-  const v = sp?.[key];
-  return Array.isArray(v) ? v[0] : v;
-}
 
 const VALID_SECTIONS: Set<AdminSection> = new Set([
   'configuracoes', 
@@ -28,15 +23,16 @@ function toSection(value: string | undefined): AdminSection {
   return VALID_SECTIONS.has(v) ? v : "configuracoes";
 }
 
-// A página agora é um Componente de Servidor que lê searchParams.
+// This page remains a Server Component to read searchParams
 export default function AdminPage({ searchParams }: PageProps) {
-  const section = toSection(getParam(searchParams, "section"));
+  const paramValue = searchParams?.['section'];
+  const section = toSection(Array.isArray(paramValue) ? paramValue[0] : paramValue);
   
-  // A página renderiza o layout de conteúdo e o cliente da página,
-  // passando a seção ativa para ambos.
   return (
     <AdminLayoutContent activeSection={section}>
-      <AdminClient initialSection={section} />
+      <Suspense fallback={<div className="text-center p-10 text-white">Carregando seção...</div>}>
+        <AdminClient initialSection={section} />
+      </Suspense>
     </AdminLayoutContent>
   );
 }

@@ -20,6 +20,7 @@ export const ResultsSection = () => {
     useEffect(() => {
         let unsubscribe: Unsubscribe | null = null;
         
+        // We only attempt to fetch if isAuthenticated is resolved to true.
         if (isAuthenticated) {
             setIsLoading(true);
             const drawsQuery = query(collection(db, 'draws'), orderBy('createdAt', 'desc'));
@@ -32,10 +33,12 @@ export const ResultsSection = () => {
                 setIsLoading(false);
             });
         } else {
+             // If not authenticated, don't show loading, just show the login prompt.
              setIsLoading(false);
              setLastDraw(null);
         }
 
+        // Cleanup subscription on unmount or when auth state changes
         return () => {
             if (unsubscribe) {
                 unsubscribe();

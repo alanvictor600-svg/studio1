@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,14 +26,19 @@ const GoogleIcon = () => (
 );
 
 
-export default function LoginClient({ isAdminLogin, redirectParam }: { isAdminLogin: boolean, redirectParam: string | null }) {
+export default function LoginClient() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, signInWithGoogle, isLoading, isAuthenticated, currentUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const isAdminLogin = searchParams.get('as') === 'admin';
+  const redirectParam = searchParams.get('redirect');
+
 
   // If the user is already authenticated, redirect them away from the login page.
   useEffect(() => {
